@@ -9,11 +9,12 @@ import win "windows"
 main :: proc() {
 	className := win.utf8_to_wstring("qimage")
 	windowTitle := win.utf8_to_wstring("Title")
+	//hInstance := win.HINSTANCE(win.GetModuleHandleW(nil))
 	windowClass := win.WNDCLASSW {
 		style         = win.CS_HREDRAW | win.CS_VREDRAW,
 		lpfnWndProc   = messageHandlerWrapper,
 		lpszClassName = className,
-		//hInstance     = win.HINSTANCE(win.GetModuleHandleW(nil)),
+		//hInstance     = hInstance,
 	}
 	cls := win.RegisterClassW(&windowClass)
 	assert(win.GetLastError() == 0)
@@ -28,6 +29,7 @@ main :: proc() {
 		300,
 		nil,
 		nil,
+		//hInstance,
 		nil,
 		nil,
 	)
@@ -72,6 +74,9 @@ messageHandler :: proc(
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
 	case win.WM_CLOSE:
 		win.print(fmt.ctprintf("WM_CLOSE\n"))
+	case win.WM_CREATE:
+		win.print(fmt.ctprintf("WM_CREATE\n"))
+		errorCode = 1
 	case:
 		errorCode = 1
 	}
