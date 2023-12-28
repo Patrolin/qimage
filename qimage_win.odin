@@ -18,10 +18,10 @@ main :: proc() {
 		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
 	}
 
-	initial_rect := win.RECT{0, 0, 1366, 768}
-	win.AdjustWindowRectEx(&initial_rect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
-	initial_width := initial_rect.right - initial_rect.left
-	initial_height := initial_rect.bottom - initial_rect.top
+	initialRect := win.RECT{0, 0, 1366, 768}
+	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
+	initialWidth := initialRect.right - initialRect.left
+	initialHeight := initialRect.bottom - initialRect.top
 
 	if win.RegisterClassExW(&window_class) != 0 {
 		title_w := win.utf8_to_wstring(TITLE)
@@ -32,8 +32,8 @@ main :: proc() {
 			win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
 			win.CW_USEDEFAULT,
 			win.CW_USEDEFAULT,
-			initial_width,
-			initial_height,
+			initialWidth,
+			initialHeight,
 			nil,
 			nil,
 			nil,
@@ -45,6 +45,9 @@ main :: proc() {
 				for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
 					win.TranslateMessage(&msg)
 					win.DispatchMessageW(&msg)
+					if msg.message == win.WM_QUIT {
+						isRunning = false
+					}
 				}
 			}
 		}
@@ -68,6 +71,7 @@ messageHandler :: proc "stdcall" (
 		win.print(fmt.ctprintf("WM_SIZE\n"))
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
+		win.PostQuitMessage(0)
 	case win.WM_PAINT:
 		win.print(fmt.ctprintf("WM_PAINT\n"))
 		paint: win.PAINTSTRUCT

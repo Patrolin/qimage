@@ -23,6 +23,7 @@ PeekMessageW :: coreWin.PeekMessageW
 TranslateMessage :: coreWin.TranslateMessage
 DispatchMessageW :: coreWin.DispatchMessageW
 DefWindowProcW :: coreWin.DefWindowProcW
+PostQuitMessage :: coreWin.PostQuitMessage
 foreign import user32 "system:user32.lib"
 @(default_calling_convention = "std")
 foreign user32 {
