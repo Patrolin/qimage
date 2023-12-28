@@ -28,6 +28,9 @@ foreign import user32 "system:user32.lib"
 foreign user32 {
 	MessageBoxA :: proc(windowHandle: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
 }
+BeginPaint :: coreWin.BeginPaint
+PatBlt :: coreWin.PatBlt
+EndPaint :: coreWin.EndPaint
 
 
 utf8_to_wstring :: coreWin.utf8_to_wstring

@@ -68,6 +68,16 @@ messageHandler :: proc "stdcall" (
 		win.print(fmt.ctprintf("WM_SIZE\n"))
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
+	case win.WM_PAINT:
+		win.print(fmt.ctprintf("WM_PAINT\n"))
+		paint: win.PAINTSTRUCT
+		dc: win.HDC = win.BeginPaint(window, &paint)
+		x := paint.rcPaint.left
+		width := paint.rcPaint.right - paint.rcPaint.left
+		y := paint.rcPaint.top
+		height := paint.rcPaint.bottom - paint.rcPaint.top
+		win.PatBlt(dc, x, y, width, height, win.BLACKNESS)
+		win.EndPaint(window, &paint)
 	case:
 		result = win.DefWindowProcW(window, message, wParam, lParam)
 	}

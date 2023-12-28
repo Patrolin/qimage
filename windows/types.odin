@@ -4,8 +4,11 @@ package windows
 import "core:c"
 import coreWin "core:sys/windows"
 
-// message
+// paint
+PAINTSTRUCT :: coreWin.PAINTSTRUCT
 RECT :: coreWin.RECT
+
+// message
 POINT :: coreWin.POINT
 MSG :: coreWin.MSG
 LPMSG :: ^MSG
