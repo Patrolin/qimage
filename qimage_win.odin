@@ -9,19 +9,18 @@ WINDOW_CLASS_NAME :: "qimage_window_class"
 TITLE :: "QImage"
 WIDTH :: 1366
 HEIGHT :: 768
+BYTES_PER_PIXEL :: 4
 
 isRunning := false
-bitmapInfo := win.BITMAPINFO{
-	bmiHeader = win.BITMAPINFOHEADER{
+bitmapInfo := win.BITMAPINFO {
+	bmiHeader = win.BITMAPINFOHEADER {
 		biSize = size_of(win.BITMAPINFOHEADER),
 		biPlanes = 1,
-		biBitCount = 32,
+		biBitCount = BYTES_PER_PIXEL * 8,
 		biCompression = win.BI_RGB,
 	},
 }
-bitmapData: win.LPVOID
-bitmap: win.HBITMAP
-bitmapDc: win.HDC
+bitmapData: [^]u8
 
 main :: proc() {
 	//instance := win.HANDLE(win.GetModuleHandleW(nil))
@@ -107,23 +106,38 @@ messageHandler :: proc "stdcall" (
 }
 
 ResizeDIBSection :: proc(width, height: i32) {
-	if bitmap != nil {
-		win.DeleteObject(win.HGDIOBJ(bitmap))
-	}
-	if bitmapDc == nil {
-		bitmapDc = win.CreateCompatibleDC(nil)
+	if bitmapData != nil {
+		win.free(bitmapData)
 	}
 	bitmapInfo.bmiHeader.biWidth = width
-	bitmapInfo.bmiHeader.biHeight = height
-	bitmap = win.CreateDIBSection(
-		bitmapDc,
+	bitmapInfo.bmiHeader.biHeight = -height // top-down DIB
+	bitmapDataSize := uint(width) * uint(height) * BYTES_PER_PIXEL
+	bitmapData = ([^]u8)(win.alloc(bitmapDataSize))
+}
+PaintWindow :: proc(dc: win.HDC, x, y, clientWidth, clientHeight: i32) {
+	stride := BYTES_PER_PIXEL
+	pitch := int(bitmapInfo.bmiHeader.biWidth) * BYTES_PER_PIXEL
+	for Y := 0; Y < int(-bitmapInfo.bmiHeader.biHeight); Y += 1 {
+		for X := 0; X < int(bitmapInfo.bmiHeader.biWidth); X += 1 {
+			// xxRRGGBB but little endian, so BBGGRRxx
+			bitmapData[Y * pitch + X * stride] = 255
+			bitmapData[Y * pitch + (X + 1) * stride] = 0
+			bitmapData[Y * pitch + (X + 2) * stride] = 0
+		}
+	}
+	win.StretchDIBits(
+		dc,
+		x,
+		y,
+		bitmapInfo.bmiHeader.biWidth,
+		-bitmapInfo.bmiHeader.biHeight,
+		x,
+		y,
+		clientWidth,
+		clientHeight,
+		bitmapData,
 		&bitmapInfo,
 		win.DIB_RGB_COLORS,
-		&bitmapData,
-		nil,
-		0
+		win.SRCCOPY,
 	)
-}
-PaintWindow :: proc(dc: win.HDC, x, y, width, height: i32) {
-	win.StretchDIBits(dc, x, y, width, height, x, y, width, height, bitmapData, &bitmapInfo, win.DIB_RGB_COLORS, win.SRCCOPY)
 }

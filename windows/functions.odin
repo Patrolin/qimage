@@ -6,6 +6,8 @@ import coreWin "core:sys/windows"
 GetModuleHandleW :: coreWin.GetModuleHandleW
 GetLastError :: coreWin.GetLastError
 ExitProcess :: coreWin.ExitProcess
+VirtualAlloc :: coreWin.VirtualAlloc
+VirtualFree :: coreWin.VirtualFree
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "std")
 foreign kernel32 {
@@ -55,4 +57,11 @@ print :: proc(message: cstring) {
 	}
 	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
 	WriteConsoleA(stdout, message, u32(len(message)), nil, nil)
+}
+
+alloc :: proc(size: uint) -> LPVOID {
+	return VirtualAlloc(nil, size, MEM_COMMIT, PAGE_READWRITE)
+}
+free :: proc(ptr: LPVOID) -> BOOL {
+	return VirtualFree(ptr, 0, MEM_RELEASE)
 }
