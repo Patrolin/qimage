@@ -20,7 +20,7 @@ bitmapInfo := win.BITMAPINFO {
 		biCompression = win.BI_RGB,
 	},
 }
-bitmapData: [^]u8
+bitmapData: [^]u32
 bitmapSize: win.POINT
 
 main :: proc() {
@@ -120,7 +120,7 @@ resizeDIBSection :: proc(width, height: i32) {
 	bitmapInfo.bmiHeader.biWidth = width
 	bitmapInfo.bmiHeader.biHeight = -height // top-down DIB
 	bitmapDataSize := uint(width) * uint(height) * BYTES_PER_PIXEL
-	bitmapData = ([^]u8)(win.alloc(bitmapDataSize))
+	bitmapData = ([^]u32)(win.alloc(bitmapDataSize))
 	bitmapSize = {
 		x = width,
 		y = height,
@@ -128,14 +128,16 @@ resizeDIBSection :: proc(width, height: i32) {
 	// TODO: clear to black
 }
 renderToBitmap :: proc() {
-	stride := BYTES_PER_PIXEL
-	pitch := int(bitmapSize.x) * BYTES_PER_PIXEL
+	stride := 1
+	pitch := int(bitmapSize.x)
 	for Y := 0; Y < int(bitmapSize.y); Y += 1 {
 		for X := 0; X < int(bitmapSize.x); X += 1 {
+			red: u32 = 0
+			green: u32 = 0
+			blue: u32 = 255
 			// register: xxRRGGBB, memory: BBGGRRxx
-			bitmapData[Y * pitch + X * stride] = 255
-			bitmapData[Y * pitch + X * stride + 1] = 0
-			bitmapData[Y * pitch + X * stride + 2] = 0
+			BGRX := blue | (green << 8) | (red << 16)
+			bitmapData[Y * pitch + X * stride] = BGRX
 		}
 	}
 }
