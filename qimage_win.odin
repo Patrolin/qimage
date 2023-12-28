@@ -21,6 +21,7 @@ bitmapInfo := win.BITMAPINFO {
 	},
 }
 bitmapData: [^]u8
+bitmapSize: win.POINT
 
 main :: proc() {
 	//instance := win.HANDLE(win.GetModuleHandleW(nil))
@@ -54,14 +55,19 @@ main :: proc() {
 		)
 		if window != nil {
 			for isRunning = true; isRunning; {
-				msg: win.MSG
-				for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
-					win.TranslateMessage(&msg)
-					win.DispatchMessageW(&msg)
+				for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 					if msg.message == win.WM_QUIT {
 						isRunning = false
 					}
+					win.TranslateMessage(&msg)
+					win.DispatchMessageW(&msg)
 				}
+				renderToBitmap()
+				dc := win.GetDC(window)
+				clientRect: win.RECT
+				win.GetClientRect(window, &clientRect)
+				blitBitmapToWindow(dc, clientRect)
+				win.ReleaseDC(window, dc)
 			}
 		}
 	}
@@ -84,16 +90,13 @@ messageHandler :: proc "stdcall" (
 		win.GetClientRect(window, &clientRect)
 		clientWidth := clientRect.right - clientRect.left
 		clientHeight := clientRect.bottom - clientRect.top
-		ResizeDIBSection(clientWidth, clientHeight)
+		resizeDIBSection(clientWidth, clientHeight)
+		renderToBitmap()
 	case win.WM_PAINT:
 		win.print(fmt.ctprintf("WM_PAINT\n"))
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
-		x := paint.rcPaint.left
-		width := paint.rcPaint.right - x
-		y := paint.rcPaint.top
-		height := paint.rcPaint.bottom - y
-		PaintWindow(dc, x, y, width, height)
+		blitBitmapToWindow(dc, paint.rcPaint)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
@@ -105,39 +108,57 @@ messageHandler :: proc "stdcall" (
 	return
 }
 
-ResizeDIBSection :: proc(width, height: i32) {
+resizeDIBSection :: proc(width, height: i32) {
 	if bitmapData != nil {
+		bitmapSize = {
+			x = 0,
+			y = 0,
+		}
 		win.free(bitmapData)
+		bitmapData = nil
 	}
 	bitmapInfo.bmiHeader.biWidth = width
 	bitmapInfo.bmiHeader.biHeight = -height // top-down DIB
 	bitmapDataSize := uint(width) * uint(height) * BYTES_PER_PIXEL
 	bitmapData = ([^]u8)(win.alloc(bitmapDataSize))
+	bitmapSize = {
+		x = width,
+		y = height,
+	}
+	// TODO: clear to black
 }
-PaintWindow :: proc(dc: win.HDC, x, y, clientWidth, clientHeight: i32) {
+renderToBitmap :: proc() {
 	stride := BYTES_PER_PIXEL
-	pitch := int(bitmapInfo.bmiHeader.biWidth) * BYTES_PER_PIXEL
-	for Y := 0; Y < int(-bitmapInfo.bmiHeader.biHeight); Y += 1 {
-		for X := 0; X < int(bitmapInfo.bmiHeader.biWidth); X += 1 {
-			// xxRRGGBB but little endian, so BBGGRRxx
+	pitch := int(bitmapSize.x) * BYTES_PER_PIXEL
+	for Y := 0; Y < int(bitmapSize.y); Y += 1 {
+		for X := 0; X < int(bitmapSize.x); X += 1 {
+			// register: xxRRGGBB, memory: BBGGRRxx
 			bitmapData[Y * pitch + X * stride] = 255
-			bitmapData[Y * pitch + (X + 1) * stride] = 0
-			bitmapData[Y * pitch + (X + 2) * stride] = 0
+			bitmapData[Y * pitch + X * stride + 1] = 0
+			bitmapData[Y * pitch + X * stride + 2] = 0
 		}
 	}
+}
+blitBitmapToWindow :: proc(dc: win.HDC, clientRect: win.RECT) {
+	x := clientRect.left
+	clientWidth := clientRect.right - x
+	y := clientRect.top
+	clientHeight := clientRect.bottom - y
 	win.StretchDIBits(
 		dc,
 		x,
 		y,
-		bitmapInfo.bmiHeader.biWidth,
-		-bitmapInfo.bmiHeader.biHeight,
-		x,
-		y,
 		clientWidth,
 		clientHeight,
+		x,
+		y,
+		bitmapSize.x,
+		bitmapSize.y,
 		bitmapData,
 		&bitmapInfo,
 		win.DIB_RGB_COLORS,
 		win.SRCCOPY,
 	)
 }
+
+// layered window -> alpha channel?

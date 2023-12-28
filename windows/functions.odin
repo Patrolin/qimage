@@ -31,7 +31,9 @@ foreign import user32 "system:user32.lib"
 foreign user32 {
 	MessageBoxA :: proc(window: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
 	SetDIBits :: proc(dc: HDC, bitmap: HBITMAP, start: UINT, cLines: UINT, lpBits: LPVOID, lpBmi: BITMAPINFO, colorUse: UINT) ---
+	GetDC :: proc(window: HWND) -> HDC ---
 }
+ReleaseDC :: coreWin.ReleaseDC
 GetClientRect :: coreWin.GetClientRect
 BeginPaint :: coreWin.BeginPaint
 PatBlt :: coreWin.PatBlt
