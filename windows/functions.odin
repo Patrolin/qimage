@@ -27,15 +27,26 @@ PostQuitMessage :: coreWin.PostQuitMessage
 foreign import user32 "system:user32.lib"
 @(default_calling_convention = "std")
 foreign user32 {
-	MessageBoxA :: proc(windowHandle: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
+	MessageBoxA :: proc(window: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
+	SetDIBits :: proc(dc: HDC, bitmap: HBITMAP, start: UINT, cLines: UINT, lpBits: LPVOID, lpBmi: BITMAPINFO, colorUse: UINT) ---
 }
+GetClientRect :: coreWin.GetClientRect
 BeginPaint :: coreWin.BeginPaint
 PatBlt :: coreWin.PatBlt
 EndPaint :: coreWin.EndPaint
 
+CreateCompatibleDC :: coreWin.CreateCompatibleDC
+CreateDIBSection :: coreWin.CreateDIBSection
+StretchDIBits :: coreWin.StretchDIBits
+DeleteObject :: coreWin.DeleteObject
+foreign import gdi32 "system:Gdi32.lib"
+@(default_calling_convention = "std")
+foreign gdi32 {}
 
 utf8_to_wstring :: coreWin.utf8_to_wstring
+utf8_to_utf16 :: coreWin.utf8_to_utf16
 wstring_to_utf8 :: coreWin.wstring_to_utf8
+utf16_to_utf8 :: coreWin.utf16_to_utf8
 
 didAttachConsole := false
 print :: proc(message: cstring) {
