@@ -3,84 +3,73 @@ package main
 
 import "core:fmt"
 import "core:runtime"
-import coreWin "core:sys/windows"
 import win "windows"
 
+WINDOW_CLASS_NAME :: "qimage_window_class"
+TITLE :: "QImage"
+isRunning := true
+
 main :: proc() {
-	className := win.utf8_to_wstring("qimage")
-	windowTitle := win.utf8_to_wstring("Title")
-	//hInstance := win.HINSTANCE(win.GetModuleHandleW(nil))
-	windowClass := win.WNDCLASSW {
+	//hInstance := win.HANDLE(win.GetModuleHandleW(nil))
+	window_class := win.WNDCLASSEXW {
+		cbSize        = size_of(win.WNDCLASSEXW),
 		style         = win.CS_HREDRAW | win.CS_VREDRAW,
-		lpfnWndProc   = messageHandlerWrapper,
-		lpszClassName = className,
-		//hInstance     = hInstance,
+		lpfnWndProc   = messageHandler,
+		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
 	}
-	cls := win.RegisterClassW(&windowClass)
-	assert(win.GetLastError() == 0)
-	hWindow := win.CreateWindowExW(
-		0,
-		windowClass.lpszClassName,
-		windowTitle,
-		coreWin.WS_OVERLAPPEDWINDOW | coreWin.WS_VISIBLE,
-		0,
-		100,
-		300,
-		300,
-		nil,
-		nil,
-		//hInstance,
-		nil,
-		nil,
-	)
-	assert(win.GetLastError() == 0)
-	assert(hWindow != nil)
-	for {
-		message: win.MSG
-		messageResult := win.GetMessageA(&message, nil, 0, 0)
-		if messageResult > 0 {
-			win.TranslateMessage(&message)
-			win.DispatchMessageA(&message)
-		} else {
-			break
+
+	initial_rect := win.RECT{0, 0, 1366, 768}
+	win.AdjustWindowRectEx(&initial_rect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
+	initial_width := initial_rect.right - initial_rect.left
+	initial_height := initial_rect.bottom - initial_rect.top
+
+	if win.RegisterClassExW(&window_class) != 0 {
+		title_w := win.utf8_to_wstring(TITLE)
+		window := win.CreateWindowExW(
+			0,
+			window_class.lpszClassName,
+			title_w,
+			win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
+			win.CW_USEDEFAULT,
+			win.CW_USEDEFAULT,
+			initial_width,
+			initial_height,
+			nil,
+			nil,
+			nil,
+			nil,
+		)
+		if window != nil {
+			for isRunning {
+				msg: win.MSG
+				for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
+					win.TranslateMessage(&msg)
+					win.DispatchMessageW(&msg)
+				}
+			}
 		}
 	}
 }
 
-messageHandlerWrapper :: proc "stdcall" (
-	windowHandle: win.HWND,
+messageHandler :: proc "stdcall" (
+	window: win.HWND,
 	message: win.UINT,
 	wParam: win.WPARAM,
 	lParam: win.LPARAM,
-) -> win.LRESULT {
+) -> (
+	result: win.LRESULT,
+) {
 	context = runtime.default_context()
-	errorCode := messageHandler(windowHandle, message, wParam, lParam)
-	return errorCode
-}
-
-messageHandler :: proc(
-	windowHandle: win.HWND,
-	message: win.UINT,
-	wParam: win.WPARAM,
-	lParam: win.LPARAM,
-) -> win.LRESULT {
-	errorCode: win.LRESULT = 0
-	switch (message) {
+	result = 0
+	switch message {
 	case win.WM_ACTIVATEAPP:
 		win.print(fmt.ctprintf("WM_ACTIVATEAPP\n"))
 	case win.WM_SIZE:
 		win.print(fmt.ctprintf("WM_SIZE\n"))
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
-	case win.WM_CLOSE:
-		win.print(fmt.ctprintf("WM_CLOSE\n"))
-	case win.WM_CREATE:
-		win.print(fmt.ctprintf("WM_CREATE\n"))
-		errorCode = 1
 	case:
-		errorCode = 1
+		result = win.DefWindowProcW(window, message, wParam, lParam)
 	}
-	//win.MessageBoxA(nil, "Message body", "Message title", win.MB_OK)
-	//win.ExitProcess(0)
-	return errorCode
+	return
 }
