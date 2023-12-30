@@ -163,3 +163,5 @@ copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 		win.SRCCOPY,
 	)
 }
+
+// vsync via win.DwmFlush()?
