@@ -5,29 +5,26 @@ import "core:fmt"
 import "core:runtime"
 import win "windows"
 
-WINDOW_CLASS_NAME :: "qimage_window_class"
+WINDOW_CLASS_NAME :: "qimage_windowClass"
 TITLE :: "QImage"
 WIDTH :: 1366
 HEIGHT :: 768
-BYTES_PER_PIXEL :: 4
 
 isRunning := false
-bitmapInfo := win.BITMAPINFO {
-	bmiHeader = win.BITMAPINFOHEADER {
-		biSize = size_of(win.BITMAPINFOHEADER),
-		biPlanes = 1,
-		biBitCount = BYTES_PER_PIXEL * 8,
-		biCompression = win.BI_RGB,
-	},
+RenderBuffer :: struct {
+	info:          win.BITMAPINFO,
+	data:          [^]u32,
+	width:         i32,
+	height:        i32,
+	bytesPerPixel: win.WORD,
 }
-bitmapData: [^]u32
-bitmapSize: win.POINT
+renderBuffer := RenderBuffer{}
 
 main :: proc() {
 	//instance := win.HANDLE(win.GetModuleHandleW(nil))
-	window_class := win.WNDCLASSEXW {
+	windowClass := win.WNDCLASSEXW {
 		cbSize        = size_of(win.WNDCLASSEXW),
-		style         = win.CS_HREDRAW | win.CS_VREDRAW,
+		style         = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
 		lpfnWndProc   = messageHandler,
 		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
 	}
@@ -37,11 +34,11 @@ main :: proc() {
 	initialWidth := initialRect.right - initialRect.left
 	initialHeight := initialRect.bottom - initialRect.top
 
-	if win.RegisterClassExW(&window_class) != 0 {
+	if win.RegisterClassExW(&windowClass) != 0 {
 		title_w := win.utf8_to_wstring(TITLE)
 		window := win.CreateWindowExW(
 			0,
-			window_class.lpszClassName,
+			windowClass.lpszClassName,
 			title_w,
 			win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
 			win.CW_USEDEFAULT,
@@ -54,6 +51,7 @@ main :: proc() {
 			nil,
 		)
 		if window != nil {
+			dc := win.GetDC(window)
 			for isRunning = true; isRunning; {
 				for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 					if msg.message == win.WM_QUIT {
@@ -62,17 +60,15 @@ main :: proc() {
 					win.TranslateMessage(&msg)
 					win.DispatchMessageW(&msg)
 				}
-				renderToBitmap()
-				dc := win.GetDC(window)
-				clientRect: win.RECT
-				win.GetClientRect(window, &clientRect)
-				blitBitmapToWindow(dc, clientRect)
-				win.ReleaseDC(window, dc)
+				renderToBuffer()
+				x, y, width, height := getClientBox(window)
+				copyBufferToWindow(dc, x, y, width, height)
 			}
 		}
 	}
 }
 
+// does this block the main thread?
 messageHandler :: proc "stdcall" (
 	window: win.HWND,
 	message: win.UINT,
@@ -86,17 +82,18 @@ messageHandler :: proc "stdcall" (
 	switch message {
 	case win.WM_SIZE:
 		win.print(fmt.ctprintf("WM_SIZE\n"))
-		clientRect: win.RECT
-		win.GetClientRect(window, &clientRect)
-		clientWidth := clientRect.right - clientRect.left
-		clientHeight := clientRect.bottom - clientRect.top
-		resizeDIBSection(clientWidth, clientHeight)
-		renderToBitmap()
+		x, y, width, height := getClientBox(window)
+		resizeDIBSection(width, height)
+		renderToBuffer()
 	case win.WM_PAINT:
 		win.print(fmt.ctprintf("WM_PAINT\n"))
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
-		blitBitmapToWindow(dc, paint.rcPaint)
+		x := paint.rcPaint.left
+		width := paint.rcPaint.right - x
+		y := paint.rcPaint.top
+		height := paint.rcPaint.bottom - y
+		copyBufferToWindow(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
@@ -108,59 +105,65 @@ messageHandler :: proc "stdcall" (
 	return
 }
 
-resizeDIBSection :: proc(width, height: i32) {
-	if bitmapData != nil {
-		bitmapSize = {
-			x = 0,
-			y = 0,
-		}
-		win.free(bitmapData)
-		bitmapData = nil
-	}
-	bitmapInfo.bmiHeader.biWidth = width
-	bitmapInfo.bmiHeader.biHeight = -height // top-down DIB
-	bitmapDataSize := uint(width) * uint(height) * BYTES_PER_PIXEL
-	bitmapData = ([^]u32)(win.alloc(bitmapDataSize))
-	bitmapSize = {
-		x = width,
-		y = height,
-	}
-	// TODO: clear to black
+getClientBox :: proc(window: win.HWND) -> (x, y, width, height: win.LONG) {
+	clientRect: win.RECT
+	win.GetClientRect(window, &clientRect)
+	x = clientRect.left
+	width = clientRect.right - x
+	y = clientRect.top
+	height = clientRect.bottom - y
+	return
 }
-renderToBitmap :: proc() {
+
+resizeDIBSection :: proc(width, height: win.LONG) {
+	if renderBuffer.data != nil {
+		win.free(renderBuffer.data)
+	}
+	renderBuffer.bytesPerPixel = 4
+	renderBuffer.info.bmiHeader.biSize = size_of(win.BITMAPINFOHEADER)
+	renderBuffer.info.bmiHeader.biPlanes = 1
+	renderBuffer.info.bmiHeader.biBitCount = renderBuffer.bytesPerPixel * 8
+	renderBuffer.info.bmiHeader.biCompression = win.BI_RGB
+	renderBuffer.info.bmiHeader.biWidth = width
+	renderBuffer.info.bmiHeader.biHeight = -height // top-down DIB
+	bitmapDataSize := uint(width) * uint(height) * uint(renderBuffer.bytesPerPixel)
+	renderBuffer.data = ([^]u32)(win.alloc(bitmapDataSize))
+	renderBuffer.width = width
+	renderBuffer.height = height
+	// TODO: clear to black / stretch previous / copy previous?
+}
+renderToBuffer :: proc() {
 	stride := 1
-	pitch := int(bitmapSize.x)
-	for Y := 0; Y < int(bitmapSize.y); Y += 1 {
-		for X := 0; X < int(bitmapSize.x); X += 1 {
+	pitch := int(renderBuffer.width)
+	for Y := 0; Y < int(renderBuffer.height); Y += 1 {
+		for X := 0; X < int(renderBuffer.width); X += 1 {
 			red: u32 = 0
 			green: u32 = 0
 			blue: u32 = 255
 			// register: xxRRGGBB, memory: BBGGRRxx
 			BGRX := blue | (green << 8) | (red << 16)
-			bitmapData[Y * pitch + X * stride] = BGRX
+			renderBuffer.data[Y * pitch + X * stride] = BGRX
 		}
 	}
 }
-blitBitmapToWindow :: proc(dc: win.HDC, clientRect: win.RECT) {
-	x := clientRect.left
-	clientWidth := clientRect.right - x
-	y := clientRect.top
-	clientHeight := clientRect.bottom - y
+copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 	win.StretchDIBits(
 		dc,
 		x,
 		y,
-		clientWidth,
-		clientHeight,
+		width,
+		height,
 		x,
 		y,
-		bitmapSize.x,
-		bitmapSize.y,
-		bitmapData,
-		&bitmapInfo,
+		renderBuffer.width,
+		renderBuffer.height,
+		renderBuffer.data,
+		&renderBuffer.info,
 		win.DIB_RGB_COLORS,
 		win.SRCCOPY,
 	)
 }
 
 // layered window -> alpha channel?
+// http://www.iec.ch
+// sRGB IEC 61966-2.1

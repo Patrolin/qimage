@@ -15,6 +15,7 @@ foreign kernel32 {
 	AttachConsole :: proc(dwProcessId: DWORD) -> BOOL ---
 	GetStdHandle :: proc(nStdHandle: DWORD) -> HANDLE ---
 	WriteConsoleA :: proc(hConsoleOutput: HANDLE, lpBuffer: cstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
+	WriteConsoleW :: proc(hConsoleOutput: HANDLE, lpBuffer: wstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
 }
 
 AdjustWindowRectEx :: coreWin.AdjustWindowRectEx
@@ -30,6 +31,7 @@ foreign import user32 "system:user32.lib"
 @(default_calling_convention = "std")
 foreign user32 {
 	MessageBoxA :: proc(window: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
+	//MessageBoxW :: proc(window: HWND, body: LPCWSTR, title: LPCWSTR, type: UINT) ---
 	SetDIBits :: proc(dc: HDC, bitmap: HBITMAP, start: UINT, cLines: UINT, lpBits: LPVOID, lpBmi: BITMAPINFO, colorUse: UINT) ---
 	GetDC :: proc(window: HWND) -> HDC ---
 }
@@ -52,6 +54,7 @@ utf8_to_utf16 :: coreWin.utf8_to_utf16
 wstring_to_utf8 :: coreWin.wstring_to_utf8
 utf16_to_utf8 :: coreWin.utf16_to_utf8
 
+// TODO: better print
 didAttachConsole := false
 print :: proc(message: cstring) {
 	if !didAttachConsole {
