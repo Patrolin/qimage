@@ -61,7 +61,7 @@ main :: proc() {
 	}
 }
 
-// does this block the main thread?
+// NOTE: does this block the main thread?
 messageHandler :: proc "stdcall" (
 	window: win.HWND,
 	message: win.UINT,
@@ -125,7 +125,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	win.DescribePixelFormat(dc, pixelFormatIndex, size_of(win.PIXELFORMATDESCRIPTOR), &pixelFormat)
 	win.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
 	glRc := win.wglCreateContext(dc)
-	// win.wglCreateContextAttrib(...) for gl 3.0+
+	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
 	if win.wglMakeCurrent(dc, glRc) {
 		win.print(fmt.ctprintf("%v\n", pixelFormat))
 	} else {
@@ -133,7 +133,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	}
 }
 resizeDIBSection :: proc(width, height: win.LONG) {
-	// TODO: clear to black / stretch previous / copy previous?
+	// NOTE: clear to black / stretch previous / copy previous?
 	win.glViewport(0, 0, u32(width), u32(height))
 }
 renderToBuffer :: proc() {
@@ -144,5 +144,5 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 	win.SwapBuffers(dc)
 }
 
-// layered window -> alpha channel?
+// NOTE: layered window -> alpha channel?
 // TODO: tell OpenGL we want sRGB - handmade hero 236-241
