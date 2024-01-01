@@ -1,4 +1,4 @@
-// odin run qimage_win -subsystem:windows
+// odin run min_opengl_renderer -subsystem:windows
 package main
 
 import win "../windows"
@@ -6,8 +6,8 @@ import "core:fmt"
 import "core:runtime"
 import gl "vendor:OpenGL"
 
-WINDOW_CLASS_NAME :: "min_gpu_renderer_windowClass"
-TITLE :: "min_gpu_renderer"
+WINDOW_CLASS_NAME :: "min_opengl_renderer_windowClass"
+TITLE :: "min_opengl_renderer"
 WIDTH :: 1366
 HEIGHT :: 768
 
@@ -56,6 +56,7 @@ main :: proc() {
 				renderToBuffer()
 				x, y, width, height := getClientBox(window)
 				swapBuffers(dc, x, y, width, height)
+				free_all(context.temp_allocator)
 			}
 		}
 	}
@@ -95,6 +96,7 @@ messageHandler :: proc "stdcall" (
 	case:
 		result = win.DefWindowProcW(window, message, wParam, lParam)
 	}
+	free_all(context.temp_allocator)
 	return
 }
 
@@ -145,3 +147,5 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 }
 
 // NOTE: layered window -> alpha channel?
+// NOTE: enable vsync via wglSwapIntervalExt(1)
+// NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043

@@ -63,6 +63,7 @@ main :: proc() {
 				renderToBuffer()
 				x, y, width, height := getClientBox(window)
 				copyBufferToWindow(dc, x, y, width, height)
+				free_all(context.temp_allocator)
 			}
 		}
 	}
@@ -102,6 +103,7 @@ messageHandler :: proc "stdcall" (
 	case:
 		result = win.DefWindowProcW(window, message, wParam, lParam)
 	}
+	free_all(context.temp_allocator)
 	return
 }
 
@@ -165,6 +167,6 @@ copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 }
 
 // NOTE: layered window -> alpha channel?
-// NOTE: vsync via win.DwmFlush()?
+// NOTE: vsync via directXOutput.WaitForVBlank()? / win.DwmFlush()?
 // NOTE: casey says use D3D11/Metal: https://guide.handmadehero.org/code/day570/#7492
 // NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552

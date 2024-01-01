@@ -56,6 +56,7 @@ main :: proc() {
 				renderToBuffer()
 				x, y, width, height := getClientBox(window)
 				swapBuffers(dc, x, y, width, height)
+				free_all(context.temp_allocator)
 			}
 		}
 	}
@@ -95,6 +96,7 @@ messageHandler :: proc "stdcall" (
 	case:
 		result = win.DefWindowProcW(window, message, wParam, lParam)
 	}
+	free_all(context.temp_allocator)
 	return
 }
 
