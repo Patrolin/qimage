@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<head>
+    <style>
+        [flex-row] {
+            display: flex;
+        }
+        [flex-column] {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div flex-column>
+        <span></span>
+        <span id="output"></span>
+        <span id="droppedFramesOutput"></span>
+    </div>
+    <script>
+        function now() {
+            return window.performance.now();
+        }
+        const FRAME_TIME = 16 + 2 / 3;
+        let startTime = now();
+        let frameCount = 0;
+        let expectedFrameCount = 0;
+        let restartExpectedFrameCount = 0;
+        let isRunning = true;
+        function main() {
+            if (!isRunning) return;
+            const time = now();
+            if (startTime === 0) startTime = time;
+            let expectedFrameCountDiff = Math.floor((time - startTime) / FRAME_TIME + restartExpectedFrameCount);
+            expectedFrameCount += expectedFrameCountDiff;
+            startTime += expectedFrameCountDiff * FRAME_TIME;
+            output.innerText = `${frameCount} / ${expectedFrameCount}`;
+            const droppedFrames = expectedFrameCount - frameCount;
+            const droppedFrameRate = Math.floor(expectedFrameCount / (droppedFrames || 1));
+            droppedFramesOutput.innerText = `${droppedFrames} dropped frames` + (droppedFrames > 0 ? ` (1 every ${droppedFrameRate})` : "");
+            frameCount++;
+            requestAnimationFrame(main);
+        }
+        let restartTimeout = 0;
+        function restart() {
+            clearTimeout(restartTimeout);
+            restartTimeout = setTimeout(() => {
+                isRunning = true;
+                startTime = 0;
+                requestAnimationFrame(main);
+            }, 100);
+        }
+        restart();
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.visibilityState === "visible") {
+                restart();
+            } else {
+                isRunning = false;
+            }
+        });
+    </script>
+</body>
