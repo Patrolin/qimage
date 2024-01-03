@@ -1,0 +1,44 @@
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    padding: 8px;
+}
+[full-width] {
+    height: 100%;
+}
+[full-height] {
+    height: 100%;
+}
+[flex-row] {
+    display: flex;
+}
+[flex-column] {
+    display: flex;
+    flex-direction: column;
+}
+[padding-1] {
+    padding: 4px;
+}
+[padding-2] {
+    padding: 8px;
+}
+[padding-3] {
+    padding: 16px;
+}
+[gap-1] {
+    gap: 4px;
+}
+[gap-2] {
+    gap: 8px;
+}
+[gap-3] {
+    gap: 16px;
+}
+[flex] {
+    flex: 1;
+}
+[no-mouse] {
+    pointer-events: none;
+}

@@ -1,25 +1,34 @@
-// odin run min_opengl_renderer -subsystem:windows
+// odin run demo/cpu/min_renderer -subsystem:windows
 package main
 
-import win "../windows"
+import win "../../../lib_windows"
 import "core:fmt"
 import "core:runtime"
-import gl "vendor:OpenGL"
 
-WINDOW_CLASS_NAME :: "min_opengl_renderer_windowClass"
-TITLE :: "min_opengl_renderer"
+WINDOW_CLASS_NAME :: "min_cpu_renderer_windowClass"
+TITLE :: "min_cpu_renderer"
 WIDTH :: 1366
 HEIGHT :: 768
 
 isRunning := false
+RenderBuffer :: struct {
+	info:          win.BITMAPINFO,
+	data:          [^]u32,
+	width:         i32,
+	height:        i32,
+	bytesPerPixel: win.WORD,
+}
+renderBuffer := RenderBuffer{}
 
 main :: proc() {
+	//instance := win.HANDLE(win.GetModuleHandleW(nil))
 	windowClass := win.WNDCLASSEXW {
 		cbSize        = size_of(win.WNDCLASSEXW),
 		style         = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
 		lpfnWndProc   = messageHandler,
 		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
 	}
+	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
 
 	initialRect := win.RECT{0, 0, WIDTH, HEIGHT}
 	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
@@ -27,7 +36,6 @@ main :: proc() {
 	initialHeight := initialRect.bottom - initialRect.top
 
 	if win.RegisterClassExW(&windowClass) != 0 {
-		title_w := win.utf8_to_wstring(TITLE)
 		window := win.CreateWindowExW(
 			0,
 			windowClass.lpszClassName,
@@ -44,7 +52,6 @@ main :: proc() {
 		)
 		if window != nil {
 			dc := win.GetDC(window)
-			initOpenGL(dc)
 			for isRunning = true; isRunning; {
 				for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 					if msg.message == win.WM_QUIT {
@@ -55,7 +62,7 @@ main :: proc() {
 				}
 				renderToBuffer()
 				x, y, width, height := getClientBox(window)
-				swapBuffers(dc, x, y, width, height)
+				copyBufferToWindow(dc, x, y, width, height)
 				free_all(context.temp_allocator)
 			}
 		}
@@ -87,7 +94,7 @@ messageHandler :: proc "stdcall" (
 		width := paint.rcPaint.right - x
 		y := paint.rcPaint.top
 		height := paint.rcPaint.bottom - y
-		swapBuffers(dc, x, y, width, height)
+		copyBufferToWindow(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
 		win.print(fmt.ctprintf("WM_DESTROY\n"))
@@ -110,43 +117,57 @@ getClientBox :: proc(window: win.HWND) -> (x, y, width, height: win.LONG) {
 	return
 }
 
-initOpenGL :: proc(dc: win.HDC) {
-	desiredPixelFormat := win.PIXELFORMATDESCRIPTOR {
-		nSize      = size_of(win.PIXELFORMATDESCRIPTOR),
-		nVersion   = 1,
-		iPixelType = win.PFD_TYPE_RGBA,
-		dwFlags    = win.PFD_SUPPORT_OPENGL | win.PFD_DRAW_TO_WINDOW | win.PFD_DOUBLEBUFFER,
-		cRedBits   = 8,
-		cGreenBits = 8,
-		cBlueBits  = 8,
-		cAlphaBits = 8,
-		iLayerType = win.PFD_MAIN_PLANE,
-	}
-	pixelFormatIndex := win.ChoosePixelFormat(dc, &desiredPixelFormat)
-	pixelFormat: win.PIXELFORMATDESCRIPTOR
-	win.DescribePixelFormat(dc, pixelFormatIndex, size_of(win.PIXELFORMATDESCRIPTOR), &pixelFormat)
-	win.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
-	glRc := win.wglCreateContext(dc)
-	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
-	if win.wglMakeCurrent(dc, glRc) {
-		win.print(fmt.ctprintf("%v\n", pixelFormat))
-	} else {
-		assert(false)
-	}
-}
 resizeDIBSection :: proc(width, height: win.LONG) {
+	if renderBuffer.data != nil {
+		win.free(renderBuffer.data)
+	}
+	renderBuffer.bytesPerPixel = 4
+	renderBuffer.info.bmiHeader.biSize = size_of(win.BITMAPINFOHEADER)
+	renderBuffer.info.bmiHeader.biPlanes = 1
+	renderBuffer.info.bmiHeader.biBitCount = renderBuffer.bytesPerPixel * 8
+	renderBuffer.info.bmiHeader.biCompression = win.BI_RGB
+	renderBuffer.info.bmiHeader.biWidth = width
+	renderBuffer.info.bmiHeader.biHeight = -height // top-down DIB
+	bitmapDataSize := uint(width) * uint(height) * uint(renderBuffer.bytesPerPixel)
+	renderBuffer.data = ([^]u32)(win.alloc(bitmapDataSize))
+	renderBuffer.width = width
+	renderBuffer.height = height
 	// NOTE: clear to black / stretch previous / copy previous?
-	win.glViewport(0, 0, u32(width), u32(height))
 }
 renderToBuffer :: proc() {
-	win.glClearColor(.5, 0, .5, 1)
-	win.glClear(gl.COLOR_BUFFER_BIT)
+	stride := 1
+	pitch := int(renderBuffer.width)
+	for Y := 0; Y < int(renderBuffer.height); Y += 1 {
+		for X := 0; X < int(renderBuffer.width); X += 1 {
+			red: u32 = 0
+			green: u32 = 0
+			blue: u32 = 255
+			// register: xxRRGGBB, memory: BBGGRRxx
+			BGRX := blue | (green << 8) | (red << 16)
+			renderBuffer.data[Y * pitch + X * stride] = BGRX
+		}
+	}
 }
-swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
-	win.SwapBuffers(dc)
+copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
+	win.StretchDIBits(
+		dc,
+		x,
+		y,
+		width,
+		height,
+		x,
+		y,
+		renderBuffer.width,
+		renderBuffer.height,
+		renderBuffer.data,
+		&renderBuffer.info,
+		win.DIB_RGB_COLORS,
+		win.SRCCOPY,
+	)
 }
 
 // NOTE: layered window -> alpha channel?
-// NOTE: enable vsync via wglSwapIntervalExt(1)
-// NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043
-// TODO: vsync counter demo
+// NOTE: vsync via directXOutput.WaitForVBlank()? / win.DwmFlush()?
+// NOTE: casey says use D3D11/Metal: https://guide.handmadehero.org/code/day570/#7492
+// NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552
+// TODO: fonts (163/164): https://www.youtube.com/playlist?list=PLEMXAbCVnmY43tjaptnJW0rMP-DsXww1Y

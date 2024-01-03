@@ -1,7 +1,7 @@
 // odin run qimage_win -subsystem:windows
 package main
 
-import win "../windows"
+import win "../lib_windows"
 import "core:fmt"
 import "core:runtime"
 import gl "vendor:OpenGL"
@@ -20,6 +20,7 @@ main :: proc() {
 		lpfnWndProc   = messageHandler,
 		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
 	}
+	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
 
 	initialRect := win.RECT{0, 0, WIDTH, HEIGHT}
 	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
@@ -27,7 +28,6 @@ main :: proc() {
 	initialHeight := initialRect.bottom - initialRect.top
 
 	if win.RegisterClassExW(&windowClass) != 0 {
-		title_w := win.utf8_to_wstring(TITLE)
 		window := win.CreateWindowExW(
 			0,
 			windowClass.lpszClassName,
@@ -148,3 +148,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 
 // NOTE: layered window -> alpha channel?
 // TODO: tell OpenGL we want sRGB - handmade hero 236-241
+// TODO: allow cropping svgs
