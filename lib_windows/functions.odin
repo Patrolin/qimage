@@ -1,6 +1,8 @@
 package windows
 
 import "core:c"
+import "core:fmt"
+import "core:strings"
 import coreWin "core:sys/windows"
 
 GetModuleHandleW :: coreWin.GetModuleHandleW
@@ -32,6 +34,10 @@ PostQuitMessage :: coreWin.PostQuitMessage
 GetDC :: coreWin.GetDC
 ReleaseDC :: coreWin.ReleaseDC
 GetClientRect :: coreWin.GetClientRect
+GetWindowRect :: coreWin.GetWindowRect
+GetWindowInfo :: coreWin.GetWindowInfo
+GetSystemMetrics :: coreWin.GetSystemMetrics
+MoveWindow :: coreWin.MoveWindow
 BeginPaint :: coreWin.BeginPaint
 PatBlt :: coreWin.PatBlt
 EndPaint :: coreWin.EndPaint
@@ -67,19 +73,53 @@ foreign Opengl32 {
 	glGetFloatv :: proc(name: GLenum, values: ^GLfloat) ---
 }
 
+// dwm
+DwmGetWindowAttribute :: coreWin.DwmGetWindowAttribute
+foreign import Dwmapi "system:Dwmapi.lib"
+@(default_calling_convention = "std")
+foreign Dwmapi {
+}
+
+// print
 utf8_to_wstring :: coreWin.utf8_to_wstring
 utf8_to_utf16 :: coreWin.utf8_to_utf16
-wstring_to_utf8 :: coreWin.wstring_to_utf8
+wstring_to_utf8 :: proc(str: wstring, allocator := context.temp_allocator) -> string {
+	res, err := coreWin.wstring_to_utf8(str, -1, allocator = allocator)
+	return res
+}
 utf16_to_utf8 :: coreWin.utf16_to_utf8
 
-// TODO: better print
 didAttachConsole := false
-print :: proc(message: cstring) {
+wlen :: proc(str: wstring) -> int {
+	i := 0
+	for ; str[i] != 0; i += 1 {}
+	return i
+}
+print_string :: proc(message: string) {
+	if !didAttachConsole {
+		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
+	}
+	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
+	WriteConsoleA(stdout, strings.unsafe_string_to_cstring(message), u32(len(message)), nil, nil)
+}
+print_cstring :: proc(message: cstring) {
 	if !didAttachConsole {
 		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
 	}
 	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
 	WriteConsoleA(stdout, message, u32(len(message)), nil, nil)
+}
+print_wstring :: proc(message: wstring) {
+	if !didAttachConsole {
+		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
+	}
+	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
+	WriteConsoleW(stdout, message, u32(wlen(message)), nil, nil)
+}
+print :: proc {
+	print_string,
+	print_cstring,
+	print_wstring,
 }
 
 alloc :: proc(size: uint) -> LPVOID {
@@ -87,4 +127,63 @@ alloc :: proc(size: uint) -> LPVOID {
 }
 free :: proc(ptr: LPVOID) -> BOOL {
 	return VirtualFree(ptr, 0, MEM_RELEASE)
+}
+
+@(private)
+makeWindowClassCounter := 0
+makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
+	class := class
+	if class.cbSize == 0 {
+		class.cbSize = size_of(WNDCLASSEXW)
+	}
+	if class.lpszClassName == nil {
+		className := fmt.aprintf("libWin_class_%v", makeWindowClassCounter)
+		class.lpszClassName = utf8_to_wstring(className, context.allocator)
+		makeWindowClassCounter += 1
+	}
+	if (RegisterClassExW(&class) == 0) {
+		lastError := GetLastError()
+		print(fmt.aprintf("error: %v\n", lastError))
+		assert(false)
+	}
+	return class.lpszClassName
+}
+createWindow :: proc(
+	windowClass: wstring,
+	title: wstring,
+	width, height: LONG,
+	useOuterSize := false,
+) -> HWND {
+	width, height := width, height
+	if useOuterSize {
+		// NOTE: SM_CYSIZEFRAME, SM_CXPADDEDBORDER, SM_CYMENU are added conditionally
+		minCaptionHeight := GetSystemMetrics(SM_CYCAPTION)
+		// maxCaptionHeight := GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)
+		height -= minCaptionHeight
+	}
+	adjustRect := RECT{0, 0, width, height}
+	AdjustWindowRectEx(&adjustRect, WS_OVERLAPPEDWINDOW, FALSE, 0)
+	width = adjustRect.right - adjustRect.left
+	height = adjustRect.bottom - adjustRect.top
+
+	window := CreateWindowExW(
+		0,
+		windowClass,
+		title,
+		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		width,
+		height,
+		nil,
+		nil,
+		nil,
+		nil,
+	)
+	if window == nil {
+		lastError := GetLastError()
+		print(fmt.aprintf("error: %v\n", lastError))
+		assert(false)
+	}
+	return window
 }
