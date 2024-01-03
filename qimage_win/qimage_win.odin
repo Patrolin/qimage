@@ -18,10 +18,11 @@ main :: proc() {
 		cbSize        = size_of(win.WNDCLASSEXW),
 		style         = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
 		lpfnWndProc   = messageHandler,
-		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
+		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME), // TODO: allocate this permanently
 	}
 	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
 
+	// TODO: https://stackoverflow.com/questions/27928254/adjustwindowrectex-and-getwindowrect-give-wrong-size-with-ws-overlapped
 	initialRect := win.RECT{0, 0, WIDTH, HEIGHT}
 	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
 	initialWidth := initialRect.right - initialRect.left
