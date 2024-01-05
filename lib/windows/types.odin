@@ -8,6 +8,12 @@ import coreWin "core:sys/windows"
 PAINTSTRUCT :: coreWin.PAINTSTRUCT
 RECT :: coreWin.RECT
 HGLRC :: coreWin.HGLRC
+CIEXYZ :: struct {
+	ciexyzX, ciexyzY, ciexyzZ: FXPT2DOT30,
+}
+CIEXYZTRIPLE :: struct {
+	ciexyzRed, ciexyzGreen, ciexyzBlue: CIEXYZ,
+}
 
 // message
 POINT :: coreWin.POINT
@@ -139,6 +145,7 @@ LONG64 :: coreWin.LONG64
 
 PDWORD_PTR :: coreWin.PDWORD_PTR
 ATOM :: coreWin.ATOM
+FXPT2DOT30 :: coreWin.LONG
 
 wstring :: coreWin.wstring
 

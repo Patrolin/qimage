@@ -1,8 +1,8 @@
 // odin run demo/opengl/min_renderer -subsystem:windows
 package main
 
-import con "../../../lib_console"
-import win "../../../lib_windows"
+import con "../../../lib/console"
+import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
 import gl "vendor:OpenGL"

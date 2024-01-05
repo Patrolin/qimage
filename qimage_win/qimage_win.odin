@@ -1,33 +1,34 @@
 // odin run qimage_win -subsystem:windows
 package main
 
-import assets "../lib_assets"
-import con "../lib_console"
-import win "../lib_windows"
+import "../common/assets"
+import "../common/constants"
+import con "../lib/console"
+import file "../lib/file"
+import win "../lib/windows"
 import "core:fmt"
 import "core:runtime"
 import gl "vendor:OpenGL"
 
-WINDOW_CLASS_NAME :: "qimage_windowClass"
-TITLE :: "QImage"
-WIDTH :: 1366
-HEIGHT :: 768
+WINDOW_CLASS_NAME :: constants.WINDOW_CLASS_NAME
+WINDOW_TITLE :: constants.WINDOW_TITLE
+WINDOW_WIDTH :: constants.WINDOW_WIDTH
+WINDOW_HEIGHT :: constants.WINDOW_HEIGHT
 
 isRunning := false
-image: assets.Image
+image: file.Image
 
 main :: proc() {
 	windowClass := win.makeWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
-	window := win.createWindow(windowClass, title_w, WIDTH, HEIGHT)
+	title_w := win.utf8_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	window := win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := win.GetDC(window)
 	initOpenGL(dc)
-	image = assets.loadBmp("assets/test_image.bmp")
-	con.printf("hello world: %v\n", 1)
+	image = assets.loadImage("test_image.bmp")
 	con.print(image)
-	con.print(assets.tprintImage(image, 0, 0, 3, 3))
+	con.print(file.tprintImage(image, 0, 0, 3, 3))
 	for isRunning = true; isRunning; {
 		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 			if msg.message == win.WM_QUIT {
@@ -129,3 +130,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // NOTE: layered window -> alpha channel?
 // TODO: tell OpenGL we want sRGB - handmade hero 236-241
 // TODO: allow cropping svgs
+// TODO: 1D LUTs + 16x16x16 3D LUTs?

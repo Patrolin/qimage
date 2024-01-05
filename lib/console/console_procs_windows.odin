@@ -1,6 +1,6 @@
 //+build windows
 package console
-import win "../lib_windows"
+import win "../windows"
 
 print :: win.print
 printf :: win.printf
