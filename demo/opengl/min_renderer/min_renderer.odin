@@ -27,7 +27,7 @@ main :: proc() {
 	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
 	initialWidth := initialRect.right - initialRect.left
 	initialHeight := initialRect.bottom - initialRect.top
-	win.print(fmt.aprintf("initialRect: %v", initialRect))
+	con.printf("initialRect: %v\n", initialRect)
 
 	if win.RegisterClassExW(&windowClass) != 0 {
 		window := win.CreateWindowExW(
