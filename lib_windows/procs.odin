@@ -80,48 +80,7 @@ foreign import Dwmapi "system:Dwmapi.lib"
 foreign Dwmapi {
 }
 
-// print
-utf8_to_wstring :: coreWin.utf8_to_wstring
-utf8_to_utf16 :: coreWin.utf8_to_utf16
-wstring_to_utf8 :: proc(str: wstring, allocator := context.temp_allocator) -> string {
-	res, err := coreWin.wstring_to_utf8(str, -1, allocator = allocator)
-	return res
-}
-utf16_to_utf8 :: coreWin.utf16_to_utf8
-
-didAttachConsole := false
-wlen :: proc(str: wstring) -> int {
-	i := 0
-	for ; str[i] != 0; i += 1 {}
-	return i
-}
-print_string :: proc(message: string) {
-	if !didAttachConsole {
-		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
-	}
-	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
-	WriteConsoleA(stdout, strings.unsafe_string_to_cstring(message), u32(len(message)), nil, nil)
-}
-print_cstring :: proc(message: cstring) {
-	if !didAttachConsole {
-		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
-	}
-	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
-	WriteConsoleA(stdout, message, u32(len(message)), nil, nil)
-}
-print_wstring :: proc(message: wstring) {
-	if !didAttachConsole {
-		didAttachConsole = bool(AttachConsole(ATTACH_PARENT_PROCESS))
-	}
-	stdout := GetStdHandle(STD_OUTPUT_HANDLE)
-	WriteConsoleW(stdout, message, u32(wlen(message)), nil, nil)
-}
-print :: proc {
-	print_string,
-	print_cstring,
-	print_wstring,
-}
-
+// alloc
 alloc :: proc(size: uint) -> LPVOID {
 	return VirtualAlloc(nil, size, MEM_COMMIT, PAGE_READWRITE)
 }
@@ -143,7 +102,7 @@ makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	}
 	if (RegisterClassExW(&class) == 0) {
 		lastError := GetLastError()
-		print(fmt.aprintf("error: %v\n", lastError))
+		printf("error: %v\n", lastError)
 		assert(false)
 	}
 	return class.lpszClassName

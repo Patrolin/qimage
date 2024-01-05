@@ -1,6 +1,8 @@
 // odin run qimage_win -subsystem:windows
 package main
 
+import assets "../lib_assets"
+import con "../lib_console"
 import win "../lib_windows"
 import "core:fmt"
 import "core:runtime"
@@ -12,6 +14,7 @@ WIDTH :: 1366
 HEIGHT :: 768
 
 isRunning := false
+image: assets.Image
 
 main :: proc() {
 	windowClass := win.makeWindowClass(
@@ -21,6 +24,10 @@ main :: proc() {
 	window := win.createWindow(windowClass, title_w, WIDTH, HEIGHT)
 	dc := win.GetDC(window)
 	initOpenGL(dc)
+	image = assets.loadBmp("assets/test_image.bmp")
+	con.printf("hello world: %v\n", 1)
+	con.print(image)
+	con.print(assets.tprintImage(image, 0, 0, 3, 3))
 	for isRunning = true; isRunning; {
 		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 			if msg.message == win.WM_QUIT {
@@ -49,12 +56,12 @@ messageHandler :: proc "stdcall" (
 	result = 0
 	switch message {
 	case win.WM_SIZE:
-		win.print(fmt.ctprintf("WM_SIZE\n"))
+		con.print(fmt.ctprintf("WM_SIZE\n"))
 		x, y, width, height := getClientBox(window)
 		resizeDIBSection(width, height)
 		renderToBuffer()
 	case win.WM_PAINT:
-		win.print(fmt.ctprintf("WM_PAINT\n"))
+		con.print(fmt.ctprintf("WM_PAINT\n"))
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
 		x := paint.rcPaint.left
@@ -64,7 +71,7 @@ messageHandler :: proc "stdcall" (
 		swapBuffers(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
-		win.print(fmt.ctprintf("WM_DESTROY\n"))
+		con.print(fmt.ctprintf("WM_DESTROY\n"))
 		//win.PostQuitMessage(0)
 		isRunning = false
 	case:
@@ -102,9 +109,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	win.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
 	glRc := win.wglCreateContext(dc)
 	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
-	if win.wglMakeCurrent(dc, glRc) {
-		win.print(fmt.ctprintf("%v\n", pixelFormat))
-	} else {
+	if !win.wglMakeCurrent(dc, glRc) {
 		assert(false)
 	}
 }
@@ -115,6 +120,7 @@ resizeDIBSection :: proc(width, height: win.LONG) {
 renderToBuffer :: proc() {
 	win.glClearColor(.5, 0, .5, 1)
 	win.glClear(gl.COLOR_BUFFER_BIT)
+	// TODO: render the image (hmh 237-238)
 }
 swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 	win.SwapBuffers(dc)

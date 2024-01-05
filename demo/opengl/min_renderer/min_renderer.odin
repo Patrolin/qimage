@@ -1,6 +1,7 @@
 // odin run demo/opengl/min_renderer -subsystem:windows
 package main
 
+import con "../../../lib_console"
 import win "../../../lib_windows"
 import "core:fmt"
 import "core:runtime"
@@ -76,12 +77,12 @@ messageHandler :: proc "stdcall" (
 	result = 0
 	switch message {
 	case win.WM_SIZE:
-		win.print(fmt.ctprintf("WM_SIZE\n"))
+		con.printf("WM_SIZE\n")
 		x, y, width, height := getClientBox(window)
 		resizeDIBSection(width, height)
 		renderToBuffer()
 	case win.WM_PAINT:
-		win.print(fmt.ctprintf("WM_PAINT\n"))
+		con.printf("WM_PAINT\n")
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
 		x := paint.rcPaint.left
@@ -91,7 +92,7 @@ messageHandler :: proc "stdcall" (
 		swapBuffers(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
-		win.print(fmt.ctprintf("WM_DESTROY\n"))
+		con.printf("WM_DESTROY\n")
 		//win.PostQuitMessage(0)
 		isRunning = false
 	case:
@@ -130,7 +131,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	glRc := win.wglCreateContext(dc)
 	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
 	if win.wglMakeCurrent(dc, glRc) {
-		win.print(fmt.ctprintf("%v\n", pixelFormat))
+		con.printf("%v\n", pixelFormat)
 	} else {
 		assert(false)
 	}

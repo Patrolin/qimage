@@ -12,9 +12,9 @@ BMP_FileHeader :: struct #packed {
 	bitmapOffset: u32,
 }
 // bitmap header
-BMP_BitmapHeader :: union {
-	BMP_WIN2_BITMAPCOREHEADER,
-	BMP_WIN3_BITMAPINFOHEADER,
+BMP_BitmapHeader :: struct #raw_union {
+	WIN2: BMP_WIN2_BITMAPCOREHEADER,
+	WIN3: BMP_WIN3_BITMAPINFOHEADER,
 }
 BMP_WIN2_BITMAPCOREHEADER :: struct #packed {
 	size:         u32,
