@@ -151,4 +151,3 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // NOTE: layered window -> alpha channel?
 // NOTE: enable vsync via wglSwapIntervalExt(1)
 // NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043
-// TODO: vsync counter demo

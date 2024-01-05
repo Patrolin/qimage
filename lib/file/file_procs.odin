@@ -37,7 +37,6 @@ copyRGBAImage :: proc(data: [^]u8, image: ^Image) {
 	}
 }
 
-// TODO: hmh day 37 fix bmp loading
 loadBmp_fromFileName :: proc(fileName: string) -> Image {
 	file, ok := readFile(fileName)
 	assert(ok)
@@ -56,14 +55,16 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		assert(image.height >= 0, "Negative height is not supported")
 		assert(bitmapHeader.compression == 0, "Compression is not supported")
 		// NOTE: we ignore bV5XPelsPerMeter, bV5YPelsPerMeter, bV5ClrUsed, bV5ClrImportant
-		assert(bitmapHeader.bV5RedMask == 0xff0000, "Unsupported red mask")
-		assert(bitmapHeader.bV5GreenMask == 0xff00, "Unsupported green mask")
-		assert(bitmapHeader.bV5BlueMask == 0xff, "Unsupported blue mask")
-		assert(bitmapHeader.bV5AlphaMask == 0, "Unsupported alpha mask")
+		assert(
+			(bitmapHeader.bV5RedMask > bitmapHeader.bV5GreenMask) &&
+			(bitmapHeader.bV5GreenMask > bitmapHeader.bV5BlueMask) &&
+			(bitmapHeader.bV5BlueMask > bitmapHeader.bV5AlphaMask),
+			"Unsupported format",
+		)
 		// NOTE: sRGB has a gamma correction
 		assert(bitmapHeader.bV5CSType == LCS_sRGB, "Unsupported colorspace")
-		// NOTE: we ignore bV5Intent, bV5ProfileData, bV5ProfileSize
-		con.print(bitmapHeader)
+	// NOTE: we ignore bV5Intent, bV5ProfileData, bV5ProfileSize
+	// con.print(bitmapHeader)
 	case:
 		assert(false, fmt.tprintf("Unsupported bitmapHeader size: %v", bitmapHeaderSize))
 	}
@@ -93,3 +94,6 @@ tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 	}
 	return strings.to_string(str)
 }
+
+// TODO: alloc once at startup?: https://www.youtube.com/playlist?list=PLEMXAbCVnmY7m1ynIpTaEWQ6j7NGS2cCA
+// TODO: LRU file cache (evictAsNecessary() on load) - hmh 132?
