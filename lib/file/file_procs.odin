@@ -96,4 +96,5 @@ tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 }
 
 // TODO: alloc once at startup?: https://www.youtube.com/playlist?list=PLEMXAbCVnmY7m1ynIpTaEWQ6j7NGS2cCA
+// TODO: bypass default allocators?
 // TODO: LRU file cache (evictAsNecessary() on load) - hmh 132?
