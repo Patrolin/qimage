@@ -131,3 +131,5 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // TODO: allow cropping svgs
 // TODO: 1D LUTs + 16x16x16 3D LUTs?
 // TODO: handle WM_SYSKEYUP/DOWN, WM_KEYUP/DOWN
+// TODO: how do IMGUI?
+// TODO: load windows screenshots
