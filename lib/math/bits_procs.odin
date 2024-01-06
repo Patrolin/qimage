@@ -1,5 +1,4 @@
 package bits
-
 import coreBits "core:math/bits"
 
 clz :: coreBits.count_leading_zeros

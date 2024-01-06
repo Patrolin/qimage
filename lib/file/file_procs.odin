@@ -1,7 +1,5 @@
 package file
-
 import con "../console"
-import "core:c"
 import "core:fmt"
 import "core:os"
 import "core:strings"

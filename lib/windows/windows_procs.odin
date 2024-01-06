@@ -1,8 +1,5 @@
 package windows
-
-import "core:c"
 import "core:fmt"
-import "core:strings"
 import coreWin "core:sys/windows"
 
 GetModuleHandleW :: coreWin.GetModuleHandleW

@@ -1,8 +1,7 @@
 package windows
-// https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
-
-import "core:c"
 import coreWin "core:sys/windows"
+
+// https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
 
 // paint
 PAINTSTRUCT :: coreWin.PAINTSTRUCT

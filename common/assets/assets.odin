@@ -1,5 +1,4 @@
 package assets
-
 import "../../lib/file"
 import "core:fmt"
 

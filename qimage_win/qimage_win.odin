@@ -1,6 +1,5 @@
 // odin run qimage_win -subsystem:windows
 package main
-
 import "../common/assets"
 import "../common/constants"
 import con "../lib/console"

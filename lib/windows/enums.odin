@@ -1,6 +1,4 @@
 package windows
-
-import "core:c"
 import coreWin "core:sys/windows"
 
 /*
