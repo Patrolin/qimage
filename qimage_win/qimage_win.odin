@@ -5,9 +5,9 @@ import "../common/constants"
 import con "../lib/console"
 import file "../lib/file"
 import win "../lib/windows"
+import gl "../lib/windows/gl"
 import "core:fmt"
 import "core:runtime"
-import gl "vendor:OpenGL"
 
 WINDOW_CLASS_NAME :: constants.WINDOW_CLASS_NAME
 WINDOW_TITLE :: constants.WINDOW_TITLE
@@ -92,41 +92,42 @@ getClientBox :: proc(window: win.HWND) -> (x, y, width, height: win.LONG) {
 }
 
 initOpenGL :: proc(dc: win.HDC) {
-	desiredPixelFormat := win.PIXELFORMATDESCRIPTOR {
-		nSize      = size_of(win.PIXELFORMATDESCRIPTOR),
+	desiredPixelFormat := gl.PIXELFORMATDESCRIPTOR {
+		nSize      = size_of(gl.PIXELFORMATDESCRIPTOR),
 		nVersion   = 1,
-		iPixelType = win.PFD_TYPE_RGBA,
-		dwFlags    = win.PFD_SUPPORT_OPENGL | win.PFD_DRAW_TO_WINDOW | win.PFD_DOUBLEBUFFER,
+		iPixelType = gl.PFD_TYPE_RGBA,
+		dwFlags    = gl.PFD_SUPPORT_OPENGL | gl.PFD_DRAW_TO_WINDOW | gl.PFD_DOUBLEBUFFER,
 		cRedBits   = 8,
 		cGreenBits = 8,
 		cBlueBits  = 8,
 		cAlphaBits = 8,
-		iLayerType = win.PFD_MAIN_PLANE,
+		iLayerType = gl.PFD_MAIN_PLANE,
 	}
-	pixelFormatIndex := win.ChoosePixelFormat(dc, &desiredPixelFormat)
-	pixelFormat: win.PIXELFORMATDESCRIPTOR
-	win.DescribePixelFormat(dc, pixelFormatIndex, size_of(win.PIXELFORMATDESCRIPTOR), &pixelFormat)
-	win.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
-	glRc := win.wglCreateContext(dc)
-	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
-	if !win.wglMakeCurrent(dc, glRc) {
+	pixelFormatIndex := gl.ChoosePixelFormat(dc, &desiredPixelFormat)
+	pixelFormat: gl.PIXELFORMATDESCRIPTOR
+	gl.DescribePixelFormat(dc, pixelFormatIndex, size_of(gl.PIXELFORMATDESCRIPTOR), &pixelFormat)
+	gl.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
+	glRc := gl.wglCreateContext(dc)
+	// NOTE: gl.wglCreateContextAttrib(...) for gl 3.0+
+	if !gl.wglMakeCurrent(dc, glRc) {
 		assert(false)
 	}
 }
 resizeDIBSection :: proc(width, height: win.LONG) {
 	// NOTE: clear to black / stretch previous / copy previous?
-	win.glViewport(0, 0, u32(width), u32(height))
+	gl.glViewport(0, 0, u32(width), u32(height))
 }
 renderToBuffer :: proc() {
-	win.glClearColor(.5, 0, .5, 1)
-	win.glClear(gl.COLOR_BUFFER_BIT)
+	gl.glClearColor(.5, 0, .5, 1)
+	gl.glClear(gl.COLOR_BUFFER_BIT)
 	// TODO: render the image (hmh 237-238)
 }
 swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
-	win.SwapBuffers(dc)
+	gl.SwapBuffers(dc)
 }
 
-// NOTE: layered window -> alpha channel?
+// NOTE: WS_EX_LAYERED -> alpha channel?
 // TODO: tell OpenGL we want sRGB - handmade hero 236-241
 // TODO: allow cropping svgs
 // TODO: 1D LUTs + 16x16x16 3D LUTs?
+// TODO: handle WM_SYSKEYUP/DOWN, WM_KEYUP/DOWN

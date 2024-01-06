@@ -1,6 +1,28 @@
-package windows
+package windowsConsole
 import "core:fmt"
 import coreWin "core:sys/windows"
+
+BOOL :: coreWin.BOOL
+DWORD :: coreWin.DWORD
+LPDWORD :: coreWin.LPDWORD
+LPVOID :: coreWin.LPVOID
+wstring :: coreWin.wstring
+HANDLE :: coreWin.HANDLE
+
+ATTACH_PARENT_PROCESS :: transmute(DWORD)i32(-1)
+STD_INPUT_HANDLE :: transmute(DWORD)i32(-10)
+STD_OUTPUT_HANDLE :: transmute(DWORD)i32(-11)
+STD_ERROR_HANDLE :: transmute(DWORD)i32(-12)
+
+foreign import kernel32 "system:kernel32.lib"
+@(default_calling_convention = "std")
+foreign kernel32 {
+	AllocConsole :: proc() -> BOOL ---
+	AttachConsole :: proc(dwProcessId: DWORD) -> BOOL ---
+	GetStdHandle :: proc(nStdHandle: DWORD) -> HANDLE ---
+	WriteConsoleA :: proc(hConsoleOutput: HANDLE, lpBuffer: cstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
+	WriteConsoleW :: proc(hConsoleOutput: HANDLE, lpBuffer: wstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
+}
 
 utf8_to_wstring :: coreWin.utf8_to_wstring
 utf8_to_utf16 :: coreWin.utf8_to_utf16
@@ -24,13 +46,13 @@ print_cstring :: proc(message: cstring) {
 print_string :: proc(message: string) {
 	print_wstring(utf8_to_wstring(message))
 }
-wlen :: proc(str: wstring) -> int {
+lenw :: proc(str: wstring) -> int {
 	i := 0
 	for ; str[i] != 0; i += 1 {}
 	return i
 }
 print_wstring :: proc(message: wstring) {
-	WriteConsoleW(getStdout(), message, u32(wlen(message)), nil, nil)
+	WriteConsoleW(getStdout(), message, u32(lenw(message)), nil, nil)
 }
 print_any :: proc(args: ..any) {
 	str := fmt.aprintln(..args, allocator = context.temp_allocator)

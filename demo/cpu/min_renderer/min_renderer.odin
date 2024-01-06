@@ -7,9 +7,9 @@ import "core:fmt"
 import "core:runtime"
 
 WINDOW_CLASS_NAME :: "min_cpu_renderer_windowClass"
-TITLE :: "min_cpu_renderer"
-WIDTH :: 1366
-HEIGHT :: 768
+WINDOW_TITLE :: "min_cpu_renderer"
+WINDOW_WIDTH :: 1366
+WINDOW_HEIGHT :: 768
 
 isRunning := false
 RenderBuffer :: struct {
@@ -22,51 +22,24 @@ RenderBuffer :: struct {
 renderBuffer := RenderBuffer{}
 
 main :: proc() {
-	//instance := win.HANDLE(win.GetModuleHandleW(nil))
-	windowClass := win.WNDCLASSEXW {
-		cbSize        = size_of(win.WNDCLASSEXW),
-		style         = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
-		lpfnWndProc   = messageHandler,
-		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
-	}
-	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
-
-	initialRect := win.RECT{0, 0, WIDTH, HEIGHT}
-	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
-	initialWidth := initialRect.right - initialRect.left
-	initialHeight := initialRect.bottom - initialRect.top
-
-	if win.RegisterClassExW(&windowClass) != 0 {
-		window := win.CreateWindowExW(
-			0,
-			windowClass.lpszClassName,
-			title_w,
-			win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
-			win.CW_USEDEFAULT,
-			win.CW_USEDEFAULT,
-			initialWidth,
-			initialHeight,
-			nil,
-			nil,
-			nil,
-			nil,
-		)
-		if window != nil {
-			dc := win.GetDC(window)
-			for isRunning = true; isRunning; {
-				for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-					if msg.message == win.WM_QUIT {
-						isRunning = false
-					}
-					win.TranslateMessage(&msg)
-					win.DispatchMessageW(&msg)
-				}
-				renderToBuffer()
-				x, y, width, height := getClientBox(window)
-				copyBufferToWindow(dc, x, y, width, height)
-				free_all(context.temp_allocator)
+	windowClass := win.makeWindowClass(
+		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
+	)
+	title_w := win.utf8_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	window := win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
+	dc := win.GetDC(window)
+	for isRunning = true; isRunning; {
+		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
+			if msg.message == win.WM_QUIT {
+				isRunning = false
 			}
+			win.TranslateMessage(&msg)
+			win.DispatchMessageW(&msg)
 		}
+		renderToBuffer()
+		x, y, width, height := getClientBox(window)
+		copyBufferToWindow(dc, x, y, width, height)
+		free_all(context.temp_allocator)
 	}
 }
 
@@ -167,7 +140,7 @@ copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 	)
 }
 
-// NOTE: layered window -> alpha channel?
+// NOTE: WS_EX_LAYERED -> alpha channel?
 // NOTE: vsync via directXOutput.WaitForVBlank()? / win.DwmFlush()?
 // NOTE: casey says use D3D11/Metal: https://guide.handmadehero.org/code/day570/#7492
 // NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552

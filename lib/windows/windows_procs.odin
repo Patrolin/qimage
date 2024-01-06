@@ -1,145 +1,80 @@
 package windows
-import "core:fmt"
-import coreWin "core:sys/windows"
 
-GetModuleHandleW :: coreWin.GetModuleHandleW
+import winAlloc "alloc"
+import winCon "console"
+import coreWin "core:sys/windows"
+import "window"
+
+// https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
+WORD :: coreWin.WORD
+DWORD :: coreWin.DWORD
+QWORD :: coreWin.QWORD
+UINT :: coreWin.UINT
+LONG :: coreWin.LONG
+TRUE :: coreWin.TRUE
+FALSE :: coreWin.FALSE
+
+HANDLE :: coreWin.HANDLE
+HWND :: coreWin.HWND
+HDC :: coreWin.HDC
+WNDPROC :: coreWin.WNDPROC
+LPARAM :: coreWin.LPARAM
+WPARAM :: coreWin.WPARAM
+LRESULT :: coreWin.LRESULT
+MSG :: coreWin.MSG
+
+CALLBACK :: "stdcall"
+WINAPI :: "stdcall"
+
+// basics
+//GetModuleHandleW :: coreWin.GetModuleHandleW
 GetLastError :: coreWin.GetLastError
 ExitProcess :: coreWin.ExitProcess
-VirtualAlloc :: coreWin.VirtualAlloc
-VirtualFree :: coreWin.VirtualFree
-foreign import kernel32 "system:kernel32.lib"
+foreign import user32 "system:user32.lib"
 @(default_calling_convention = "std")
-foreign kernel32 {
-	AllocConsole :: proc() -> BOOL ---
-	AttachConsole :: proc(dwProcessId: DWORD) -> BOOL ---
-	GetStdHandle :: proc(nStdHandle: DWORD) -> HANDLE ---
-	WriteConsoleA :: proc(hConsoleOutput: HANDLE, lpBuffer: cstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
-	WriteConsoleW :: proc(hConsoleOutput: HANDLE, lpBuffer: wstring, nNumberOfCharsToWrite: DWORD, lpNumberOfCharsWritten: LPDWORD, lpReserved: LPVOID) -> BOOL ---
+foreign user32 {
+	MessageBoxA :: proc(window: HWND, body: coreWin.LPCSTR, title: coreWin.LPCSTR, type: UINT) ---
 }
 
+// console
+utf8_to_wstring :: winCon.utf8_to_wstring
+utf8_to_utf16 :: winCon.utf8_to_utf16
+wstring_to_utf8 :: winCon.wstring_to_utf8
+utf16_to_utf8 :: winCon.utf16_to_utf8
+lenw :: winCon.lenw
+print :: winCon.print
+printf :: winCon.printf
+
+// alloc
+alloc :: winAlloc.alloc
+free :: winAlloc.free
+
 // window
-AdjustWindowRectEx :: coreWin.AdjustWindowRectEx
-RegisterClassExW :: coreWin.RegisterClassExW
-CreateWindowExW :: coreWin.CreateWindowExW
+makeWindowClass :: window.makeWindowClass
+createWindow :: window.createWindow
+toggleFullscreen :: window.toggleFullscreen
 GetMessageW :: coreWin.GetMessageW
 PeekMessageW :: coreWin.PeekMessageW
 TranslateMessage :: coreWin.TranslateMessage
 DispatchMessageW :: coreWin.DispatchMessageW
 DefWindowProcW :: coreWin.DefWindowProcW
 PostQuitMessage :: coreWin.PostQuitMessage
+
 // paint
+POINT :: coreWin.POINT
+RECT :: coreWin.RECT
+BITMAPINFO :: coreWin.BITMAPINFO
+BITMAPINFOHEADER :: coreWin.BITMAPINFOHEADER
+PAINTSTRUCT :: coreWin.PAINTSTRUCT
+
 GetDC :: coreWin.GetDC
 ReleaseDC :: coreWin.ReleaseDC
-GetClientRect :: coreWin.GetClientRect
-GetWindowRect :: coreWin.GetWindowRect
-GetWindowInfo :: coreWin.GetWindowInfo
-GetSystemMetrics :: coreWin.GetSystemMetrics
-MoveWindow :: coreWin.MoveWindow
 BeginPaint :: coreWin.BeginPaint
 PatBlt :: coreWin.PatBlt
 EndPaint :: coreWin.EndPaint
-foreign import user32 "system:user32.lib"
-@(default_calling_convention = "std")
-foreign user32 {
-	MessageBoxA :: proc(window: HWND, body: LPCSTR, title: LPCSTR, type: UINT) ---
-	//MessageBoxW :: proc(window: HWND, body: LPCWSTR, title: LPCWSTR, type: UINT) ---
-}
-
-// paint
 CreateCompatibleDC :: coreWin.CreateCompatibleDC
 CreateDIBSection :: coreWin.CreateDIBSection
 StretchDIBits :: coreWin.StretchDIBits
 DeleteObject :: coreWin.DeleteObject
-foreign import gdi32 "system:Gdi32.lib"
-@(default_calling_convention = "std")
-foreign gdi32 {}
-
-// gl
-ChoosePixelFormat :: coreWin.ChoosePixelFormat
-DescribePixelFormat :: coreWin.DescribePixelFormat
-SetPixelFormat :: coreWin.SetPixelFormat
-wglCreateContext :: coreWin.wglCreateContext
-wglMakeCurrent :: coreWin.wglMakeCurrent
-SwapBuffers :: coreWin.SwapBuffers
-foreign import Opengl32 "system:Opengl32.lib"
-@(default_calling_convention = "std")
-foreign Opengl32 {
-	glViewport :: proc(x, y: GLint, width, height: GLsizei) ---
-	glClearColor :: proc(red, green, blue, alpha: GLclampf) ---
-	glClear :: proc(mask: GLbitfield) ---
-	glGetFloatv :: proc(name: GLenum, values: ^GLfloat) ---
-}
-
-// dwm
-DwmGetWindowAttribute :: coreWin.DwmGetWindowAttribute
-foreign import Dwmapi "system:Dwmapi.lib"
-@(default_calling_convention = "std")
-foreign Dwmapi {
-}
-
-// alloc
-alloc :: proc(size: uint) -> LPVOID {
-	return VirtualAlloc(nil, size, MEM_COMMIT, PAGE_READWRITE)
-}
-free :: proc(ptr: LPVOID) -> BOOL {
-	return VirtualFree(ptr, 0, MEM_RELEASE)
-}
-
-@(private)
-makeWindowClassCounter := 0
-makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
-	class := class
-	if class.cbSize == 0 {
-		class.cbSize = size_of(WNDCLASSEXW)
-	}
-	if class.lpszClassName == nil {
-		className := fmt.aprintf("libWin_class_%v", makeWindowClassCounter)
-		class.lpszClassName = utf8_to_wstring(className, context.allocator)
-		makeWindowClassCounter += 1
-	}
-	if (RegisterClassExW(&class) == 0) {
-		lastError := GetLastError()
-		printf("error: %v\n", lastError)
-		assert(false)
-	}
-	return class.lpszClassName
-}
-createWindow :: proc(
-	windowClass: wstring,
-	title: wstring,
-	width, height: LONG,
-	useOuterSize := false,
-) -> HWND {
-	width, height := width, height
-	if useOuterSize {
-		// NOTE: SM_CYSIZEFRAME, SM_CXPADDEDBORDER, SM_CYMENU are added conditionally
-		minCaptionHeight := GetSystemMetrics(SM_CYCAPTION)
-		// maxCaptionHeight := GetSystemMetrics(SM_CYCAPTION) + GetSystemMetrics(SM_CYSIZEFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)
-		height -= minCaptionHeight
-	}
-	adjustRect := RECT{0, 0, width, height}
-	AdjustWindowRectEx(&adjustRect, WS_OVERLAPPEDWINDOW, FALSE, 0)
-	width = adjustRect.right - adjustRect.left
-	height = adjustRect.bottom - adjustRect.top
-
-	window := CreateWindowExW(
-		0,
-		windowClass,
-		title,
-		WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		width,
-		height,
-		nil,
-		nil,
-		nil,
-		nil,
-	)
-	if window == nil {
-		lastError := GetLastError()
-		print(fmt.aprintf("error: %v\n", lastError))
-		assert(false)
-	}
-	return window
-}
+GetClientRect :: coreWin.GetClientRect
+GetWindowRect :: coreWin.GetWindowRect

@@ -1,7 +1,15 @@
 package file
-import win "../windows"
+import coreWin "core:sys/windows"
 
-// enums
+LONG :: coreWin.LONG
+FXPT2DOT30 :: coreWin.LONG
+CIEXYZ :: struct {
+	ciexyzX, ciexyzY, ciexyzZ: FXPT2DOT30,
+}
+CIEXYZTRIPLE :: struct {
+	ciexyzRed, ciexyzGreen, ciexyzBlue: CIEXYZ,
+}
+
 LCS_CALIBRATED_RGB :: 0x00000000
 LCS_sRGB :: 0x73524742
 LCS_WINDOWS_COLOR_SPACE :: 0x57696E20
@@ -43,8 +51,8 @@ BMP_BITMAPV5HEADER :: struct #packed {
 	bitsPerPixel:     u16,
 	compression:      u32,
 	imageSize:        u32,
-	bV5XPelsPerMeter: win.LONG,
-	bV5YPelsPerMeter: win.LONG,
+	bV5XPelsPerMeter: LONG,
+	bV5YPelsPerMeter: LONG,
 	bV5ClrUsed:       u32,
 	bV5ClrImportant:  u32,
 	bV5RedMask:       u32,
@@ -52,7 +60,7 @@ BMP_BITMAPV5HEADER :: struct #packed {
 	bV5BlueMask:      u32,
 	bV5AlphaMask:     u32,
 	bV5CSType:        u32,
-	bV5Endpoints:     win.CIEXYZTRIPLE,
+	bV5Endpoints:     CIEXYZTRIPLE,
 	bV5GammaRed:      u32,
 	bV5GammaGreen:    u32,
 	bV5GammaBlue:     u32,

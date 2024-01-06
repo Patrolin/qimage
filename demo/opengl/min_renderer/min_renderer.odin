@@ -3,64 +3,37 @@ package main
 
 import con "../../../lib/console"
 import win "../../../lib/windows"
+import gl "../../../lib/windows/gl"
 import "core:fmt"
 import "core:runtime"
-import gl "vendor:OpenGL"
 
 WINDOW_CLASS_NAME :: "min_opengl_renderer_windowClass"
-TITLE :: "min_opengl_renderer"
-WIDTH :: 1366
-HEIGHT :: 768
+WINDOW_TITLE :: "min_opengl_renderer"
+WINDOW_WIDTH :: 1366
+WINDOW_HEIGHT :: 768
 
 isRunning := false
 
 main :: proc() {
-	windowClass := win.WNDCLASSEXW {
-		cbSize        = size_of(win.WNDCLASSEXW),
-		style         = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
-		lpfnWndProc   = messageHandler,
-		lpszClassName = win.utf8_to_wstring(WINDOW_CLASS_NAME),
-	}
-	title_w := win.utf8_to_wstring(TITLE, allocator = context.allocator)
-
-	initialRect := win.RECT{0, 0, WIDTH, HEIGHT}
-	win.AdjustWindowRectEx(&initialRect, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
-	initialWidth := initialRect.right - initialRect.left
-	initialHeight := initialRect.bottom - initialRect.top
-	con.printf("initialRect: %v\n", initialRect)
-
-	if win.RegisterClassExW(&windowClass) != 0 {
-		window := win.CreateWindowExW(
-			0,
-			windowClass.lpszClassName,
-			title_w,
-			win.WS_OVERLAPPEDWINDOW | win.WS_VISIBLE,
-			win.CW_USEDEFAULT,
-			win.CW_USEDEFAULT,
-			initialWidth,
-			initialHeight,
-			nil,
-			nil,
-			nil,
-			nil,
-		)
-		if window != nil {
-			dc := win.GetDC(window)
-			initOpenGL(dc)
-			for isRunning = true; isRunning; {
-				for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-					if msg.message == win.WM_QUIT {
-						isRunning = false
-					}
-					win.TranslateMessage(&msg)
-					win.DispatchMessageW(&msg)
-				}
-				renderToBuffer()
-				x, y, width, height := getClientBox(window)
-				swapBuffers(dc, x, y, width, height)
-				free_all(context.temp_allocator)
+	windowClass := win.makeWindowClass(
+		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
+	)
+	title_w := win.utf8_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	window := win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
+	dc := win.GetDC(window)
+	initOpenGL(dc)
+	for isRunning = true; isRunning; {
+		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
+			if msg.message == win.WM_QUIT {
+				isRunning = false
 			}
+			win.TranslateMessage(&msg)
+			win.DispatchMessageW(&msg)
 		}
+		renderToBuffer()
+		x, y, width, height := getClientBox(window)
+		swapBuffers(dc, x, y, width, height)
+		free_all(context.temp_allocator)
 	}
 }
 
@@ -113,41 +86,39 @@ getClientBox :: proc(window: win.HWND) -> (x, y, width, height: win.LONG) {
 }
 
 initOpenGL :: proc(dc: win.HDC) {
-	desiredPixelFormat := win.PIXELFORMATDESCRIPTOR {
-		nSize      = size_of(win.PIXELFORMATDESCRIPTOR),
+	desiredPixelFormat := gl.PIXELFORMATDESCRIPTOR {
+		nSize      = size_of(gl.PIXELFORMATDESCRIPTOR),
 		nVersion   = 1,
-		iPixelType = win.PFD_TYPE_RGBA,
-		dwFlags    = win.PFD_SUPPORT_OPENGL | win.PFD_DRAW_TO_WINDOW | win.PFD_DOUBLEBUFFER,
+		iPixelType = gl.PFD_TYPE_RGBA,
+		dwFlags    = gl.PFD_SUPPORT_OPENGL | gl.PFD_DRAW_TO_WINDOW | gl.PFD_DOUBLEBUFFER,
 		cRedBits   = 8,
 		cGreenBits = 8,
 		cBlueBits  = 8,
 		cAlphaBits = 8,
-		iLayerType = win.PFD_MAIN_PLANE,
+		iLayerType = gl.PFD_MAIN_PLANE,
 	}
-	pixelFormatIndex := win.ChoosePixelFormat(dc, &desiredPixelFormat)
-	pixelFormat: win.PIXELFORMATDESCRIPTOR
-	win.DescribePixelFormat(dc, pixelFormatIndex, size_of(win.PIXELFORMATDESCRIPTOR), &pixelFormat)
-	win.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
-	glRc := win.wglCreateContext(dc)
-	// NOTE: win.wglCreateContextAttrib(...) for gl 3.0+
-	if win.wglMakeCurrent(dc, glRc) {
-		con.printf("%v\n", pixelFormat)
-	} else {
+	pixelFormatIndex := gl.ChoosePixelFormat(dc, &desiredPixelFormat)
+	pixelFormat: gl.PIXELFORMATDESCRIPTOR
+	gl.DescribePixelFormat(dc, pixelFormatIndex, size_of(gl.PIXELFORMATDESCRIPTOR), &pixelFormat)
+	gl.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
+	glRc := gl.wglCreateContext(dc)
+	// NOTE: gl.wglCreateContextAttrib(...) for gl 3.0+
+	if !gl.wglMakeCurrent(dc, glRc) {
 		assert(false)
 	}
 }
 resizeDIBSection :: proc(width, height: win.LONG) {
 	// NOTE: clear to black / stretch previous / copy previous?
-	win.glViewport(0, 0, u32(width), u32(height))
+	gl.glViewport(0, 0, u32(width), u32(height))
 }
 renderToBuffer :: proc() {
-	win.glClearColor(.5, 0, .5, 1)
-	win.glClear(gl.COLOR_BUFFER_BIT)
+	gl.glClearColor(.5, 0, .5, 1)
+	gl.glClear(gl.COLOR_BUFFER_BIT)
+	// TODO: render the image (hmh 237-238)
 }
 swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
-	win.SwapBuffers(dc)
+	gl.SwapBuffers(dc)
 }
 
-// NOTE: layered window -> alpha channel?
 // NOTE: enable vsync via wglSwapIntervalExt(1)
 // NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043
