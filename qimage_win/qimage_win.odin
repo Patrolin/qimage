@@ -109,9 +109,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	gl.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
 	glRc := gl.wglCreateContext(dc)
 	// NOTE: gl.wglCreateContextAttrib(...) for gl 3.0+
-	if !gl.wglMakeCurrent(dc, glRc) {
-		assert(false)
-	}
+	assert(bool(gl.wglMakeCurrent(dc, glRc)))
 }
 resizeDIBSection :: proc(width, height: win.LONG) {
 	// NOTE: clear to black / stretch previous / copy previous?
@@ -133,3 +131,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // TODO: handle WM_SYSKEYUP/DOWN, WM_KEYUP/DOWN
 // TODO: how do IMGUI?
 // TODO: load windows screenshots
+// TODO: windows systrace: https://learn.microsoft.com/en-us/sysinternals/downloads/procmon

@@ -1,7 +1,7 @@
 package windowsWindow
-import coreWin "core:sys/windows"
-import "core:fmt"
 import winCon "../console"
+import "core:fmt"
+import coreWin "core:sys/windows"
 
 MONITOR_DEFAULTTONEAREST :: coreWin.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST
 WNDCLASSEXW :: coreWin.WNDCLASSEXW
@@ -45,8 +45,7 @@ makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	}
 	if (RegisterClassExW(&class) == 0) {
 		lastError := GetLastError()
-		winCon.printf("error: %v\n", lastError)
-		assert(false)
+		assert(false, fmt.tprintf("error: %v\n", lastError))
 	}
 	return class.lpszClassName
 }
@@ -80,8 +79,7 @@ createWindow :: proc(
 	)
 	if window == nil {
 		lastError := GetLastError()
-		winCon.printf("error: %v\n", lastError)
-		assert(false)
+		assert(false, fmt.tprintf("error: %v\n", lastError))
 	}
 	return window
 }
@@ -94,7 +92,7 @@ toggleFullscreen :: proc(window: HWND) {
 	if (windowStyle & WS_OVERLAPPEDWINDOW) > 0 {
 		monitor := coreWin.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST)
 		monitorInfo: coreWin.MONITORINFO = {
-			cbSize = size_of(coreWin.MONITORINFO)
+			cbSize = size_of(coreWin.MONITORINFO),
 		}
 
 		if GetWindowPlacement(window, &prevWindowPlacement) &&

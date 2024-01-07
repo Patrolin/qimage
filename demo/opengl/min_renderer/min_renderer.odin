@@ -103,9 +103,7 @@ initOpenGL :: proc(dc: win.HDC) {
 	gl.SetPixelFormat(dc, pixelFormatIndex, &pixelFormat)
 	glRc := gl.wglCreateContext(dc)
 	// NOTE: gl.wglCreateContextAttrib(...) for gl 3.0+
-	if !gl.wglMakeCurrent(dc, glRc) {
-		assert(false)
-	}
+	assert(bool(gl.wglMakeCurrent(dc, glRc)))
 }
 resizeDIBSection :: proc(width, height: win.LONG) {
 	// NOTE: clear to black / stretch previous / copy previous?
