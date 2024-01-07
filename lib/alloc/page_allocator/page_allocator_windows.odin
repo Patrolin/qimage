@@ -1,58 +1,75 @@
 package pageAllocator
+import con "../../console"
+import "../../math"
 import "core:mem"
 import coreWin "core:sys/windows"
 
 LPVOID :: coreWin.LPVOID
 BOOL :: coreWin.BOOL
+SYSTEM_INFO :: coreWin.SYSTEM_INFO
 
-MEM_COMMIT :: coreWin.MEM_COMMIT
 MEM_RESERVE :: coreWin.MEM_RESERVE
-MEM_DECOMMIT :: coreWin.MEM_DECOMMIT
+MEM_COMMIT :: coreWin.MEM_COMMIT
 MEM_RELEASE :: coreWin.MEM_RELEASE
-MEM_FREE :: coreWin.MEM_FREE
-MEM_PRIVATE :: coreWin.MEM_PRIVATE
-MEM_MAPPED :: coreWin.MEM_MAPPED
-MEM_RESET :: coreWin.MEM_RESET
-MEM_TOP_DOWN :: coreWin.MEM_TOP_DOWN
-MEM_LARGE_PAGES :: coreWin.MEM_LARGE_PAGES
-MEM_4MB_PAGES :: coreWin.MEM_4MB_PAGES
-
-PAGE_NOACCESS :: coreWin.PAGE_NOACCESS
-PAGE_READONLY :: coreWin.PAGE_READONLY
 PAGE_READWRITE :: coreWin.PAGE_READWRITE
-PAGE_WRITECOPY :: coreWin.PAGE_WRITECOPY
-PAGE_EXECUTE :: coreWin.PAGE_EXECUTE
-PAGE_EXECUTE_READ :: coreWin.PAGE_EXECUTE_READ
-PAGE_EXECUTE_READWRITE :: coreWin.PAGE_EXECUTE_READWRITE
-PAGE_EXECUTE_WRITECOPY :: coreWin.PAGE_EXECUTE_WRITECOPY
-PAGE_GUARD :: coreWin.PAGE_GUARD
-PAGE_NOCACHE :: coreWin.PAGE_NOCACHE
-PAGE_WRITECOMBINE :: coreWin.PAGE_WRITECOMBINE
+// NOTE: large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
+//MEM_LARGE_PAGES :: coreWin.MEM_LARGE_PAGES
 
 GetSystemInfo :: coreWin.GetSystemInfo
+GetLargePageMinimum :: coreWin.GetLargePageMinimum
 VirtualAlloc :: coreWin.VirtualAlloc
 VirtualFree :: coreWin.VirtualFree
-// TODO: get page size? (~64KB): GetSystemInfo().dwAllocationGranularity
-// TODO: get large page size? (~2MB): GetLargePageMinimum()
 
-// NOTE: VirtualAlloc() always initializes to zero
-_alloc :: proc "contextless" (size: int) -> ([]byte, mem.Allocator_Error) {
-	ptr := ([^]u8)(VirtualAlloc(nil, uint(size), MEM_COMMIT, PAGE_READWRITE))
+PageSizeInfo :: struct {
+	minPageSize:          uint,
+	minPageSizeMask:      uint,
+	minLargePageSize:     uint,
+	minLargePageSizeMask: uint,
+}
+pageSizeInfo := getPageSizeInfo()
+getPageSizeInfo :: proc() -> (result: PageSizeInfo) {
+	systemInfo: SYSTEM_INFO
+	GetSystemInfo(&systemInfo)
+	result.minPageSize = uint(systemInfo.dwAllocationGranularity)
+	result.minPageSizeMask = math.mask_upper_bits(math.ctz(result.minPageSize))
+	result.minLargePageSize = GetLargePageMinimum()
+	result.minLargePageSizeMask = math.mask_upper_bits(math.ctz(result.minLargePageSize))
+	return
+}
+
+page_alloc :: proc "contextless" (size: uint) -> ([]byte, mem.Allocator_Error) {
+	size := size
+	size = (size + (pageSizeInfo.minPageSize - 1)) & pageSizeInfo.minPageSizeMask
+	// NOTE: VirtualAlloc() always initializes to zero
+	ptr := ([^]u8)(VirtualAlloc(nil, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE))
 	if ptr == nil {
 		return nil, .Out_Of_Memory
 	}
 	return ptr[:size], nil
 }
-_free :: proc "contextless" (ptr: LPVOID) -> ([]byte, mem.Allocator_Error) {
+page_free :: proc "contextless" (ptr: LPVOID) -> ([]byte, mem.Allocator_Error) {
 	VirtualFree(ptr, 0, MEM_RELEASE)
 	return nil, nil
 }
-_realloc :: proc "contextless" (size: int, oldPtr: LPVOID) -> ([]byte, mem.Allocator_Error) {
-	// TODO: move the data?
-	if oldPtr != nil {
-		_free(oldPtr)
+page_realloc :: proc "contextless" (
+	size: uint,
+	oldPtr: LPVOID,
+	oldSize: uint,
+) -> (
+	[]byte,
+	mem.Allocator_Error,
+) {
+	ptr, err := page_alloc(size)
+	if ptr == nil {
+		return ptr, err
 	}
-	return _alloc(size)
+	size := uint(len(ptr))
+	oldPtr := ([^]u8)(oldPtr)
+	for i in 0 ..< oldSize {
+		ptr[i] = oldPtr[i]
+	}
+	page_free(oldPtr)
+	return ptr, nil
 }
 
 page_allocator_proc :: proc(
@@ -68,13 +85,13 @@ page_allocator_proc :: proc(
 ) {
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		data, err = _alloc(size)
+		data, err = page_alloc(uint(size))
 	case .Free:
-		data, err = _free(old_memory)
+		data, err = page_free(old_memory)
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		data, err = _realloc(size, old_memory)
+		data, err = page_realloc(uint(size), old_memory, uint(old_size))
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_memory)
 		if set != nil {
