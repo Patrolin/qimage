@@ -12,8 +12,6 @@ MEM_RESERVE :: coreWin.MEM_RESERVE
 MEM_COMMIT :: coreWin.MEM_COMMIT
 MEM_RELEASE :: coreWin.MEM_RELEASE
 PAGE_READWRITE :: coreWin.PAGE_READWRITE
-// NOTE: large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
-//MEM_LARGE_PAGES :: coreWin.MEM_LARGE_PAGES
 
 GetSystemInfo :: coreWin.GetSystemInfo
 GetLargePageMinimum :: coreWin.GetLargePageMinimum
@@ -32,6 +30,7 @@ getPageSizeInfo :: proc() -> (result: PageSizeInfo) {
 	GetSystemInfo(&systemInfo)
 	result.minPageSize = uint(systemInfo.dwAllocationGranularity)
 	result.minPageSizeMask = math.mask_upper_bits(math.ctz(result.minPageSize))
+	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
 	result.minLargePageSize = GetLargePageMinimum()
 	result.minLargePageSizeMask = math.mask_upper_bits(math.ctz(result.minLargePageSize))
 	return
@@ -72,7 +71,7 @@ page_realloc :: proc "contextless" (
 	return ptr, nil
 }
 
-page_allocator_proc :: proc(
+_page_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
@@ -105,6 +104,6 @@ page_allocator_proc :: proc(
 	return
 }
 
-page_allocator :: proc() -> mem.Allocator {
-	return mem.Allocator{procedure = page_allocator_proc, data = nil}
+_page_allocator :: proc() -> mem.Allocator {
+	return mem.Allocator{procedure = _page_allocator_proc, data = nil}
 }

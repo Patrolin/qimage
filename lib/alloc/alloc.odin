@@ -25,7 +25,7 @@ default_context :: proc "contextless" () -> runtime.Context {
 	ctx := empty_context()
 	context = ctx
 	if default_allocators.allocator.procedure == nil {
-		//default_allocators.allocator = page_allocator.page_allocator()
+		//default_allocators.allocator = page_allocator._page_allocator()
 		default_allocators.allocator = lib_heap_allocator()
 		//default_allocators.temp_allocator = fixed_arena_allocator(4 * Megabyte)
 	}

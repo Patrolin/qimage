@@ -135,3 +135,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // TODO: how do IMGUI?
 // TODO: load windows screenshots
 // NOTE: windows systrace = perfmon
+// TODO: wtf is going on with cursor sprite?
