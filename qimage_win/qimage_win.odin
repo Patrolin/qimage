@@ -134,4 +134,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // TODO: handle WM_SYSKEYUP/DOWN, WM_KEYUP/DOWN
 // TODO: how do IMGUI?
 // TODO: load windows screenshots
-// TODO: windows systrace: https://learn.microsoft.com/en-us/sysinternals/downloads/procmon
+// NOTE: windows systrace = perfmon

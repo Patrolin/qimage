@@ -32,7 +32,7 @@ PAGE_WRITECOMBINE :: coreWin.PAGE_WRITECOMBINE
 GetSystemInfo :: coreWin.GetSystemInfo
 VirtualAlloc :: coreWin.VirtualAlloc
 VirtualFree :: coreWin.VirtualFree
-// TODO: get page size? (~64KB): systemInfo.dwAllocationGranularity
+// TODO: get page size? (~64KB): GetSystemInfo().dwAllocationGranularity
 // TODO: get large page size? (~2MB): GetLargePageMinimum()
 
 // NOTE: VirtualAlloc() always initializes to zero

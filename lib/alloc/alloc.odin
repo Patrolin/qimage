@@ -13,10 +13,17 @@ DefaultAllocators :: struct {
 	temp_allocator: runtime.Allocator,
 }
 
+empty_context :: proc "contextless" () -> runtime.Context {
+	ctx := runtime.default_context()
+	ctx.allocator.procedure = nil
+	ctx.temp_allocator.procedure = nil
+	return ctx
+}
+
 @(private)
 default_allocators := DefaultAllocators{}
 default_context :: proc "contextless" () -> runtime.Context {
-	ctx := runtime.default_context()
+	ctx := empty_context()
 	context = ctx
 	if default_allocators.allocator.procedure == nil {
 		default_allocators.allocator = lib_heap_allocator()
@@ -24,5 +31,6 @@ default_context :: proc "contextless" () -> runtime.Context {
 	}
 	ctx.allocator = default_allocators.allocator
 	//ctx.temp_allocator = default_allocators.temp_allocator
+	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc
 	return ctx
 }
