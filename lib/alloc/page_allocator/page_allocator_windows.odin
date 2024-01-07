@@ -99,11 +99,9 @@ _page_allocator_proc :: proc(
 	case .Query_Info:
 		return nil, .Mode_Not_Implemented
 	}
-
 	assert((uintptr(&data[0]) & 15) == 0)
 	return
 }
-
 _page_allocator :: proc() -> mem.Allocator {
 	return mem.Allocator{procedure = _page_allocator_proc, data = nil}
 }

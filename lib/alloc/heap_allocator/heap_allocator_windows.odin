@@ -13,10 +13,6 @@ HeapAlloc :: coreWin.HeapAlloc
 HeapReAlloc :: coreWin.HeapReAlloc
 HeapFree :: coreWin.HeapFree
 
-align :: proc "contextless" (ptr: uint) -> uint {
-	return (ptr + 15) / 16
-}
-
 @(private)
 processHeap: HANDLE
 _alloc :: proc "contextless" (size: uint, clearToZero: bool) -> ([]byte, mem.Allocator_Error) {
@@ -69,11 +65,9 @@ heap_allocator_proc :: proc(
 	case .Query_Info:
 		return nil, .Mode_Not_Implemented
 	}
-
 	assert((uintptr(&data[0]) & 15) == 0)
 	return
 }
-
 heap_allocator :: proc() -> mem.Allocator {
 	processHeap = GetProcessHeap()
 	return mem.Allocator{procedure = heap_allocator_proc, data = nil}
