@@ -68,3 +68,5 @@ printf :: proc(format: string, args: ..any) {
 	str := fmt.tprintf(format, ..args)
 	print(str)
 }
+
+// TODO: override os.stdout?

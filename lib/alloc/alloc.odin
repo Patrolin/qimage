@@ -1,0 +1,28 @@
+package alloc
+import "core:runtime"
+import "heap_allocator"
+import "page_allocator"
+
+// odin errors with "D:\a\Odin\Odin\src\llvm_backend_proc.cpp(72): Panic: lib_heap_allocator :: proc() -> Allocator (was parapoly: 0 0)"
+// if you don't rename these for some reason
+lib_heap_allocator :: heap_allocator.heap_allocator
+//page_allocator :: page_allocator.page_allocator
+
+DefaultAllocators :: struct {
+	allocator:      runtime.Allocator,
+	temp_allocator: runtime.Allocator,
+}
+
+@(private)
+default_allocators := DefaultAllocators{}
+default_context :: proc "contextless" () -> runtime.Context {
+	ctx := runtime.default_context()
+	context = ctx
+	if default_allocators.allocator.procedure == nil {
+		default_allocators.allocator = lib_heap_allocator()
+		//default_allocators.temp_allocator = arena_allocator()
+	}
+	ctx.allocator = default_allocators.allocator
+	//ctx.temp_allocator = default_allocators.temp_allocator
+	return ctx
+}

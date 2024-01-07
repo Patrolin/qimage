@@ -2,6 +2,7 @@
 package main
 import "../common/assets"
 import "../common/constants"
+import alloc "../lib/alloc"
 import con "../lib/console"
 import file "../lib/file"
 import win "../lib/windows"
@@ -18,6 +19,8 @@ isRunning := false
 image: file.Image
 
 main :: proc() {
+	context = alloc.default_context()
+	some_data := make([]u8, 4)
 	windowClass := win.makeWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
@@ -52,7 +55,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = runtime.default_context()
+	context = alloc.default_context()
 	result = 0
 	switch message {
 	case win.WM_SIZE:

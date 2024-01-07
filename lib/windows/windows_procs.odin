@@ -1,6 +1,4 @@
 package windows
-
-import winAlloc "alloc"
 import winCon "console"
 import coreWin "core:sys/windows"
 import "window"
@@ -26,6 +24,8 @@ MSG :: coreWin.MSG
 CALLBACK :: "stdcall"
 WINAPI :: "stdcall"
 
+// TODO: move all this to separate subsystems
+
 // basics
 //GetModuleHandleW :: coreWin.GetModuleHandleW
 GetLastError :: coreWin.GetLastError
@@ -44,10 +44,6 @@ utf16_to_utf8 :: winCon.utf16_to_utf8
 lenw :: winCon.lenw
 print :: winCon.print
 printf :: winCon.printf
-
-// alloc
-alloc :: winAlloc.alloc
-free :: winAlloc.free
 
 // window
 makeWindowClass :: window.makeWindowClass
