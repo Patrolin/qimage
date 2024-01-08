@@ -136,3 +136,4 @@ swapBuffers :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // TODO: load windows screenshots
 // NOTE: windows systrace = perfmon
 // TODO: wtf is going on with cursor sprite?
+// TODO: LoC counter
