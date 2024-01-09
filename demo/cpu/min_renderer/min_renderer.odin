@@ -1,6 +1,7 @@
 // odin run demo/cpu/min_renderer -subsystem:windows
 package main
 
+import "../../../lib/alloc"
 import con "../../../lib/console"
 import win "../../../lib/windows"
 import "core:fmt"
@@ -93,7 +94,7 @@ getClientBox :: proc(window: win.HWND) -> (x, y, width, height: win.LONG) {
 
 resizeDIBSection :: proc(width, height: win.LONG) {
 	if renderBuffer.data != nil {
-		win.free(renderBuffer.data)
+		alloc.page_free(renderBuffer.data)
 	}
 	renderBuffer.bytesPerPixel = 4
 	renderBuffer.info.bmiHeader.biSize = size_of(win.BITMAPINFOHEADER)
@@ -103,7 +104,7 @@ resizeDIBSection :: proc(width, height: win.LONG) {
 	renderBuffer.info.bmiHeader.biWidth = width
 	renderBuffer.info.bmiHeader.biHeight = -height // NOTE: top-down DIB
 	bitmapDataSize := uint(width) * uint(height) * uint(renderBuffer.bytesPerPixel)
-	renderBuffer.data = ([^]u32)(win.alloc(bitmapDataSize))
+	renderBuffer.data = ([^]u32)(&alloc.page_alloc(bitmapDataSize)[0])
 	renderBuffer.width = width
 	renderBuffer.height = height
 	// NOTE: clear to black / stretch previous / copy previous?
