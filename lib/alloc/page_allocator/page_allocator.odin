@@ -18,7 +18,7 @@ _page_allocator_proc :: proc(
 		err = (data == nil) ? .Out_Of_Memory : nil
 	case .Free:
 		page_free(old_memory)
-		err = nil
+		data, err = nil, nil
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
