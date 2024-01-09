@@ -101,7 +101,7 @@ resizeDIBSection :: proc(width, height: win.LONG) {
 	renderBuffer.info.bmiHeader.biBitCount = renderBuffer.bytesPerPixel * 8
 	renderBuffer.info.bmiHeader.biCompression = win.BI_RGB
 	renderBuffer.info.bmiHeader.biWidth = width
-	renderBuffer.info.bmiHeader.biHeight = -height // top-down DIB
+	renderBuffer.info.bmiHeader.biHeight = -height // NOTE: top-down DIB
 	bitmapDataSize := uint(width) * uint(height) * uint(renderBuffer.bytesPerPixel)
 	renderBuffer.data = ([^]u32)(win.alloc(bitmapDataSize))
 	renderBuffer.width = width
@@ -116,7 +116,7 @@ renderToBuffer :: proc() {
 			red: u32 = 0
 			green: u32 = 0
 			blue: u32 = 255
-			// register: xxRRGGBB, memory: BBGGRRxx
+			// NOTE: register: xxRRGGBB, memory: BBGGRRxx
 			BGRX := blue | (green << 8) | (red << 16)
 			renderBuffer.data[Y * pitch + X * stride] = BGRX
 		}
@@ -146,6 +146,6 @@ copyBufferToWindow :: proc(dc: win.HDC, x, y, width, height: win.LONG) {
 // NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552
 // TODO: fonts (163/164): https://www.youtube.com/playlist?list=PLEMXAbCVnmY43tjaptnJW0rMP-DsXww1Y
 // TODO: vsync counter demo
-// TODO: does windows render in sRGB by default? SetICMMode?
+// NOTE: does windows render in sRGB by default? - yes, SetICMMode() to use non sRGB
 // https://learn.microsoft.com/en-us/windows/win32/wcs/srgb--a-standard-color-space
 // https://learn.microsoft.com/en-us/windows/win32/wcs/basic-functions-for-use-within-a-device-context

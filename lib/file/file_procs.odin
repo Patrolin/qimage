@@ -4,14 +4,9 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-readFile :: proc(
-	fileName: string,
-	allocator := context.temp_allocator,
-) -> (
-	data: []u8,
-	success: bool,
-) {
-	return os.read_entire_file(fileName, allocator = allocator)
+readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
+	// TODO: write this is win api, and use page_alloc (for big files)
+	return os.read_entire_file(fileName, allocator = context.temp_allocator)
 }
 
 // TODO: load into existing buffer

@@ -50,7 +50,7 @@ page_free :: proc "contextless" (ptr: LPVOID) -> ([]byte, mem.Allocator_Error) {
 	VirtualFree(ptr, 0, MEM_RELEASE)
 	return nil, nil
 }
-page_realloc :: proc "contextless" (
+page_resize :: proc "contextless" (
 	size: uint,
 	oldPtr: LPVOID,
 	oldSize: uint,
@@ -90,7 +90,7 @@ _page_allocator_proc :: proc(
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		data, err = page_realloc(uint(size), old_memory, uint(old_size))
+		data, err = page_resize(uint(size), old_memory, uint(old_size))
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_memory)
 		if set != nil {

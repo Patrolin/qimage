@@ -20,7 +20,8 @@ image: file.Image
 
 main :: proc() {
 	context = alloc.default_context()
-	some_data := make([]u8, 4)
+	a := make([]u8, 4, allocator = context.temp_allocator)
+	con.print(a)
 	windowClass := win.makeWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)

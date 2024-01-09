@@ -26,7 +26,7 @@ _free :: proc "contextless" (ptr: LPVOID) -> ([]byte, mem.Allocator_Error) {
 	HeapFree(processHeap, 0, ptr)
 	return nil, nil
 }
-_realloc :: proc "contextless" (size: uint, oldPtr: LPVOID) -> ([]byte, mem.Allocator_Error) {
+_resize :: proc "contextless" (size: uint, oldPtr: LPVOID) -> ([]byte, mem.Allocator_Error) {
 	if oldPtr == nil {
 		return _alloc(size, true)
 	}
@@ -56,7 +56,7 @@ heap_allocator_proc :: proc(
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		data, err = _realloc(uint(size), old_memory)
+		data, err = _resize(uint(size), old_memory)
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_memory)
 		if set != nil {
