@@ -14,6 +14,7 @@ readFile :: proc(
 	return os.read_entire_file(fileName, allocator = allocator)
 }
 
+// TODO: load into existing buffer
 Image :: struct {
 	data:                    [^]u32,
 	width, height, channels: int,
