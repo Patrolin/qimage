@@ -1,5 +1,4 @@
 package pageAllocator
-import con "../../console"
 import "../../math"
 import "core:mem"
 import coreWin "core:sys/windows"

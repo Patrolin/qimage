@@ -3,7 +3,6 @@ package main
 import "../common/assets"
 import "../common/constants"
 import alloc "../lib/alloc"
-import con "../lib/console"
 import file "../lib/file"
 import win "../lib/windows"
 import gl "../lib/windows/gl"
@@ -20,18 +19,19 @@ image: file.Image
 
 main :: proc() {
 	context = alloc.default_context()
+	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
-	con.print(a)
+	fmt.println(a)
 	windowClass := win.makeWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.utf8_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
 	window := win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := win.GetDC(window)
 	initOpenGL(dc)
 	image = assets.loadImage("test_image.bmp")
-	con.print(image)
-	con.print(file.tprintImage(image, 0, 0, 3, 3))
+	fmt.println(image)
+	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
 	for isRunning = true; isRunning; {
 		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
 			if msg.message == win.WM_QUIT {
@@ -60,12 +60,12 @@ messageHandler :: proc "stdcall" (
 	result = 0
 	switch message {
 	case win.WM_SIZE:
-		con.print(fmt.ctprintf("WM_SIZE\n"))
+		fmt.println("WM_SIZE")
 		x, y, width, height := getClientBox(window)
 		resizeDIBSection(width, height)
 		renderToBuffer()
 	case win.WM_PAINT:
-		con.print(fmt.ctprintf("WM_PAINT\n"))
+		fmt.println("WM_PAINT")
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
 		x := paint.rcPaint.left
@@ -75,7 +75,7 @@ messageHandler :: proc "stdcall" (
 		swapBuffers(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
-		con.print(fmt.ctprintf("WM_DESTROY\n"))
+		fmt.println("WM_DESTROY")
 		//win.PostQuitMessage(0)
 		isRunning = false
 	case:

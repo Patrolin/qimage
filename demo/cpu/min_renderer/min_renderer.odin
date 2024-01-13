@@ -2,7 +2,6 @@
 package main
 
 import "../../../lib/alloc"
-import con "../../../lib/console"
 import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
@@ -26,7 +25,7 @@ main :: proc() {
 	windowClass := win.makeWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.utf8_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
 	window := win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := win.GetDC(window)
 	for isRunning = true; isRunning; {
@@ -57,12 +56,12 @@ messageHandler :: proc "stdcall" (
 	result = 0
 	switch message {
 	case win.WM_SIZE:
-		con.printf("WM_SIZE\n")
+		fmt.println("WM_SIZE")
 		x, y, width, height := getClientBox(window)
 		resizeDIBSection(width, height)
 		renderToBuffer()
 	case win.WM_PAINT:
-		con.printf("WM_PAINT\n")
+		fmt.println("WM_PAINT")
 		paint: win.PAINTSTRUCT
 		dc: win.HDC = win.BeginPaint(window, &paint)
 		x := paint.rcPaint.left
@@ -72,7 +71,7 @@ messageHandler :: proc "stdcall" (
 		copyBufferToWindow(dc, x, y, width, height)
 		win.EndPaint(window, &paint)
 	case win.WM_DESTROY:
-		con.printf("WM_DESTROY\n")
+		fmt.println("WM_DESTROY")
 		//win.PostQuitMessage(0)
 		isRunning = false
 	case:

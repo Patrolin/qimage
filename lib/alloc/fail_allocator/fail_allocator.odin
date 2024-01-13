@@ -1,5 +1,5 @@
 package failAllocator
-import con "../../console"
+import "core:fmt"
 import "core:mem"
 
 fail_allocator_proc :: proc(
@@ -13,7 +13,7 @@ fail_allocator_proc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
-	con.printf("fail_loc = %v\n", loc)
+	fmt.printf("fail_loc = %v\n", loc)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed, .Free, .Free_All, .Resize:
 		assert(false)

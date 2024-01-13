@@ -40,7 +40,7 @@ makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	}
 	if class.lpszClassName == nil {
 		className := fmt.aprintf("libWin_class_%v", makeWindowClassCounter)
-		class.lpszClassName = winCon.utf8_to_wstring(className, context.allocator)
+		class.lpszClassName = winCon.string_to_wstring(className, context.allocator)
 		makeWindowClassCounter += 1
 	}
 	if (RegisterClassExW(&class) == 0) {

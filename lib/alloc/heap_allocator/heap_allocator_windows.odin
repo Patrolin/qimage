@@ -1,5 +1,4 @@
 package heapAllocator
-import con "../../console"
 import "core:mem"
 import coreWin "core:sys/windows"
 

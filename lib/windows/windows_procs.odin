@@ -37,13 +37,8 @@ foreign user32 {
 }
 
 // console
-utf8_to_wstring :: winCon.utf8_to_wstring
-utf8_to_utf16 :: winCon.utf8_to_utf16
-wstring_to_utf8 :: winCon.wstring_to_utf8
-utf16_to_utf8 :: winCon.utf16_to_utf8
-lenw :: winCon.lenw
-print :: winCon.print
-printf :: winCon.printf
+string_to_wstring :: winCon.string_to_wstring
+wstring_to_string :: winCon.wstring_to_string
 
 // window
 makeWindowClass :: window.makeWindowClass
