@@ -1,4 +1,4 @@
-package windowsWindow
+package libWindowsWindow
 import winCon "../console"
 import "core:fmt"
 import coreWin "core:sys/windows"
@@ -32,16 +32,16 @@ SetWindowPlacement :: coreWin.SetWindowPlacement
 SetWindowPos :: coreWin.SetWindowPos
 
 @(private)
-makeWindowClassCounter := 0
-makeWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
+registerWindowClassCounter := 0
+registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	class := class
 	if class.cbSize == 0 {
 		class.cbSize = size_of(WNDCLASSEXW)
 	}
 	if class.lpszClassName == nil {
-		className := fmt.aprintf("libWin_class_%v", makeWindowClassCounter)
+		className := fmt.aprintf("libWin_%v", registerWindowClassCounter)
 		class.lpszClassName = winCon.string_to_wstring(className, context.allocator)
-		makeWindowClassCounter += 1
+		registerWindowClassCounter += 1
 	}
 	if (RegisterClassExW(&class) == 0) {
 		lastError := GetLastError()
@@ -63,6 +63,7 @@ createWindow :: proc(
 	width = adjustRect.right - adjustRect.left
 	height = adjustRect.bottom - adjustRect.top
 
+	// NOTE: this blocks until events are handled
 	window := CreateWindowExW(
 		0,
 		windowClass,

@@ -1,4 +1,4 @@
-package windows
+package libWindows
 import coreWin "core:sys/windows"
 
 /*
@@ -127,8 +127,3 @@ CS_DROPSHADOW :: coreWin.CS_DROPSHADOW
 PM_NOREMOVE :: coreWin.PM_NOREMOVE
 PM_REMOVE :: coreWin.PM_REMOVE
 PM_NOYIELD :: coreWin.PM_NOYIELD
-
-// paint
-BI_RGB :: coreWin.BI_RGB
-DIB_RGB_COLORS :: coreWin.DIB_RGB_COLORS
-SRCCOPY :: coreWin.SRCCOPY
