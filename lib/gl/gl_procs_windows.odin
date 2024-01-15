@@ -57,6 +57,6 @@ resizeImageBuffer :: proc(width, height: u16) {
 	// TODO: stretch previous?
 	glViewport(0, 0, u32(width), u32(height))
 }
-renderBufferToWindow :: proc(dc: HDC) {
+renderImageBufferToWindow :: proc(dc: HDC) {
 	SwapBuffers(dc)
 }

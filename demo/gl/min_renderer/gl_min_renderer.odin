@@ -32,7 +32,7 @@ main :: proc() {
 			win.DispatchMessageW(&msg)
 		}
 		updateAndRender()
-		gl.renderBufferToWindow(dc)
+		gl.renderImageBufferToWindow(dc)
 		free_all(context.temp_allocator)
 	}
 }
@@ -59,7 +59,7 @@ messageHandler :: proc "stdcall" (
 		fmt.println("WM_PAINT")
 		ps: gl.PAINTSTRUCT
 		dc: win.HDC = gl.BeginPaint(windowHandle, &ps)
-		gl.renderBufferToWindow(dc)
+		gl.renderImageBufferToWindow(dc)
 		gl.EndPaint(windowHandle, &ps)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")

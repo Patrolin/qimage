@@ -47,7 +47,6 @@ main :: proc() {
 	}
 }
 
-
 // NOTE: this blocks main thread
 messageHandler :: proc "stdcall" (
 	windowHandle: win.HWND,
