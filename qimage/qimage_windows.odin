@@ -65,6 +65,7 @@ messageHandler :: proc "stdcall" (
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
 		paint.resizeImageBuffer(&imageBuffer, window.width, window.height)
+		updateAndRender() // HACK: main loop is frozen while sizing
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT
