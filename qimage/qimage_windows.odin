@@ -72,6 +72,9 @@ messageHandler :: proc "stdcall" (
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
 		paint.copyImageBufferToWindow(&imageBuffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
+	case win.WM_DESTROY:
+		fmt.println("WM_DESTROY")
+		isRunning = false
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN:
 		switch(wParam) {
 		case win.VK_CONTROL:
@@ -81,6 +84,7 @@ messageHandler :: proc "stdcall" (
 		case win.VK_SHIFT:
 			input.g.keyboard.Shift = true;
 		case win.VK_KEYW:
+			// TODO: set W_count
 			input.g.keyboard.W = true;
 		case win.VK_KEYA:
 			input.g.keyboard.A = true;
@@ -108,9 +112,6 @@ messageHandler :: proc "stdcall" (
 			input.g.keyboard.D = false;
 		}
 		fmt.println(input.g)
-	case win.WM_DESTROY:
-		fmt.println("WM_DESTROY")
-		isRunning = false
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
 	}
