@@ -1,7 +1,8 @@
-// odin run qimage_win -subsystem:windows
+// odin run qimage -subsystem:windows
 package main
 import "../common/assets"
 import "../common/constants"
+import "../common/input"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
@@ -24,6 +25,7 @@ main :: proc() {
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
+	fmt.printf("input: %v\n", uintptr(&input.g) & 63)
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
@@ -35,9 +37,6 @@ main :: proc() {
 	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
 	for isRunning = true; isRunning; {
 		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-			if msg.message == win.WM_QUIT {
-				isRunning = false
-			}
 			win.TranslateMessage(&msg)
 			win.DispatchMessageW(&msg)
 		}
@@ -47,7 +46,7 @@ main :: proc() {
 	}
 }
 
-// NOTE: this blocks main thread
+// NOTE: this blocks the main thread
 messageHandler :: proc "stdcall" (
 	windowHandle: win.HWND,
 	message: win.UINT,
@@ -58,6 +57,7 @@ messageHandler :: proc "stdcall" (
 ) {
 	context = alloc.default_context()
 	result = 0
+	// TODO: handle keyboard/mouse events
 	switch message {
 	case win.WM_SIZE:
 		fmt.println("WM_SIZE")
@@ -72,9 +72,44 @@ messageHandler :: proc "stdcall" (
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
 		paint.copyImageBufferToWindow(&imageBuffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
+	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN:
+		switch(wParam) {
+		case win.VK_CONTROL:
+			input.g.keyboard.Ctrl = true;
+		case win.VK_MENU:
+			input.g.keyboard.Alt = true;
+		case win.VK_SHIFT:
+			input.g.keyboard.Shift = true;
+		case win.VK_KEYW:
+			input.g.keyboard.W = true;
+		case win.VK_KEYA:
+			input.g.keyboard.A = true;
+		case win.VK_KEYS:
+			input.g.keyboard.S = true;
+		case win.VK_KEYD:
+			input.g.keyboard.D = true;
+		}
+		fmt.println(input.g)
+	case win.WM_KEYUP, win.WM_SYSKEYUP:
+		switch(wParam) {
+		case win.VK_CONTROL:
+			input.g.keyboard.Ctrl = false;
+		case win.VK_MENU:
+			input.g.keyboard.Alt = false;
+		case win.VK_SHIFT:
+			input.g.keyboard.Shift = false;
+		case win.VK_KEYW:
+			input.g.keyboard.W = false;
+		case win.VK_KEYA:
+			input.g.keyboard.A = false;
+		case win.VK_KEYS:
+			input.g.keyboard.S = false;
+		case win.VK_KEYD:
+			input.g.keyboard.D = false;
+		}
+		fmt.println(input.g)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")
-		//win.PostQuitMessage(0)
 		isRunning = false
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
@@ -83,28 +118,11 @@ messageHandler :: proc "stdcall" (
 	return
 }
 
-updateAndRender :: proc() {
-	stride := int(imageBuffer.width)
-	pitch := 1
-	for Y := 0; Y < int(imageBuffer.height); Y += 1 {
-		for X := 0; X < int(imageBuffer.width); X += 1 {
-			red: u32 = 128
-			green: u32 = 128
-			blue: u32 = 255
-			// NOTE: register: xxRRGGBB, memory: BBGGRRxx
-			BGRX := blue | (green << 8) | (red << 16)
-			imageBuffer.data[Y * stride + X * pitch] = BGRX
-		}
-	}
-}
-
 // NOTE: WS_EX_LAYERED -> alpha channel?
-// TODO: tell OpenGL we want sRGB - handmade hero 236-241
 // TODO: allow cropping svgs
 // TODO: 1D LUTs + 16x16x16 3D LUTs?
-// TODO: handle WM_SYSKEYUP/DOWN, WM_KEYUP/DOWN
-// TODO: how do IMGUI?
+// TODO: how do IMGUI? - functional + ?
 // TODO: load windows screenshots
-// NOTE: windows systrace = perfmon
+// NOTE: perfmon = systrace for windows
 // TODO: wtf is going on with cursor sprite?
 // TODO: LoC counter

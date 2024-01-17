@@ -1,4 +1,4 @@
-package libPaint
+package lib_paint
 import "../alloc"
 import "core:fmt"
 import coreWin "core:sys/windows"

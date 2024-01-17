@@ -1,4 +1,4 @@
-package libWindows
+package lib_windows
 import winCon "console"
 import coreWin "core:sys/windows"
 import "window"

@@ -1,4 +1,4 @@
-package libWindowsConsole
+package lib_windows_console
 import "core:fmt"
 import "core:os"
 import coreWin "core:sys/windows"

@@ -37,7 +37,7 @@ main :: proc() {
 	}
 }
 
-// NOTE: this blocks main thread
+// NOTE: this blocks the main thread
 messageHandler :: proc "stdcall" (
 	windowHandle: win.HWND,
 	message: win.UINT,
@@ -80,3 +80,4 @@ updateAndRender :: proc() {
 
 // NOTE: enable vsync via wglSwapIntervalExt(1)
 // NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043
+// TODO: tell OpenGL we want sRGB - handmade hero 236-241

@@ -1,4 +1,4 @@
-package libWindowsWindow
+package lib_windows_window
 import winCon "../console"
 import "core:fmt"
 import coreWin "core:sys/windows"

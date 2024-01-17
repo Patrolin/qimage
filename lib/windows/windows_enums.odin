@@ -1,4 +1,4 @@
-package libWindows
+package lib_windows
 import coreWin "core:sys/windows"
 
 /*
@@ -21,6 +21,10 @@ WM_DESTROY :: coreWin.WM_DESTROY
 WM_MOVE :: coreWin.WM_MOVE
 WM_SIZE :: coreWin.WM_SIZE
 WM_SIZING :: 0x0214
+WM_KEYUP :: coreWin.WM_KEYUP
+WM_SYSKEYUP :: coreWin.WM_SYSKEYUP
+WM_KEYDOWN :: coreWin.WM_KEYDOWN
+WM_SYSKEYDOWN :: coreWin.WM_SYSKEYDOWN
 WM_ACTIVATE :: coreWin.WM_ACTIVATE
 WM_SETFOCUS :: coreWin.WM_SETFOCUS
 WM_KILLFOCUS :: coreWin.WM_KILLFOCUS
