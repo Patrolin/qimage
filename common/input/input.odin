@@ -6,9 +6,13 @@ Input :: struct {
     keyboard: Keyboard,
 }
 Mouse :: struct {
-    pos: math.vec2i,
-    path_count: int,
-    path: [8]math.vec2i,
+    clickPos: math.vec2i,
+    path: []math.vec2i,
+    path_buffer: [4]math.vec2i,
+    LMB: b8,
+    LMB_count: u8,
+    RMB: b8,
+    RMB_count: u8,
 }
 Keyboard :: struct {
     Ctrl: b8,
@@ -23,5 +27,3 @@ Keyboard :: struct {
     D: b8,
     D_count: u8,
 }
-// NOTE: are global variables always cache aligned?
-g := Input{}

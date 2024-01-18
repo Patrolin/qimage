@@ -14,3 +14,15 @@ mask_lower_bits :: proc(n: uint) -> uint {
 	tmp := (transmute(uint)int(-1))
 	return ~(tmp << n)
 }
+get_bit :: proc(x: u32, index: u32) -> u32 {
+	return (x >> index) & 1;
+}
+set_bit :: proc(x: u32, index: u32) -> u32 {
+	return x | (1 << index);
+}
+reset_bit :: proc(x: u32, index: u32) -> u32 {
+	return x &~ (1 << index);
+}
+flip_bit :: proc(x: u32, index: u32) -> u32 {
+	return x ~ (1 << index);
+}

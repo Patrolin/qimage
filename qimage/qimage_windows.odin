@@ -2,11 +2,12 @@
 package main
 import "../common/assets"
 import "../common/constants"
-import "../common/input"
+import commonInput "../common/input"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
 import "../lib/paint"
+import "../lib/math"
 import win "../lib/windows"
 import "core:fmt"
 import "core:runtime"
@@ -19,13 +20,15 @@ isRunning := false
 imageBuffer: paint.ImageBuffer
 window: paint.Window
 image: file.Image
+input := commonInput.Input{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
 	context = alloc.default_context()
+	input.mouse.path = input.mouse.path_buffer[:1]
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
-	fmt.printf("input: %v\n", uintptr(&input.g) & 63)
+	fmt.printf("input: %v\n", uintptr(&input) & 63)
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
@@ -43,6 +46,8 @@ main :: proc() {
 		updateAndRender()
 		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
 		free_all(context.temp_allocator)
+		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
+		input.mouse.path = input.mouse.path_buffer[:1]
 	}
 }
 
@@ -75,43 +80,47 @@ messageHandler :: proc "stdcall" (
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")
 		isRunning = false
-	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN:
+	case win.WM_MOUSEMOVE:
+		x := u16(win.LOWORD(u32(lParam)))
+		y := u16(win.HIWORD(u32(lParam)))
+		i := len(input.mouse.path)
+		input.mouse.path_buffer[i] = {x, y}
+		input.mouse.path = input.mouse.path_buffer[:i+1]
+		//fmt.println("input.mouse.path", input.mouse.path)
+	case win.WM_LBUTTONDOWN:
+		input.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
+		input.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
+		input.mouse.LMB = true
+		fmt.println(input)
+	case win.WM_LBUTTONUP:
+		// TODO: use rawinput mouse
+		input.mouse.LMB = false
+		fmt.println(input)
+	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
+		wasDown := b8(math.get_bit(u32(lParam), 30))
+		isDown := b8(math.get_bit(u32(lParam), 31) ~ 1)
+		count := u8(isDown && !wasDown)
 		switch(wParam) {
 		case win.VK_CONTROL:
-			input.g.keyboard.Ctrl = true;
+			input.keyboard.Ctrl = isDown
 		case win.VK_MENU:
-			input.g.keyboard.Alt = true;
+			input.keyboard.Alt = isDown
 		case win.VK_SHIFT:
-			input.g.keyboard.Shift = true;
+			input.keyboard.Shift = isDown
 		case win.VK_KEYW:
-			// TODO: set W_count
-			input.g.keyboard.W = true;
+			input.keyboard.W = isDown
+			input.keyboard.W_count = count
 		case win.VK_KEYA:
-			input.g.keyboard.A = true;
+			input.keyboard.A = isDown
+			input.keyboard.A_count = count
 		case win.VK_KEYS:
-			input.g.keyboard.S = true;
+			input.keyboard.S = isDown
+			input.keyboard.S_count = count
 		case win.VK_KEYD:
-			input.g.keyboard.D = true;
+			input.keyboard.D = isDown
+			input.keyboard.D_count = count
 		}
-		fmt.println(input.g)
-	case win.WM_KEYUP, win.WM_SYSKEYUP:
-		switch(wParam) {
-		case win.VK_CONTROL:
-			input.g.keyboard.Ctrl = false;
-		case win.VK_MENU:
-			input.g.keyboard.Alt = false;
-		case win.VK_SHIFT:
-			input.g.keyboard.Shift = false;
-		case win.VK_KEYW:
-			input.g.keyboard.W = false;
-		case win.VK_KEYA:
-			input.g.keyboard.A = false;
-		case win.VK_KEYS:
-			input.g.keyboard.S = false;
-		case win.VK_KEYD:
-			input.g.keyboard.D = false;
-		}
-		fmt.println(input.g)
+		fmt.println(input)
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
 	}
