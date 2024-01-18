@@ -41,10 +41,8 @@ main :: proc() {
 		dwFlags     = 0,
 		hwndTarget  = window.handle,
 	}
-	registeredRawMouse := win.RegisterRawInputDevices(&raw_devices, 1, size_of(win.RAWINPUTDEVICE))
-	assert(bool(registeredRawMouse))
-	// TODO: https://learn.microsoft.com/en-us/windows/win32/inputdev/about-raw-input
-	// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices
+	assert(bool(win.RegisterRawInputDevices(&raw_devices, 1, size_of(win.RAWINPUTDEVICE))))
+
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
 	fmt.println(image)
@@ -73,7 +71,6 @@ messageHandler :: proc "stdcall" (
 ) {
 	context = alloc.default_context()
 	result = 0
-	// TODO: handle keyboard/mouse events
 	switch message {
 	case win.WM_SIZE:
 		fmt.println("WM_SIZE")
