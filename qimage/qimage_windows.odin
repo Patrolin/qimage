@@ -6,8 +6,8 @@ import commonInput "../common/input"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
-import "../lib/paint"
 import "../lib/math"
+import "../lib/paint"
 import win "../lib/windows"
 import "core:fmt"
 import "core:runtime"
@@ -34,6 +34,17 @@ main :: proc() {
 	)
 	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
+
+	raw_devices := win.RAWINPUTDEVICE {
+		usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
+		usUsage     = win.RIU_MOUSE,
+		dwFlags     = 0,
+		hwndTarget  = window.handle,
+	}
+	registeredRawMouse := win.RegisterRawInputDevices(&raw_devices, 1, size_of(win.RAWINPUTDEVICE))
+	assert(bool(registeredRawMouse))
+	// TODO: https://learn.microsoft.com/en-us/windows/win32/inputdev/about-raw-input
+	// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerrawinputdevices
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
 	fmt.println(image)
@@ -85,22 +96,38 @@ messageHandler :: proc "stdcall" (
 		y := u16(win.HIWORD(u32(lParam)))
 		i := len(input.mouse.path)
 		input.mouse.path_buffer[i] = {x, y}
-		input.mouse.path = input.mouse.path_buffer[:i+1]
-		//fmt.println("input.mouse.path", input.mouse.path)
+		input.mouse.path = input.mouse.path_buffer[:i + 1]
+	//fmt.println("input.mouse.path", input.mouse.path)
 	case win.WM_LBUTTONDOWN:
 		input.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
 		input.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
 		input.mouse.LMB = true
 		fmt.println(input)
-	case win.WM_LBUTTONUP:
-		// TODO: use rawinput mouse
-		input.mouse.LMB = false
-		fmt.println(input)
+	case win.WM_INPUT:
+		// NOTE: win.WM_LBUTTONUP does not trigger if you move the mouse outside the window
+		raw_input: win.RAWINPUT
+		raw_input_size := u32(size_of(raw_input))
+		win.GetRawInputData(
+			win.HRAWINPUT(lParam),
+			win.RID_INPUT,
+			&raw_input,
+			&raw_input_size,
+			size_of(win.RAWINPUTHEADER),
+		)
+		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
+			if bool(
+				   raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags &
+				   win.RI_MOUSE_LEFT_BUTTON_UP,
+			   ) {
+				input.mouse.LMB = false
+				fmt.println(input)
+			}
+		}
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		wasDown := b8(math.get_bit(u32(lParam), 30))
 		isDown := b8(math.get_bit(u32(lParam), 31) ~ 1)
 		count := u8(isDown && !wasDown)
-		switch(wParam) {
+		switch (wParam) {
 		case win.VK_CONTROL:
 			input.keyboard.Ctrl = isDown
 		case win.VK_MENU:

@@ -20,6 +20,10 @@ LPARAM :: coreWin.LPARAM
 WPARAM :: coreWin.WPARAM
 LRESULT :: coreWin.LRESULT
 MSG :: coreWin.MSG
+RAWINPUTDEVICE :: coreWin.RAWINPUTDEVICE
+RAWINPUTHEADER :: coreWin.RAWINPUTHEADER
+RAWINPUT :: coreWin.RAWINPUT
+HRAWINPUT :: coreWin.HRAWINPUT
 
 CALLBACK :: "stdcall"
 WINAPI :: "stdcall"
@@ -50,3 +54,6 @@ TranslateMessage :: coreWin.TranslateMessage
 DispatchMessageW :: coreWin.DispatchMessageW
 DefWindowProcW :: coreWin.DefWindowProcW
 PostQuitMessage :: coreWin.PostQuitMessage
+// NOTE: rawinput
+RegisterRawInputDevices :: coreWin.RegisterRawInputDevices
+GetRawInputData :: coreWin.GetRawInputData
