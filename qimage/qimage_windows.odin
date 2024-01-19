@@ -51,7 +51,6 @@ main :: proc() {
 	i := 0
 	max_dt := 0.0
 	for isRunning = true; isRunning; {
-		win.doVsyncBadly()
 		t := math.time()
 		dt := t - prev_t
 		i += 1
@@ -69,6 +68,7 @@ main :: proc() {
 		free_all(context.temp_allocator)
 		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
 		input.mouse.path = input.mouse.path_buffer[:1]
+		win.doVsyncBadly()
 	}
 }
 
