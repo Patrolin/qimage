@@ -68,7 +68,7 @@ main :: proc() {
 		free_all(context.temp_allocator)
 		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
 		input.mouse.path = input.mouse.path_buffer[:1]
-		win.doVsyncBadly()
+		win.doVsyncBadly() // NOTE: we don't care about stutter since we rarely update
 	}
 }
 
