@@ -51,15 +51,6 @@ main :: proc() {
 	i := 0
 	max_dt := 0.0
 	for isRunning = true; isRunning; {
-		updateAndRender()
-		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
-		free_all(context.temp_allocator)
-		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-			win.TranslateMessage(&msg)
-			win.DispatchMessageW(&msg)
-		}
-		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
-		input.mouse.path = input.mouse.path_buffer[:1]
 		win.doVsyncBadly()
 		t := math.time()
 		dt := t - prev_t
@@ -69,6 +60,15 @@ main :: proc() {
 		}
 		fmt.printf("max_dt: %v, dt: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
 		prev_t = t
+		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
+			win.TranslateMessage(&msg)
+			win.DispatchMessageW(&msg)
+		}
+		updateAndRender()
+		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
+		free_all(context.temp_allocator)
+		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
+		input.mouse.path = input.mouse.path_buffer[:1]
 	}
 }
 
