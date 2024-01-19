@@ -1,5 +1,5 @@
 package lib_windows_window
-import winCon "../console"
+import winWstring "../wstring"
 import "core:fmt"
 import coreWin "core:sys/windows"
 
@@ -23,13 +23,15 @@ RegisterClassExW :: coreWin.RegisterClassExW
 GetLastError :: coreWin.GetLastError
 AdjustWindowRectEx :: coreWin.AdjustWindowRectEx
 CreateWindowExW :: coreWin.CreateWindowExW
-// NOTE: fullscreen nonsense
+// fullscreen nonsense
 GetWindowLong :: coreWin.GetWindowLongW
 GetWindowPlacement :: coreWin.GetWindowPlacement
 GetMonitorInfoW :: coreWin.GetMonitorInfoW
 SetWindowLong :: coreWin.SetWindowLongW
 SetWindowPlacement :: coreWin.SetWindowPlacement
 SetWindowPos :: coreWin.SetWindowPos
+// vsync
+DwmFlush :: coreWin.DwmFlush
 
 @(private)
 registerWindowClassCounter := 0
@@ -40,7 +42,7 @@ registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	}
 	if class.lpszClassName == nil {
 		className := fmt.aprintf("libWin_%v", registerWindowClassCounter)
-		class.lpszClassName = winCon.string_to_wstring(className, context.allocator)
+		class.lpszClassName = winWstring.string_to_wstring(className, context.allocator)
 		registerWindowClassCounter += 1
 	}
 	if (RegisterClassExW(&class) == 0) {
@@ -117,4 +119,10 @@ toggleFullscreen :: proc(window: HWND) {
 		SetWindowPlacement(window, &prevWindowPlacement)
 		SetWindowPos(window, nil, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED)
 	}
+}
+
+// vsync us to 60fps (or whatever the monitor refresh rate is?)
+// NOTE: sometimes this returns up to 5.832 ms later than it should
+doVsyncBadly :: proc() {
+	DwmFlush()
 }

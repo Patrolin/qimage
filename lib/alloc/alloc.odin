@@ -1,5 +1,5 @@
 package alloc
-import winCon "../windows/console"
+import win "../windows"
 import "core:runtime"
 import "fail_allocator"
 import "heap_allocator"
@@ -42,7 +42,7 @@ default_context :: proc "contextless" () -> runtime.Context {
 	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc
 	ctx.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
 	when ODIN_OS == .Windows {
-		winCon.initStdout()
+		win.initWindowsInfo()
 	}
 	return ctx
 }
