@@ -25,9 +25,9 @@ empty_context :: proc "contextless" () -> runtime.Context {
 	return ctx
 }
 
-@(private)
-default_allocators := DefaultAllocators{}
 default_context :: proc "contextless" () -> runtime.Context {
+	@(static)
+	default_allocators := DefaultAllocators{}
 	ctx := empty_context()
 	context = ctx
 	if default_allocators.allocator.procedure == nil {

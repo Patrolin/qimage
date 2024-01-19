@@ -1,13 +1,9 @@
-package lib_windows_window
-import winWstring "../wstring"
+package lib_windows
 import "core:fmt"
 import coreWin "core:sys/windows"
 
 MONITOR_DEFAULTTONEAREST :: coreWin.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST
 WNDCLASSEXW :: coreWin.WNDCLASSEXW
-wstring :: coreWin.wstring
-LONG :: coreWin.LONG
-HWND :: coreWin.HWND
 RECT :: coreWin.RECT
 
 GWL_STYLE :: -16
@@ -17,12 +13,20 @@ SWP_NOOWNERZORDER :: 0x0200
 WS_OVERLAPPEDWINDOW :: coreWin.WS_OVERLAPPEDWINDOW
 WS_VISIBLE :: coreWin.WS_VISIBLE
 CW_USEDEFAULT :: coreWin.CW_USEDEFAULT
-FALSE :: coreWin.FALSE
 
 RegisterClassExW :: coreWin.RegisterClassExW
-GetLastError :: coreWin.GetLastError
 AdjustWindowRectEx :: coreWin.AdjustWindowRectEx
 CreateWindowExW :: coreWin.CreateWindowExW
+// messages
+GetMessageW :: coreWin.GetMessageW
+PeekMessageW :: coreWin.PeekMessageW
+TranslateMessage :: coreWin.TranslateMessage
+DispatchMessageW :: coreWin.DispatchMessageW
+DefWindowProcW :: coreWin.DefWindowProcW
+PostQuitMessage :: coreWin.PostQuitMessage
+// rawinput
+RegisterRawInputDevices :: coreWin.RegisterRawInputDevices
+GetRawInputData :: coreWin.GetRawInputData
 // fullscreen nonsense
 GetWindowLong :: coreWin.GetWindowLongW
 GetWindowPlacement :: coreWin.GetWindowPlacement
@@ -33,16 +37,16 @@ SetWindowPos :: coreWin.SetWindowPos
 // vsync
 DwmFlush :: coreWin.DwmFlush
 
-@(private)
-registerWindowClassCounter := 0
 registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
+	@(static)
+	registerWindowClassCounter := 0
 	class := class
 	if class.cbSize == 0 {
 		class.cbSize = size_of(WNDCLASSEXW)
 	}
 	if class.lpszClassName == nil {
 		className := fmt.aprintf("libWin_%v", registerWindowClassCounter)
-		class.lpszClassName = winWstring.string_to_wstring(className, context.allocator)
+		class.lpszClassName = string_to_wstring(className, context.allocator)
 		registerWindowClassCounter += 1
 	}
 	if (RegisterClassExW(&class) == 0) {
@@ -87,10 +91,10 @@ createWindow :: proc(
 	return window
 }
 
-@(private)
-prevWindowPlacement: coreWin.WINDOWPLACEMENT
 // NOTE: toggleFullscreen() from Raymond Chen
 toggleFullscreen :: proc(window: HWND) {
+	@(static)
+	prevWindowPlacement: coreWin.WINDOWPLACEMENT
 	windowStyle := u32(GetWindowLong(window, GWL_STYLE))
 	if (windowStyle & WS_OVERLAPPEDWINDOW) > 0 {
 		monitor := coreWin.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST)
@@ -123,6 +127,20 @@ toggleFullscreen :: proc(window: HWND) {
 
 // vsync us to 60fps (or whatever the monitor refresh rate is?)
 // NOTE: sometimes this returns up to 5.832 ms later than it should
-doVsyncBadly :: proc() {
+doVsyncBadly :: proc() -> f64 {
 	DwmFlush()
+	return time()
 }
+/* NOTE: doVsyncWell():
+	thread0:
+		while isRunning {
+			wakeRenderThread() // TODO: limit fps to 60 here?
+			doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
+			flipLastFrame()
+		}
+	thread1
+		while hasWork {
+			processInputs()
+			updateAndRender()
+		}
+*/

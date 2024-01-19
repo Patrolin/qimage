@@ -3,11 +3,9 @@ import win "../windows"
 import "core:intrinsics"
 
 when ODIN_OS == .Windows {
-	time :: proc() -> f64 {
-		counter: win.LARGE_INTEGER
-		win.QueryPerformanceCounter(&counter)
-		return f64(counter) / win.windows_info.query_performance_frequency
-	}
+	time :: win.time
+} else {
+	time :: nil
 }
 cycles :: proc() -> u64 {
 	return u64(intrinsics.read_cycle_counter())

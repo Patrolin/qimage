@@ -1,7 +1,5 @@
-package lib_windows_wstring
+package lib_windows
 import coreWin "core:sys/windows"
-
-wstring :: coreWin.wstring
 
 string_to_wstring :: coreWin.utf8_to_wstring
 wstring_to_string :: proc(str: wstring, allocator := context.temp_allocator) -> string {
