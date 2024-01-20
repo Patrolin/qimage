@@ -78,6 +78,7 @@ updateAndRender :: proc() {
 	// TODO: render the image (hmh 237-238)
 }
 
+// TODO: tell OpenGL we want sRGB - handmade hero 236-241
+// NOTE: hmh 240: DisplayBitmapViaOpenGL() https://guide.handmadehero.org/code/day240/#1497
 // NOTE: enable vsync via wglSwapIntervalExt(1)
 // NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043
-// TODO: tell OpenGL we want sRGB - handmade hero 236-241
