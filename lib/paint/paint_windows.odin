@@ -1,5 +1,6 @@
 package lib_paint
 import "../alloc"
+import "../file"
 import "core:fmt"
 import coreWin "core:sys/windows"
 
@@ -29,9 +30,8 @@ GetClientRect :: coreWin.GetClientRect
 GetWindowRect :: coreWin.GetWindowRect
 
 ImageBuffer :: struct {
-	info:          BITMAPINFO,
-	data:          [^]u32,
-	width, height: u16,
+	info:        BITMAPINFO,
+	using image: file.Image,
 }
 resizeImageBuffer :: proc(imageBuffer: ^ImageBuffer, width, height: u16) {
 	prevBuffer := ImageBuffer {
@@ -46,7 +46,8 @@ resizeImageBuffer :: proc(imageBuffer: ^ImageBuffer, width, height: u16) {
 	imageBuffer.info.bmiHeader.biWidth = i32(width)
 	imageBuffer.info.bmiHeader.biHeight = i32(height) // NOTE: bottom-up DIB
 	//imageBuffer.info.bmiHeader.biHeight = -i32(height) // NOTE: top-down DIB
-	bitmapDataSize := uint(width) * uint(height) * uint(4)
+	imageBuffer.channels = 4
+	bitmapDataSize := uint(width) * uint(height) * uint(imageBuffer.channels)
 	imageBuffer.data = ([^]u32)(&alloc.page_alloc(bitmapDataSize)[0]) // NOTE: width and height should never be zero
 	imageBuffer.width = width
 	imageBuffer.height = height

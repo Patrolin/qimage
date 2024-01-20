@@ -2,10 +2,10 @@
 package main
 import "../common/assets"
 import "../common/constants"
-import commonInput "../common/input"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
+import libInput "../lib/input"
 import "../lib/math"
 import "../lib/paint"
 import win "../lib/windows"
@@ -20,11 +20,11 @@ isRunning := false
 imageBuffer: paint.ImageBuffer
 window: paint.Window
 image: file.Image
-input := commonInput.Input{} // NOTE: are global variables always cache aligned?
+input := libInput.Input{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
 	context = alloc.default_context()
-	input.mouse.path = input.mouse.path_buffer[:1]
+	libInput.reset_mouse_path(&input)
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
@@ -60,13 +60,12 @@ main :: proc() {
 		fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
 		win.processMessages()
 		updateAndRender()
+		libInput.reset_mouse_path(&input)
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
-		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
+		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc) // NOTE: draw last frame
 		free_all(context.temp_allocator)
-		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]
-		input.mouse.path = input.mouse.path_buffer[:1]
 	}
 }
 
@@ -99,14 +98,11 @@ messageHandler :: proc "stdcall" (
 		fmt.println("WM_DESTROY")
 		isRunning = false
 	case win.WM_MOUSEMOVE:
+		// TODO: use rawinput instead, so we get mouse pos outside the window
 		x := u16(win.LOWORD(u32(lParam)))
 		y := u16(win.HIWORD(u32(lParam)))
-		i := len(input.mouse.path)
-		input.mouse.path_buffer[i] = math.v2i {
-			E = {x, y},
-		}
-		input.mouse.path = input.mouse.path_buffer[:i + 1]
-	//fmt.println("input.mouse.path", input.mouse.path)
+		libInput.add_mouse_path(&input, math.v2i{x, y})
+		fmt.println("input.mouse.path", input.mouse.path)
 	case win.WM_LBUTTONDOWN:
 		input.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
 		input.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
