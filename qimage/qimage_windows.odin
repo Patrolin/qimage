@@ -62,7 +62,7 @@ main :: proc() {
 		updateAndRender()
 
 		prev_t = t
-		t = win.doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
+		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
 		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
 		free_all(context.temp_allocator)
 		input.mouse.path_buffer = input.mouse.path[len(input.mouse.path) - 1]

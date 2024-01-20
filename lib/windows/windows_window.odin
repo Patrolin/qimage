@@ -142,7 +142,7 @@ doVsyncBadly :: proc() -> f64 {
 	for isRunning {
 		processInputs()
 		updateAndRender()
-		doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
+		doVsyncBadly() // NOTE: we don't care about dropped frames
 		flipLastFrame()
 	}
 */
