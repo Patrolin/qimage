@@ -104,7 +104,9 @@ messageHandler :: proc "stdcall" (
 		x := u16(win.LOWORD(u32(lParam)))
 		y := u16(win.HIWORD(u32(lParam)))
 		i := len(input.mouse.path)
-		input.mouse.path_buffer[i] = {x, y}
+		input.mouse.path_buffer[i] = math.v2i {
+			E = {x, y},
+		}
 		input.mouse.path = input.mouse.path_buffer[:i + 1]
 	//fmt.println("input.mouse.path", input.mouse.path)
 	case win.WM_LBUTTONDOWN:
