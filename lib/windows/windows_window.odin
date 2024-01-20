@@ -125,6 +125,13 @@ toggleFullscreen :: proc(window: HWND) {
 	}
 }
 
+processMessages :: proc() {
+	for msg: MSG; PeekMessageW(&msg, nil, 0, 0, PM_REMOVE); {
+		TranslateMessage(&msg)
+		DispatchMessageW(&msg)
+	}
+}
+
 // vsync us to 60fps (or whatever the monitor refresh rate is?)
 // NOTE: sometimes this returns up to 5.832 ms later than it should
 doVsyncBadly :: proc() -> f64 {
@@ -132,8 +139,16 @@ doVsyncBadly :: proc() -> f64 {
 	return time()
 }
 /* NOTE: doVsyncWell():
+	for isRunning {
+		processInputs()
+		updateAndRender()
+		doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
+		flipLastFrame()
+	}
+*/
+/* NOTE: doVsyncWell2():
 	thread0:
-		while isRunning {
+		for isRunning {
 			wakeRenderThread() // TODO: limit fps to 60 here?
 			doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
 			flipLastFrame()

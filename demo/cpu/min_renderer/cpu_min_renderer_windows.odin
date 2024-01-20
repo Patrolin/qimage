@@ -87,8 +87,7 @@ updateAndRender :: proc() {
 	}
 }
 
-// NOTE: WS_EX_LAYERED -> alpha channel?
-// NOTE: vsync via directXOutput.WaitForVBlank()? / win.DwmFlush()?
+// NOTE: WS_EX_LAYERED -> alpha channel (but everything is slower, so destroy and recreate the window later)
 // NOTE: casey says use D3D11/Metal: https://guide.handmadehero.org/code/day570/#7492
 // NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552
 // TODO: fonts (163/164): https://www.youtube.com/playlist?list=PLEMXAbCVnmY43tjaptnJW0rMP-DsXww1Y
