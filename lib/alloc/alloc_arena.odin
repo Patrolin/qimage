@@ -3,7 +3,7 @@ import "core:mem"
 
 ArenaData :: struct {
 	memory: []u8,
-	used:   uint,
+	used:   uint, // TODO: remove uint from allocators
 }
 
 is_at_end :: proc(arena_data: ^ArenaData, ptr: rawptr, size: int) -> bool {
