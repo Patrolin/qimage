@@ -12,35 +12,14 @@ HeapAlloc :: coreWin.HeapAlloc
 HeapReAlloc :: coreWin.HeapReAlloc
 HeapFree :: coreWin.HeapFree
 
+// TODO: move this to windows_info.odin
 @(private)
 processHeap: HANDLE
-_alloc :: proc "contextless" (size: uint, clearToZero: bool) -> ([]byte, mem.Allocator_Error) {
-	ptr := ([^]u8)(HeapAlloc(processHeap, HEAP_ZERO_MEMORY * u32(clearToZero), uint(size)))
-	if ptr == nil {
-		return nil, .Out_Of_Memory
-	}
-	return ptr[:size], nil
-}
-_free :: proc "contextless" (ptr: LPVOID) -> ([]byte, mem.Allocator_Error) {
-	HeapFree(processHeap, 0, ptr)
-	return nil, nil
-}
-_resize :: proc "contextless" (size: uint, oldPtr: LPVOID) -> ([]byte, mem.Allocator_Error) {
-	if oldPtr == nil {
-		return _alloc(size, true)
-	}
-	ptr := ([^]u8)(HeapReAlloc(processHeap, HEAP_ZERO_MEMORY, oldPtr, uint(size)))
-	if ptr == nil {
-		return nil, .Out_Of_Memory
-	}
-	return ptr[:size], nil
-}
-
 heap_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
-	old_memory: rawptr,
+	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
 ) -> (
@@ -49,15 +28,31 @@ heap_allocator_proc :: proc(
 ) {
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		data, err = _alloc(uint(size), mode == .Alloc)
+		ptr := ([^]u8)(HeapAlloc(processHeap, HEAP_ZERO_MEMORY * u32(mode == .Alloc), uint(size)))
+		if ptr == nil {
+			return nil, .Out_Of_Memory
+		}
+		return ptr[:size], nil
 	case .Free:
-		data, err = _free(old_memory)
+		HeapFree(processHeap, 0, old_ptr)
+		return nil, nil
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		data, err = _resize(uint(size), old_memory)
+		if old_ptr == nil {
+			ptr := ([^]u8)(HeapAlloc(processHeap, HEAP_ZERO_MEMORY, uint(size)))
+			if ptr == nil {
+				return nil, .Out_Of_Memory
+			}
+			return ptr[:size], nil
+		}
+		ptr := ([^]u8)(HeapReAlloc(processHeap, HEAP_ZERO_MEMORY, old_ptr, uint(size)))
+		if ptr == nil {
+			return nil, .Out_Of_Memory
+		}
+		return ptr[:size], nil
 	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_memory)
+		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {
 			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Query_Features}
 		}

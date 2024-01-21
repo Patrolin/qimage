@@ -23,6 +23,7 @@ PageSizeInfo :: struct {
 	minLargePageSize:     uint,
 	minLargePageSizeMask: uint,
 }
+// TODO: move this to windows_info.odin
 pageSizeInfo := getPageSizeInfo()
 getPageSizeInfo :: proc() -> (result: PageSizeInfo) {
 	systemInfo: SYSTEM_INFO

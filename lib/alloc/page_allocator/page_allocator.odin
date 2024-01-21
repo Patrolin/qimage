@@ -5,7 +5,7 @@ _page_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
-	old_memory: rawptr,
+	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
 ) -> (
@@ -17,15 +17,15 @@ _page_allocator_proc :: proc(
 		data = page_alloc(uint(size))
 		err = (data == nil) ? .Out_Of_Memory : nil
 	case .Free:
-		page_free(old_memory)
+		page_free(old_ptr)
 		data, err = nil, nil
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		data = page_resize(uint(size), old_memory, uint(old_size))
+		data = page_resize(uint(size), old_ptr, uint(old_size))
 		err = (data == nil) ? .Out_Of_Memory : nil
 	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_memory)
+		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {
 			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Query_Features}
 		}

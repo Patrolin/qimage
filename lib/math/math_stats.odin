@@ -11,7 +11,6 @@ cycles :: proc() -> u64 {
 	return u64(intrinsics.read_cycle_counter())
 }
 
-// TODO: math_stats
 min :: proc(a: f64, b: f64) -> f64 {
 	return (a < b) ? a : b
 }

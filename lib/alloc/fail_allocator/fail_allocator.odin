@@ -6,7 +6,7 @@ fail_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
-	old_memory: rawptr,
+	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
 ) -> (
@@ -18,7 +18,7 @@ fail_allocator_proc :: proc(
 	case .Alloc, .Alloc_Non_Zeroed, .Free, .Free_All, .Resize:
 		assert(false)
 	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_memory)
+		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {
 			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Query_Features}
 		}
