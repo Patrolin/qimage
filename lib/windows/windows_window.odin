@@ -2,18 +2,18 @@ package lib_windows
 import "core:fmt"
 import coreWin "core:sys/windows"
 
-MONITOR_DEFAULTTONEAREST :: coreWin.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST
 WNDCLASSEXW :: coreWin.WNDCLASSEXW
 RECT :: coreWin.RECT
 
-GWL_STYLE :: -16
-MONITOR_DEFAULTTOPRIMARY :: 0x00000002
-SWP_FRAMECHANGED :: 0x0020
-SWP_NOOWNERZORDER :: 0x0200
 WS_OVERLAPPEDWINDOW :: coreWin.WS_OVERLAPPEDWINDOW
 WS_VISIBLE :: coreWin.WS_VISIBLE
 CW_USEDEFAULT :: coreWin.CW_USEDEFAULT
+GWL_STYLE :: -16
+MONITOR_DEFAULTTONEAREST :: coreWin.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST
+SWP_FRAMECHANGED :: 0x0020
+SWP_NOOWNERZORDER :: 0x0200
 
+//GetModuleHandleW :: coreWin.GetModuleHandleW
 RegisterClassExW :: coreWin.RegisterClassExW
 AdjustWindowRectEx :: coreWin.AdjustWindowRectEx
 CreateWindowExW :: coreWin.CreateWindowExW
@@ -27,15 +27,6 @@ PostQuitMessage :: coreWin.PostQuitMessage
 // rawinput
 RegisterRawInputDevices :: coreWin.RegisterRawInputDevices
 GetRawInputData :: coreWin.GetRawInputData
-// fullscreen nonsense
-GetWindowLong :: coreWin.GetWindowLongW
-GetWindowPlacement :: coreWin.GetWindowPlacement
-GetMonitorInfoW :: coreWin.GetMonitorInfoW
-SetWindowLong :: coreWin.SetWindowLongW
-SetWindowPlacement :: coreWin.SetWindowPlacement
-SetWindowPos :: coreWin.SetWindowPos
-// vsync
-DwmFlush :: coreWin.DwmFlush
 
 registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	@(static)
@@ -95,20 +86,20 @@ createWindow :: proc(
 toggleFullscreen :: proc(window: HWND) {
 	@(static)
 	prevWindowPlacement: coreWin.WINDOWPLACEMENT
-	windowStyle := u32(GetWindowLong(window, GWL_STYLE))
+	windowStyle := u32(coreWin.GetWindowLongW(window, GWL_STYLE))
 	if (windowStyle & WS_OVERLAPPEDWINDOW) > 0 {
 		monitor := coreWin.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST)
 		monitorInfo: coreWin.MONITORINFO = {
 			cbSize = size_of(coreWin.MONITORINFO),
 		}
 
-		if GetWindowPlacement(window, &prevWindowPlacement) &&
-		   GetMonitorInfoW(monitor, &monitorInfo) {
-			SetWindowLong(window, GWL_STYLE, i32(windowStyle & ~WS_OVERLAPPEDWINDOW))
+		if coreWin.GetWindowPlacement(window, &prevWindowPlacement) &&
+		   coreWin.GetMonitorInfoW(monitor, &monitorInfo) {
+			coreWin.SetWindowLongW(window, GWL_STYLE, i32(windowStyle & ~WS_OVERLAPPEDWINDOW))
 			using monitorInfo.rcMonitor
 			width := right - left
 			height := bottom - top
-			SetWindowPos(
+			coreWin.SetWindowPos(
 				window,
 				nil,
 				left,
@@ -119,9 +110,9 @@ toggleFullscreen :: proc(window: HWND) {
 			)
 		}
 	} else {
-		SetWindowLong(window, GWL_STYLE, i32(windowStyle | WS_OVERLAPPEDWINDOW))
-		SetWindowPlacement(window, &prevWindowPlacement)
-		SetWindowPos(window, nil, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED)
+		coreWin.SetWindowLongW(window, GWL_STYLE, i32(windowStyle | WS_OVERLAPPEDWINDOW))
+		coreWin.SetWindowPlacement(window, &prevWindowPlacement)
+		coreWin.SetWindowPos(window, nil, 0, 0, 0, 0, SWP_NOOWNERZORDER | SWP_FRAMECHANGED)
 	}
 }
 
@@ -135,7 +126,7 @@ processMessages :: proc() {
 // vsync us to 60fps (or whatever the monitor refresh rate is?)
 // NOTE: sometimes this returns up to 5.832 ms later than it should
 doVsyncBadly :: proc() -> f64 {
-	DwmFlush()
+	coreWin.DwmFlush()
 	return time()
 }
 /* NOTE: doVsyncWell():

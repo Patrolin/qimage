@@ -64,7 +64,7 @@ main :: proc() {
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
-		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc) // NOTE: draw last frame
+		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc) // NOTE: draw previous frame
 		free_all(context.temp_allocator)
 	}
 }

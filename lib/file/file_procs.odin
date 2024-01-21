@@ -14,8 +14,7 @@ Image :: struct {
 	data:                    [^]u32,
 	width, height, channels: u16,
 }
-@(private)
-copyRGBAImage :: proc(data: [^]u8, image: ^Image) {
+loadImageFromBuffer :: proc(data: [^]u8, image: ^Image) {
 	for y := 0; y < int(image.width); y += 1 {
 		for x := 0; x < int(image.height); x += 1 {
 			i := (x + y * int(image.width)) * int(image.channels)
@@ -59,7 +58,7 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 	case:
 		assert(false, fmt.tprintf("Unsupported bitmapHeader size: %v", bitmapHeaderSize))
 	}
-	copyRGBAImage(&buffer[bmpFile.bitmapOffset], &image)
+	loadImageFromBuffer(&buffer[bmpFile.bitmapOffset], &image)
 	return
 }
 loadBmp :: proc {
