@@ -5,7 +5,7 @@ import "../common/constants"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
-import libInput "../lib/input"
+import "../lib/input"
 import "../lib/math"
 import "../lib/paint"
 import win "../lib/windows"
@@ -22,15 +22,15 @@ imageBuffer := file.Image {
 }
 window: paint.Window
 image: file.Image
-input := libInput.Input{} // NOTE: are global variables always cache aligned?
+inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
 	context = alloc.default_context()
-	libInput.reset_mouse_path(&input)
+	input.reset_inputs(&inputs)
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
-	fmt.printf("input: %v\n", uintptr(&input) & 63)
+	fmt.printf("inputs: %v\n", uintptr(&inputs) & 63)
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
@@ -62,7 +62,7 @@ main :: proc() {
 		fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
 		win.processMessages()
 		updateAndRender()
-		libInput.reset_mouse_path(&input)
+		input.reset_inputs(&inputs)
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
@@ -103,13 +103,13 @@ messageHandler :: proc "stdcall" (
 		// TODO: use rawinput instead, so we get mouse pos outside the window
 		x := u16(win.LOWORD(u32(lParam)))
 		y := u16(win.HIWORD(u32(lParam)))
-		libInput.add_mouse_path(&input, math.v2i{x, y})
-		fmt.println("input.mouse.path", input.mouse.path)
+		input.add_mouse_path(&inputs, math.v2i{x, y})
+		fmt.println("input.mouse.path", inputs.mouse.path)
 	case win.WM_LBUTTONDOWN:
-		input.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
-		input.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
-		input.mouse.LMB = true
-		fmt.println(input)
+		inputs.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
+		inputs.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
+		input.add_transitions(&inputs.mouse.LMB, 1)
+		fmt.println(inputs)
 	case win.WM_INPUT:
 		// NOTE: win.WM_LBUTTONUP does not trigger if you move the mouse outside the window
 		raw_input: win.RAWINPUT
@@ -126,35 +126,31 @@ messageHandler :: proc "stdcall" (
 				   raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags &
 				   win.RI_MOUSE_LEFT_BUTTON_UP,
 			   ) {
-				input.mouse.LMB = false
-				fmt.println(input)
+				input.add_transitions(&inputs.mouse.LMB, 1)
+				fmt.println(inputs)
 			}
 		}
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
-		wasDown := b8(math.get_bit(u32(lParam), 30))
-		isDown := b8(math.get_bit(u32(lParam), 31) ~ 1)
-		count := u8(isDown && !wasDown)
+		wasDown := u8(math.get_bit(u32(lParam), 30))
+		isDown := u8(math.get_bit(u32(lParam), 31) ~ 1)
+		transitions := isDown ~ wasDown
 		switch (wParam) {
 		case win.VK_CONTROL:
-			input.keyboard.Ctrl = isDown
+			input.add_transitions(&inputs.keyboard.Ctrl, transitions)
 		case win.VK_MENU:
-			input.keyboard.Alt = isDown
+			input.add_transitions(&inputs.keyboard.Alt, transitions)
 		case win.VK_SHIFT:
-			input.keyboard.Shift = isDown
+			input.add_transitions(&inputs.keyboard.Shift, transitions)
 		case win.VK_KEYW:
-			input.keyboard.W = isDown
-			input.keyboard.W_count = count
+			input.add_transitions(&inputs.keyboard.W, transitions)
 		case win.VK_KEYA:
-			input.keyboard.A = isDown
-			input.keyboard.A_count = count
+			input.add_transitions(&inputs.keyboard.A, transitions)
 		case win.VK_KEYS:
-			input.keyboard.S = isDown
-			input.keyboard.S_count = count
+			input.add_transitions(&inputs.keyboard.S, transitions)
 		case win.VK_KEYD:
-			input.keyboard.D = isDown
-			input.keyboard.D_count = count
+			input.add_transitions(&inputs.keyboard.D, transitions)
 		}
-		fmt.println(input)
+		fmt.println(inputs)
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
 	}

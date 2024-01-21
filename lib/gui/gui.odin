@@ -1,6 +1,6 @@
 package lib_gui
 import "../file"
-import libInput "../input"
+import "../input"
 import "../math"
 import "core:mem"
 
@@ -55,14 +55,14 @@ get_string_rect :: proc(str: string) -> math.Rect {
 text :: proc(state: ^GuiState, str: string) {
 	append(&state.nodes, TextNode{text = str, rect = get_string_rect(str)})
 }
-button :: proc(state: ^GuiState, id: cstring, str: string, input: ^libInput.Input) -> bool {
+button :: proc(state: ^GuiState, id: cstring, str: string, inputs: ^input.Inputs) -> bool {
 	string_rect := get_string_rect(str)
-	wasClicked := bool(input.mouse.LMB_count) & math.in_bounds(input.mouse.clickPos, string_rect)
+	wasClicked := bool(inputs.mouse.LMB_count) & math.in_bounds(inputs.mouse.clickPos, string_rect)
 	append(&state.nodes, ButtonNode{text = str, rect = string_rect})
 	if wasClicked {
 		state.dragging = &state.nodes[len(state.nodes) - 1]
 	}
-	if (state.dragging == nil) & math.in_bounds(input.mouse.pos, string_rect) {
+	if (state.dragging == nil) & math.in_bounds(inputs.mouse.pos, string_rect) {
 		state.hovered = &state.nodes[len(state.nodes) - 1]
 	}
 	return wasClicked

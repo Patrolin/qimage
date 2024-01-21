@@ -14,18 +14,32 @@ mask_lower_bits :: proc(n: uint) -> uint {
 	tmp := (transmute(uint)int(-1))
 	return ~(tmp << n)
 }
-get_bit :: proc(x: u32, index: u32) -> u32 {
+get_bit_u8 :: proc(x: u8, index: u8) -> u8 {
 	return (x >> index) & 1
 }
-set_bit :: proc(x: u32, index: u32) -> u32 {
-	return x | (1 << index)
+get_bit_u16 :: proc(x: u16, index: u16) -> u16 {
+	return (x >> index) & 1
 }
-reset_bit :: proc(x: u32, index: u32) -> u32 {
-	return x &~ (1 << index)
+get_bit_u32 :: proc(x: u32, index: u32) -> u32 {
+	return (x >> index) & 1
 }
-flip_bit :: proc(x: u32, index: u32) -> u32 {
-	return x ~ (1 << index)
+get_bit_u64 :: proc(x: u64, index: u64) -> u64 {
+	return (x >> index) & 1
 }
+get_bit :: proc{get_bit_u8, get_bit_u16, get_bit_u32, get_bit_u64}
+write_bit_u8 :: proc(x: u8, index: u8, value: u8) -> u8 {
+	return (x &~ (1 << index)) | (value << index)
+}
+write_bit_u16 :: proc(x: u16, index: u16, value: u16) -> u16 {
+	return (x &~ (1 << index)) | (value << index)
+}
+write_bit_u32 :: proc(x: u32, index: u32, value: u32) -> u32 {
+	return (x &~ (1 << index)) | (value << index)
+}
+write_bit_u64 :: proc(x: u64, index: u64, value: u64) -> u64 {
+	return (x &~ (1 << index)) | (value << index)
+}
+write_bit :: proc{write_bit_u8, write_bit_u16, write_bit_u32, write_bit_u64}
 
 when ODIN_OS == .Windows {
 	pack_rgba_v4 :: proc(v: v4) -> u32 {
