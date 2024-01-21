@@ -2,6 +2,7 @@
 package main
 
 import "../../../lib/alloc"
+import "../../../lib/file"
 import "../../../lib/paint"
 import win "../../../lib/windows"
 import "core:fmt"
@@ -12,7 +13,9 @@ WINDOW_WIDTH :: 1366
 WINDOW_HEIGHT :: 768
 
 isRunning := false
-imageBuffer: paint.ImageBuffer
+imageBuffer := file.Image {
+	channels = 4,
+}
 window: paint.Window
 
 main :: proc() {
@@ -32,7 +35,7 @@ main :: proc() {
 			win.DispatchMessageW(&msg)
 		}
 		updateAndRender()
-		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc)
+		paint.copyImageToWindow(imageBuffer, window, window.dc)
 		free_all(context.temp_allocator)
 	}
 }
@@ -54,12 +57,12 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImageBuffer(&imageBuffer, window.width, window.height)
+		paint.resizeImage(&imageBuffer, window.width, window.height)
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
-		paint.copyImageBufferToWindow(&imageBuffer, window, dc)
+		paint.copyImageToWindow(imageBuffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")

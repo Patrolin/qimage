@@ -17,7 +17,9 @@ WINDOW_WIDTH :: constants.WINDOW_WIDTH
 WINDOW_HEIGHT :: constants.WINDOW_HEIGHT
 
 isRunning := false
-imageBuffer: paint.ImageBuffer
+imageBuffer := file.Image {
+	channels = 4, // TODO: make this be 3?
+}
 window: paint.Window
 image: file.Image
 input := libInput.Input{} // NOTE: are global variables always cache aligned?
@@ -64,7 +66,7 @@ main :: proc() {
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
-		paint.copyImageBufferToWindow(&imageBuffer, window, window.dc) // NOTE: draw previous frame
+		paint.copyImageToWindow(imageBuffer, window, window.dc) // NOTE: draw previous frame
 		free_all(context.temp_allocator)
 	}
 }
@@ -86,13 +88,13 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImageBuffer(&imageBuffer, window.width, window.height)
+		paint.resizeImage(&imageBuffer, window.width, window.height)
 		updateAndRender() // HACK: main loop is frozen while sizing
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
-		paint.copyImageBufferToWindow(&imageBuffer, window, dc)
+		paint.copyImageToWindow(imageBuffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")

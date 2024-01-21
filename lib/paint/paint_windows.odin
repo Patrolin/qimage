@@ -4,11 +4,8 @@ import "../file"
 import "core:fmt"
 import coreWin "core:sys/windows"
 
-WORD :: coreWin.WORD
 HWND :: coreWin.HWND
 HDC :: coreWin.HDC
-POINT :: coreWin.POINT
-RECT :: coreWin.RECT
 BITMAPINFO :: coreWin.BITMAPINFO
 BITMAPINFOHEADER :: coreWin.BITMAPINFOHEADER
 PAINTSTRUCT :: coreWin.PAINTSTRUCT
@@ -29,35 +26,18 @@ DeleteObject :: coreWin.DeleteObject
 GetClientRect :: coreWin.GetClientRect
 GetWindowRect :: coreWin.GetWindowRect
 
-ImageBuffer :: struct {
-	info:        BITMAPINFO,
-	using image: file.Image,
-}
-resizeImageBuffer :: proc(imageBuffer: ^ImageBuffer, width, height: u16) {
-	prevBuffer := ImageBuffer {
-		data   = imageBuffer.data,
-		width  = imageBuffer.width,
-		height = imageBuffer.height,
-	}
-	imageBuffer.info.bmiHeader.biSize = size_of(BITMAPINFOHEADER)
-	imageBuffer.info.bmiHeader.biPlanes = 1
-	imageBuffer.info.bmiHeader.biBitCount = u16(32)
-	imageBuffer.info.bmiHeader.biCompression = BI_RGB
-	imageBuffer.info.bmiHeader.biWidth = i32(width)
-	imageBuffer.info.bmiHeader.biHeight = i32(height) // NOTE: bottom-up DIB
-	//imageBuffer.info.bmiHeader.biHeight = -i32(height) // NOTE: top-down DIB
-	imageBuffer.channels = 4
-	bitmapDataSize := uint(width) * uint(height) * uint(imageBuffer.channels)
-	imageBuffer.data = ([^]u32)(&alloc.page_alloc(bitmapDataSize)[0]) // NOTE: width and height should never be zero
-	imageBuffer.width = width
-	imageBuffer.height = height
-	if prevBuffer.data != nil {
-		// TODO: stretch previous
-		copyImageBufferToImageBuffer(prevBuffer, imageBuffer^)
-		alloc.page_free(prevBuffer.data)
+resizeImage :: proc(image: ^file.Image, width, height: u16) {
+	prev_image := image^
+	new_data_size := uint(width) * uint(height) * uint(image.channels)
+	image.data = ([^]u32)(&alloc.page_alloc(new_data_size)[0]) // NOTE: width and height should never be zero
+	image.width = width
+	image.height = height
+	if prev_image.data != nil {
+		copyImage(prev_image, image^)
+		alloc.page_free(prev_image.data)
 	}
 }
-copyImageBufferToImageBuffer :: proc(from: ImageBuffer, to: ImageBuffer) {
+copyImage :: proc(from: file.Image, to: file.Image) {
 	for y := 0; y < int(to.height) && y < int(from.height); y += 1 {
 		for x := 0; x < int(to.width) && x < int(from.width); x += 1 {
 			to.data[y * int(to.width) + x] = from.data[y * int(from.width) + x]
@@ -70,7 +50,17 @@ Window :: struct {
 	dc:            HDC,
 	width, height: u16,
 }
-copyImageBufferToWindow :: proc(imageBuffer: ^ImageBuffer, window: Window, dc: HDC) {
+copyImageToWindow :: proc(image: file.Image, window: Window, dc: HDC) {
+	imageInfo := BITMAPINFO{}
+	imageInfo.bmiHeader = {
+		biSize        = size_of(BITMAPINFOHEADER),
+		biPlanes      = 1,
+		biBitCount    = u16(32),
+		biCompression = BI_RGB,
+		biWidth       = i32(image.width),
+		biHeight      = -i32(image.height), // NOTE: top-down DIB
+		//biHeight = i32(image.height), // NOTE: bottom-up DIB
+	}
 	StretchDIBits(
 		dc,
 		0,
@@ -79,10 +69,10 @@ copyImageBufferToWindow :: proc(imageBuffer: ^ImageBuffer, window: Window, dc: H
 		i32(window.height),
 		0,
 		0,
-		i32(imageBuffer.width),
-		i32(imageBuffer.height),
-		imageBuffer.data,
-		&imageBuffer.info,
+		i32(image.width),
+		i32(image.height),
+		image.data,
+		&imageInfo,
 		DIB_RGB_COLORS,
 		SRCCOPY,
 	)
