@@ -1,17 +1,6 @@
 package alloc
 import win "../windows"
 import "core:runtime"
-import "fail_allocator"
-import "heap_allocator"
-import "page_allocator"
-
-// NOTE: odin errors with "D:\a\Odin\Odin\src\llvm_backend_proc.cpp(72): Panic: lib_heap_allocator :: proc() -> Allocator (was parapoly: 0 0)"
-// if you don't rename this for some reason
-// NOTE: for small allocations (utf8_to_wstring)
-lib_heap_allocator :: heap_allocator.heap_allocator
-// NOTE: for big allocations
-page_alloc :: page_allocator.page_alloc
-page_free :: page_allocator.page_free
 
 DefaultAllocators :: struct {
 	allocator:      runtime.Allocator,
@@ -32,7 +21,7 @@ default_context :: proc "contextless" () -> runtime.Context {
 	context = ctx
 	if default_allocators.allocator.procedure == nil {
 		//default_allocators.allocator = page_allocator._page_allocator()
-		default_allocators.allocator = lib_heap_allocator()
+		default_allocators.allocator = heap_allocator()
 		// TODO: fixed_arena_allocator()??
 		//default_allocators.temp_allocator = fixed_arena_allocator(4 * Megabyte)
 		//default_allocators.temp_allocator = fail_allocator.fail_allocator()

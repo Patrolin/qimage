@@ -1,21 +1,7 @@
-package pageAllocator
-import "../../math"
+package alloc
+import "../math"
 import "core:mem"
 import coreWin "core:sys/windows"
-
-LPVOID :: coreWin.LPVOID
-BOOL :: coreWin.BOOL
-SYSTEM_INFO :: coreWin.SYSTEM_INFO
-
-MEM_RESERVE :: coreWin.MEM_RESERVE
-MEM_COMMIT :: coreWin.MEM_COMMIT
-MEM_RELEASE :: coreWin.MEM_RELEASE
-PAGE_READWRITE :: coreWin.PAGE_READWRITE
-
-GetSystemInfo :: coreWin.GetSystemInfo
-GetLargePageMinimum :: coreWin.GetLargePageMinimum
-VirtualAlloc :: coreWin.VirtualAlloc
-VirtualFree :: coreWin.VirtualFree
 
 PageSizeInfo :: struct {
 	minPageSize:          uint,
@@ -26,12 +12,12 @@ PageSizeInfo :: struct {
 // TODO: move this to windows_info.odin
 pageSizeInfo := getPageSizeInfo()
 getPageSizeInfo :: proc() -> (result: PageSizeInfo) {
-	systemInfo: SYSTEM_INFO
-	GetSystemInfo(&systemInfo)
+	systemInfo: coreWin.SYSTEM_INFO
+	coreWin.GetSystemInfo(&systemInfo)
 	result.minPageSize = uint(systemInfo.dwAllocationGranularity)
 	result.minPageSizeMask = math.mask_upper_bits(math.ctz(result.minPageSize))
 	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
-	result.minLargePageSize = GetLargePageMinimum()
+	result.minLargePageSize = coreWin.GetLargePageMinimum()
 	result.minLargePageSizeMask = math.mask_upper_bits(math.ctz(result.minLargePageSize))
 	return
 }
@@ -40,13 +26,20 @@ page_alloc :: proc "contextless" (size: uint) -> []u8 {
 	size := size
 	size = (size + (pageSizeInfo.minPageSize - 1)) & pageSizeInfo.minPageSizeMask
 	// NOTE: VirtualAlloc() always initializes to zero
-	ptr := ([^]u8)(VirtualAlloc(nil, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE))
+	ptr := ([^]u8)(
+		coreWin.VirtualAlloc(
+			nil,
+			size,
+			coreWin.MEM_RESERVE | coreWin.MEM_COMMIT,
+			coreWin.PAGE_READWRITE,
+		),
+	)
 	return ptr[:size]
 }
-page_free :: proc "contextless" (ptr: LPVOID) {
-	VirtualFree(ptr, 0, MEM_RELEASE)
+page_free :: proc "contextless" (ptr: coreWin.LPVOID) {
+	coreWin.VirtualFree(ptr, 0, coreWin.MEM_RELEASE)
 }
-page_resize :: proc "contextless" (size: uint, oldPtr: LPVOID, oldSize: uint) -> []u8 {
+page_resize :: proc "contextless" (size: uint, oldPtr: coreWin.LPVOID, oldSize: uint) -> []u8 {
 	ptr := page_alloc(size)
 	if ptr != nil {
 		size := uint(len(ptr))

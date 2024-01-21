@@ -1,5 +1,4 @@
-package heapAllocator
-import "../page_allocator"
+package alloc
 import "core:mem"
 
 ArenaData :: struct {
@@ -57,7 +56,7 @@ arena_allocator_proc :: proc(
 	return
 }
 arena_allocator :: proc(size: uint) -> mem.Allocator {
-	memory := page_allocator.page_alloc(size)
+	memory := page_alloc(size)
 	used := uint(size_of(ArenaData))
 	arena_data := (^ArenaData)(&memory[0])
 	arena_data.memory = memory
@@ -65,5 +64,5 @@ arena_allocator :: proc(size: uint) -> mem.Allocator {
 	return mem.Allocator{procedure = arena_allocator_proc, data = rawptr(&arena_data)}
 }
 destroy_arena_allocator :: proc(allocator: mem.Allocator) {
-	page_allocator.page_free(allocator.data)
+	page_free(allocator.data)
 }

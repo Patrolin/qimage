@@ -1,4 +1,4 @@
-package failAllocator
+package alloc
 import "core:fmt"
 import "core:mem"
 
