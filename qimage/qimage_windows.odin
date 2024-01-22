@@ -167,7 +167,7 @@ messageHandler :: proc "stdcall" (
 				fmt.println(inputs)
 			}
 		}
-	// TODO!: handle WM_POINTER events
+	// TODO!: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		wasDown := u8(math.get_bit(u32(lParam), 30))
 		isDown := u8(math.get_bit(u32(lParam), 31) ~ 1)
