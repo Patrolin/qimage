@@ -1,7 +1,7 @@
 package lib_windows
 import coreWin "core:sys/windows"
 
-// TODO: generate from https://wiki.winehq.org/List_Of_Windows_Messages ?
+// TODO?: generate from https://wiki.winehq.org/List_Of_Windows_Messages
 // window message
 WM_NULL :: coreWin.WM_NULL
 WM_CREATE :: coreWin.WM_CREATE

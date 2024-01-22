@@ -82,33 +82,37 @@ createWindow :: proc(
 	return window
 }
 
+getWindowAndMonitorInfo :: proc(
+	window: HWND,
+) -> (
+	monitorInfo: coreWin.MONITORINFO,
+	windowPlacement: coreWin.WINDOWPLACEMENT,
+) {
+	monitor := coreWin.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST)
+	monitorInfo.cbSize = size_of(coreWin.MONITORINFO)
+	assert(bool(coreWin.GetWindowPlacement(window, &windowPlacement)))
+	assert(bool(coreWin.GetMonitorInfoW(monitor, &monitorInfo)))
+	return
+}
 // NOTE: toggleFullscreen() from Raymond Chen
 toggleFullscreen :: proc(window: HWND) {
 	@(static)
 	prevWindowPlacement: coreWin.WINDOWPLACEMENT
 	windowStyle := u32(coreWin.GetWindowLongW(window, GWL_STYLE))
 	if (windowStyle & WS_OVERLAPPEDWINDOW) > 0 {
-		monitor := coreWin.MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST)
-		monitorInfo: coreWin.MONITORINFO = {
-			cbSize = size_of(coreWin.MONITORINFO),
-		}
-
-		if coreWin.GetWindowPlacement(window, &prevWindowPlacement) &&
-		   coreWin.GetMonitorInfoW(monitor, &monitorInfo) {
-			coreWin.SetWindowLongW(window, GWL_STYLE, i32(windowStyle & ~WS_OVERLAPPEDWINDOW))
-			using monitorInfo.rcMonitor
-			width := right - left
-			height := bottom - top
-			coreWin.SetWindowPos(
-				window,
-				nil,
-				left,
-				top,
-				width,
-				height,
-				SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
-			)
-		}
+		monitorInfo, windowPlacement := getWindowAndMonitorInfo(window)
+		coreWin.SetWindowLongW(window, GWL_STYLE, i32(windowStyle & ~WS_OVERLAPPEDWINDOW))
+		using monitorInfo.rcMonitor
+		coreWin.SetWindowPos(
+			window,
+			nil,
+			left,
+			top,
+			right - left,
+			bottom - top,
+			SWP_NOOWNERZORDER | SWP_FRAMECHANGED,
+		)
+		prevWindowPlacement = windowPlacement
 	} else {
 		coreWin.SetWindowLongW(window, GWL_STYLE, i32(windowStyle | WS_OVERLAPPEDWINDOW))
 		coreWin.SetWindowPlacement(window, &prevWindowPlacement)
@@ -140,7 +144,7 @@ doVsyncBadly :: proc() -> f64 {
 /* NOTE: doVsyncWell2():
 	thread0:
 		for isRunning {
-			wakeRenderThread() // TODO: limit fps to 60 here?
+			wakeRenderThread()
 			doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
 			flipLastFrame()
 		}

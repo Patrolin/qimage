@@ -48,10 +48,10 @@ ImageNode :: struct {
 	rect:  math.Rect,
 }
 get_string_rect :: proc(str: string) -> math.Rect {
-	return math.Rect{} // TODO: fonts?
+	return math.Rect{} // TODO!: fonts?
 }
 
-// TODO: wrap, elipses, color, ...
+// TODO!: wrap, elipses, color, ...
 text :: proc(state: ^GuiState, str: string) {
 	append(&state.nodes, TextNode{text = str, rect = get_string_rect(str)})
 }

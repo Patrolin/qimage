@@ -16,3 +16,5 @@ wstring_to_string :: proc(str: wstring, allocator := context.temp_allocator) -> 
 	res, err := coreWin.wstring_to_utf8(str, -1, allocator = allocator)
 	return res
 }
+GetSystemMetrics :: coreWin.GetSystemMetrics
+GetCursorPos :: coreWin.GetCursorPos

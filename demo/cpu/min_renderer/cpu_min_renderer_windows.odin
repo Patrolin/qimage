@@ -93,8 +93,8 @@ updateAndRender :: proc() {
 // NOTE: WS_EX_LAYERED -> alpha channel (but everything is slower, so destroy and recreate the window later)
 // NOTE: casey says use D3D11/Metal: https://guide.handmadehero.org/code/day570/#7492
 // NOTE: casey not using OpenGL: https://guide.handmadehero.org/code/day655/#10552
-// TODO: fonts (163/164): https://www.youtube.com/playlist?list=PLEMXAbCVnmY43tjaptnJW0rMP-DsXww1Y
-// TODO: vsync counter demo
+// TODO!: fonts (163/164): https://www.youtube.com/playlist?list=PLEMXAbCVnmY43tjaptnJW0rMP-DsXww1Y
+// TODO!: vsync counter demo
 // NOTE: does windows render in sRGB by default? - yes, SetICMMode() to use non sRGB
 // https://learn.microsoft.com/en-us/windows/win32/wcs/srgb--a-standard-color-space
 // https://learn.microsoft.com/en-us/windows/win32/wcs/basic-functions-for-use-within-a-device-context

@@ -27,6 +27,7 @@ inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 main :: proc() {
 	context = alloc.default_context()
 	input.reset_inputs(&inputs)
+	inputs.mouse.pos = {min(i16), min(i16)}
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
@@ -37,13 +38,23 @@ main :: proc() {
 	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 
-	raw_devices := win.RAWINPUTDEVICE {
-		usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
-		usUsage     = win.RIU_MOUSE,
-		dwFlags     = 0,
-		hwndTarget  = window.handle,
+	raw_devices: []win.RAWINPUTDEVICE =  {
+		win.RAWINPUTDEVICE {
+			usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
+			usUsage = win.RIU_MOUSE,
+			dwFlags = 0,
+			hwndTarget = window.handle,
+		},
 	}
-	assert(bool(win.RegisterRawInputDevices(&raw_devices, 1, size_of(win.RAWINPUTDEVICE))))
+	assert(
+		bool(
+			win.RegisterRawInputDevices(
+				&raw_devices[0],
+				u32(len(raw_devices)),
+				size_of(win.RAWINPUTDEVICE),
+			),
+		),
+	)
 
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
@@ -59,7 +70,7 @@ main :: proc() {
 		if (i > 20) {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
-		fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
+		//fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
 		win.processMessages()
 		updateAndRender()
 		input.reset_inputs(&inputs)
@@ -99,19 +110,16 @@ messageHandler :: proc "stdcall" (
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")
 		isRunning = false
-	case win.WM_MOUSEMOVE:
-		// TODO: use rawinput instead, so we get mouse pos outside the window
-		x := u16(win.LOWORD(u32(lParam)))
-		y := u16(win.HIWORD(u32(lParam)))
-		input.add_mouse_path(&inputs, math.v2i{x, y})
-		fmt.println("input.mouse.path", inputs.mouse.path)
 	case win.WM_LBUTTONDOWN:
-		inputs.mouse.clickPos.x = u16(win.LOWORD(u32(lParam)))
-		inputs.mouse.clickPos.y = u16(win.HIWORD(u32(lParam)))
+		inputs.mouse.clickPos.x = i16(win.LOWORD(u32(lParam)))
+		inputs.mouse.clickPos.y = i16(win.HIWORD(u32(lParam)))
 		input.add_transitions(&inputs.mouse.LMB, 1)
 		fmt.println(inputs)
 	case win.WM_INPUT:
-		// NOTE: win.WM_LBUTTONUP does not trigger if you move the mouse outside the window
+		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
+		if wParam == win.RIM_INPUTSINK {
+			return
+		}
 		raw_input: win.RAWINPUT
 		raw_input_size := u32(size_of(raw_input))
 		win.GetRawInputData(
@@ -121,15 +129,45 @@ messageHandler :: proc "stdcall" (
 			&raw_input_size,
 			size_of(win.RAWINPUTHEADER),
 		)
+		monitorInfo, windowPlacement := win.getWindowAndMonitorInfo(window.handle)
+		monitorRect := monitorInfo.rcMonitor
+		windowRect := windowPlacement.rcNormalPosition
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
-			if bool(
-				   raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags &
-				   win.RI_MOUSE_LEFT_BUTTON_UP,
-			   ) {
+			switch (raw_input.data.mouse.usFlags) {
+			case win.MOUSE_MOVE_RELATIVE:
+				if inputs.mouse.pos == {min(i16), min(i16)} {
+					pos: win.POINT
+					win.GetCursorPos(&pos)
+					inputs.mouse.pos = {i16(pos.x), i16(pos.y)}
+				}
+				dpos := math.v2i {
+					i16(raw_input.data.mouse.lLastX),
+					i16(raw_input.data.mouse.lLastY),
+				}
+				if dpos == {0, 0} {
+					return
+				}
+				pos := math.clamp(
+					inputs.mouse.pos + dpos,
+					math.Rect {
+						i16(monitorRect.left),
+						i16(monitorRect.top),
+						i16(monitorRect.right),
+						i16(monitorRect.bottom),
+					},
+				)
+				input.add_mouse_path(&inputs, pos)
+			//fmt.println("REL dpos:", dpos, "path:", inputs.mouse.path)
+			case win.MOUSE_MOVE_ABSOLUTE:
+				assert(false) // NOTE: does this ever trigger?
+			}
+			switch raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags {
+			case win.RI_MOUSE_LEFT_BUTTON_UP:
 				input.add_transitions(&inputs.mouse.LMB, 1)
 				fmt.println(inputs)
 			}
 		}
+	// TODO!: handle WM_POINTER events
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		wasDown := u8(math.get_bit(u32(lParam), 30))
 		isDown := u8(math.get_bit(u32(lParam), 31) ~ 1)
@@ -158,11 +196,10 @@ messageHandler :: proc "stdcall" (
 	return
 }
 
-// NOTE: WS_EX_LAYERED -> alpha channel?
-// TODO: allow cropping svgs
-// TODO: 1D LUTs + 16x16x16 3D LUTs?
-// TODO: load windows screenshots
+// NOTE: WS_EX_LAYERED -> alpha channel
 // NOTE: perfmon = systrace for windows
+// TODO!: load windows screenshots
+// TODO!: allow cropping svgs
 // TODO!: wtf is going on with cursor sprite?
-// TODO!: LoC counter
-// TODO: multithreading around windows events to get above 10000fps
+// TODO?: 1D LUTs + 16x16x16 3D LUTs
+// TODO?: multithreading around windows events to get above 10000fps

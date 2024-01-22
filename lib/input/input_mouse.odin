@@ -23,10 +23,13 @@ MousePathBuffer :: struct #raw_union {
 }
 add_mouse_path :: proc(inputs: ^Inputs, moveTo: math.v2i) {
 	new_path_size := len(inputs.mouse.path) + 1
-	assert(new_path_size <= MOUSE_PATH_SIZE)
-	curr := moveTo
-	for i := MOUSE_PATH_SIZE - 1; i > 0; i -= 1 {
-		curr, inputs.mouse.path_buffer[i] = inputs.mouse.path_buffer[i], curr
+	if new_path_size <= MOUSE_PATH_SIZE {
+		curr := moveTo
+		for i := MOUSE_PATH_SIZE - 1; i > 0; i -= 1 {
+			curr, inputs.mouse.path_buffer[i] = inputs.mouse.path_buffer[i], curr
+		}
+		inputs.mouse.path = inputs.mouse.path_buffer[MOUSE_PATH_SIZE - new_path_size:]
+	} else {
+		inputs.mouse.pos = moveTo
 	}
-	inputs.mouse.path = inputs.mouse.path_buffer[MOUSE_PATH_SIZE - new_path_size:]
 }

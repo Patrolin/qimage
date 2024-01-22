@@ -5,7 +5,7 @@ import "core:os"
 import "core:strings"
 
 readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
-	// TODO: write this is win api, and use page_alloc (for big files)
+	// TODO?: write this is win api, and use page_alloc (for big files)
 	return os.read_entire_file(fileName, allocator = context.temp_allocator)
 }
 
@@ -17,9 +17,9 @@ loadImageFromBuffer :: proc(data: [^]u8, image: ^Image) {
 	for y := 0; y < int(image.width); y += 1 {
 		for x := 0; x < int(image.height); x += 1 {
 			i := (x + y * int(image.width)) * int(image.channels)
-			rgba := math.v4i{u16(data[i]), u16(data[i + 1]), u16(data[i + 2]), 0xff}
+			rgba := math.v4i{i16(data[i]), i16(data[i + 1]), i16(data[i + 2]), 0xff}
 			if image.channels == 4 {
-				rgba.a = u16(data[i + 3])
+				rgba.a = i16(data[i + 3])
 			}
 			image.data[x + y * int(image.width)] = math.pack_rgba(rgba)
 		}
@@ -85,6 +85,5 @@ tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 	return strings.to_string(str)
 }
 
-// TODO: alloc once at startup?: https://www.youtube.com/playlist?list=PLEMXAbCVnmY7m1ynIpTaEWQ6j7NGS2cCA
-// TODO: bypass default allocators?
-// TODO: LRU file cache (evictAsNecessary() on load) - hmh 132?
+// TODO?: bypass default allocators
+// TODO?: LRU file cache (evictAsNecessary() on load) - hmh 132
