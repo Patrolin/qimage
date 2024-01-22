@@ -32,6 +32,12 @@ add_transitions :: proc(button: ^Button, transitions: u8) {
 was_down :: proc(button: Button) -> bool {
 	return bool(button & 1)
 }
+went_up :: proc(button: Button) -> bool {
+	return was_down(button) && bool(get_transitions(button))
+}
+went_down :: proc(button: Button) -> bool {
+	return !was_down(button) && bool(get_transitions(button))
+}
 get_transitions :: proc(button: Button) -> u8 {
 	return u8(button) >> 1
 }

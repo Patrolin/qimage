@@ -10,7 +10,7 @@ volumeSlider := f32(0.0)
 username := ""
 render :: proc {
 	guiState: gui.GuiState
-  // TODO: allocate strings in a render arena?
+  // TODO!: allocate strings in a render arena?
   gui.text(&guiState, fmt.aprintf("counter: %v", counter))
   if gui.button("Click me!") {
     counter += 1
@@ -57,7 +57,8 @@ text :: proc(state: ^GuiState, str: string) {
 }
 button :: proc(state: ^GuiState, id: cstring, str: string, inputs: ^input.Inputs) -> bool {
 	string_rect := get_string_rect(str)
-	wasClicked := bool(inputs.mouse.LMB_count) & math.in_bounds(inputs.mouse.clickPos, string_rect)
+	wasClicked :=
+		input.went_down(inputs.mouse.LMB) & math.in_bounds(inputs.mouse.clickPos, string_rect)
 	append(&state.nodes, ButtonNode{text = str, rect = string_rect})
 	if wasClicked {
 		state.dragging = &state.nodes[len(state.nodes) - 1]

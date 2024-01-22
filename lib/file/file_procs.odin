@@ -65,7 +65,7 @@ loadBmp :: proc {
 	loadBmp_fromBuffer,
 }
 
-// TODO: just printImage()
+// TODO!: just printImage()
 tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 	str: strings.Builder
 	strings.builder_init(&str, context.temp_allocator)

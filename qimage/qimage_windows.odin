@@ -18,7 +18,7 @@ WINDOW_HEIGHT :: constants.WINDOW_HEIGHT
 
 isRunning := false
 imageBuffer := file.Image {
-	channels = 4, // TODO: make this be 3?
+	channels = 4, // TODO!: make this be 3?
 }
 window: paint.Window
 image: file.Image
@@ -161,9 +161,8 @@ messageHandler :: proc "stdcall" (
 // NOTE: WS_EX_LAYERED -> alpha channel?
 // TODO: allow cropping svgs
 // TODO: 1D LUTs + 16x16x16 3D LUTs?
-// TODO: how do IMGUI? - functional + ?
 // TODO: load windows screenshots
 // NOTE: perfmon = systrace for windows
-// TODO: wtf is going on with cursor sprite?
-// TODO: LoC counter
+// TODO!: wtf is going on with cursor sprite?
+// TODO!: LoC counter
 // TODO: multithreading around windows events to get above 10000fps
