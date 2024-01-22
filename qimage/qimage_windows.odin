@@ -166,3 +166,4 @@ messageHandler :: proc "stdcall" (
 // NOTE: perfmon = systrace for windows
 // TODO: wtf is going on with cursor sprite?
 // TODO: LoC counter
+// TODO: multithreading around windows events to get above 10000fps
