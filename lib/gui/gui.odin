@@ -15,7 +15,7 @@ render :: proc {
   if gui.button("Click me!") {
     counter += 1
   }
-	if volumeSliderNew := gui.slider(&guiState, "volume_slider", "Volume", &input); volumeSliderNew != volumeSlider {
+	if volumeSliderNew := gui.slider(&guiState, "Volume", &input); volumeSliderNew != volumeSlider {
 		volumeSlider = volumeSliderNew
 	}
 	if usernameNew := gui.text_box(&guiState, "Username"); usernameNew != username {
@@ -25,48 +25,87 @@ render :: proc {
 */
 GuiState :: struct {
 	allocator: mem.Allocator,
-	nodes:     [dynamic]GuiNode,
-	hovered:   ^GuiNode, // NOTE: context.allocator.resize() must not move .nodes
+	inputs:    ^input.Inputs,
+	placeAt:   [dynamic]GuiPlacement, // TODO!: make this be a buffer?
+	nodes:     [dynamic]GuiNode, // NOTE: context.allocator.resize() must not move .nodes
+	hovered:   ^GuiNode,
 	dragging:  ^GuiNode,
 	focused:   ^GuiNode,
 }
-GuiNode :: union {
-	TextNode,
-	ButtonNode,
-	ImageNode,
+GuiPlacement :: struct {
+	pos: math.v2i,
+	rect: math.Rect,
+	is_horizontal: bool
+}
+GuiNode :: struct {
+	rect: math.Rect,
+	node: union {
+		TextNode,
+		ButtonNode,
+		ImageNode,
+	},
 }
 TextNode :: struct {
 	text: string,
-	rect: math.Rect,
 }
 ButtonNode :: struct {
 	text: string,
-	rect: math.Rect,
 }
 ImageNode :: struct {
 	image: ^file.Image,
-	rect:  math.Rect,
 }
-get_string_rect :: proc(str: string) -> math.Rect {
-	return math.Rect{} // TODO!: fonts?
+getTextSize :: proc(str: string) -> math.v2i {
+	return math.v2i{50, 12} // TODO!: fonts?
 }
 
+placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
+	placeAt := state.placeAt[len(state.placeAt)-1]
+	pos := placeAt.pos
+	rect = {
+		pos.x,
+		pos.y,
+		pos.x + size.x,
+		pos.y + size.y,
+	}
+	if placeAt.is_horizontal {
+		pos.x += size.x
+	} else {
+		pos.y += size.y
+	}
+	placeAt.rect.right = math.max(placeAt.rect.right, rect.right)
+	placeAt.rect.bottom = math.max(placeAt.rect.bottom, rect.bottom)
+	return
+}
+isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
+	return (state.dragging == nil) && math.in_bounds(state.inputs.mouse.pos, rect)
+}
+wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
+	return(
+		input.went_down(state.inputs.mouse.LMB) &
+		math.in_bounds(state.inputs.mouse.clickPos, rect)
+	)
+}
+
+// TODO?: begin(row/column), end()
+// TODO!: margin(), indent()?
 // TODO!: wrap, elipses, color, ...
 text :: proc(state: ^GuiState, str: string) {
-	append(&state.nodes, TextNode{text = str, rect = get_string_rect(str)})
+	text_size := getTextSize(str)
+	rect := placeRect(state, text_size)
+	append(&state.nodes, TextNode{text = str, rect = rect})
 }
-button :: proc(state: ^GuiState, id: cstring, str: string, inputs: ^input.Inputs) -> bool {
-	string_rect := get_string_rect(str)
-	wasClicked :=
-		input.went_down(inputs.mouse.LMB) & math.in_bounds(inputs.mouse.clickPos, string_rect)
+button :: proc(state: ^GuiState, str: string) -> bool {
+	text_size := getTextSize(str)
+	rect := placeRect(state, text_size)
 	append(&state.nodes, ButtonNode{text = str, rect = string_rect})
-	if wasClicked {
+	was_clicked := wasClicked(state, rect)
+	if was_clicked {
 		state.dragging = &state.nodes[len(state.nodes) - 1]
 	}
-	if (state.dragging == nil) & math.in_bounds(inputs.mouse.pos, string_rect) {
+	if isHovered(state, rect) {
 		state.hovered = &state.nodes[len(state.nodes) - 1]
 	}
-	return wasClicked
+	return was_clicked
 }
 image :: proc(state: ^GuiState, image: ^file.Image, rect: math.Rect) {
 	append(&state.nodes, ImageNode{image = image, rect = rect})
