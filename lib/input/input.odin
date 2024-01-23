@@ -6,22 +6,26 @@ Inputs :: struct {
 	mouse:    Mouse,
 	keyboard: Keyboard,
 }
-MAX_MOUSE_PATH_SIZE :: 4
 Mouse :: struct {
-	pos:      alloc.FixedBuffer(math.v2i, MAX_MOUSE_PATH_SIZE),
+	pos:      alloc.FixedBuffer(math.v2i, 4),
 	clickPos: math.v2i,
 	LMB:      Button,
 	RMB:      Button,
+}
+initMouse :: proc(inputs: ^Inputs) {
+	inputs.mouse.pos.buffer[0] = {max(i16), max(i16)}
+	inputs.mouse.pos.used = 1
 }
 addMousePath :: proc(inputs: ^Inputs, moveTo: math.v2i) {
 	alloc.fixedBufferAppendOrReplace(&inputs.mouse.pos, moveTo)
 }
 lastMousePos :: proc(inputs: ^Inputs) -> math.v2i {
-	return inputs.mouse.pos.slice[len(inputs.mouse.pos.slice) - 1]
+	return alloc.fixedBufferLast(&inputs.mouse.pos)
 }
 resetInputs :: proc(inputs: ^Inputs) {
 	// mouse
-	inputs.mouse.pos.slice = inputs.mouse.pos.buffer[MAX_MOUSE_PATH_SIZE - 1:]
+	inputs.mouse.pos.buffer[0] = lastMousePos(inputs)
+	inputs.mouse.pos.used = 1
 	resetTransitions(&inputs.mouse.LMB)
 	resetTransitions(&inputs.mouse.RMB)
 	// keyboard

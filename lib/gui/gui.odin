@@ -1,8 +1,8 @@
 package lib_gui
+import "../alloc"
 import "../file"
 import "../input"
 import "../math"
-import "../alloc"
 import "core:mem"
 
 /*
@@ -34,9 +34,9 @@ GuiState :: struct {
 	focused:   ^GuiNode,
 }
 GuiPlacement :: struct {
-	pos: math.v2i,
-	rect: math.Rect,
-	is_horizontal: bool
+	pos:           math.v2i,
+	rect:          math.Rect,
+	is_horizontal: bool,
 }
 GuiNode :: struct {
 	rect: math.Rect,
@@ -60,14 +60,9 @@ getTextSize :: proc(str: string) -> math.v2i {
 }
 
 placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
-	placeAt := state.placeAt.slice[len(state.placeAt.slice) - 1]
+	placeAt := alloc.fixedBufferLast(&state.placeAt)
 	pos := placeAt.pos
-	rect = {
-		pos.x,
-		pos.y,
-		pos.x + size.x,
-		pos.y + size.y,
-	}
+	rect = {pos.x, pos.y, pos.x + size.x, pos.y + size.y}
 	if placeAt.is_horizontal {
 		pos.x += size.x
 	} else {
@@ -83,7 +78,7 @@ isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 }
 wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 	return(
-		input.went_down(state.inputs.mouse.LMB) & math.inBounds(state.inputs.mouse.clickPos, rect)
+		input.wentDown(state.inputs.mouse.LMB) & math.inBounds(state.inputs.mouse.clickPos, rect)
 	)
 }
 
@@ -93,12 +88,12 @@ wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 text :: proc(state: ^GuiState, str: string) {
 	text_size := getTextSize(str)
 	rect := placeRect(state, text_size)
-	append(&state.nodes, TextNode{text = str, rect = rect})
+	append(&state.nodes, GuiNode{rect, TextNode{text = str}})
 }
 button :: proc(state: ^GuiState, str: string) -> bool {
 	text_size := getTextSize(str)
 	rect := placeRect(state, text_size)
-	append(&state.nodes, ButtonNode{text = str, rect = string_rect})
+	append(&state.nodes, GuiNode{rect, ButtonNode{text = str}})
 	was_clicked := wasClicked(state, rect)
 	if was_clicked {
 		state.dragging = &state.nodes[len(state.nodes) - 1]
@@ -109,5 +104,5 @@ button :: proc(state: ^GuiState, str: string) -> bool {
 	return was_clicked
 }
 image :: proc(state: ^GuiState, image: ^file.Image, rect: math.Rect) {
-	append(&state.nodes, ImageNode{image = image, rect = rect})
+	append(&state.nodes, GuiNode{rect, ImageNode{image = image}})
 }
