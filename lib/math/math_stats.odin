@@ -29,9 +29,9 @@ max_f64 :: proc(a, b: f64) -> f64 {
 	return (a > b) ? a : b
 }
 max :: proc {
-	min_i16,
-	min_f32,
-	min_f64,
+	max_i16,
+	max_f32,
+	max_f64,
 }
 abs_i16 :: proc(a: i16) -> i16 {
 	return (a < 0) ? -a : a
