@@ -19,11 +19,11 @@ imageBuffer := file.Image {
 window: paint.Window
 
 main :: proc() {
-	context = alloc.default_context()
+	context = alloc.defaultContext()
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	window.dc = paint.GetDC(window.handle)
 	for isRunning = true; isRunning; {
@@ -49,7 +49,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.default_context()
+	context = alloc.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_SIZE:
@@ -57,7 +57,7 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImage(&imageBuffer, window.width, window.height)
+		paint.resizeImage(&imageBuffer, i16(window.width), i16(window.height))
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT

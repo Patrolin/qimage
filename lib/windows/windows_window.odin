@@ -135,7 +135,7 @@ doVsyncBadly :: proc() -> f64 {
 }
 /* NOTE: doVsyncWell():
 	for isRunning {
-		processInputs()
+		processInputs() // NOTE: this blocks while sizing
 		updateAndRender()
 		doVsyncBadly() // NOTE: we don't care about dropped frames
 		flipLastFrame()
@@ -150,7 +150,7 @@ doVsyncBadly :: proc() -> f64 {
 		}
 	thread1
 		while hasWork {
-			processInputs()
+			processInputs() // NOTE: this blocks while sizing, but eh
 			updateAndRender()
 		}
 */

@@ -21,10 +21,10 @@ HeapReAlloc :: coreWin.HeapReAlloc
 WindowsInfo :: struct {
 	query_performance_frequency: f64,
 	process_heap:                HANDLE,
-	min_page_size:               uint,
-	min_page_size_mask:          uint,
-	min_large_page_size:         uint,
-	min_large_page_size_mask:    uint,
+	min_page_size:               int,
+	min_page_size_mask:          int,
+	min_large_page_size:         int,
+	min_large_page_size_mask:    int,
 }
 windows_info: WindowsInfo
 initWindowsInfo :: proc() {
@@ -48,11 +48,11 @@ initWindowsInfo :: proc() {
 	// pageAlloc()
 	systemInfo: coreWin.SYSTEM_INFO
 	coreWin.GetSystemInfo(&systemInfo)
-	windows_info.min_page_size = uint(systemInfo.dwAllocationGranularity)
-	windows_info.min_page_size_mask = math.maskUpperBits(math.ctz(windows_info.min_page_size))
+	windows_info.min_page_size = int(systemInfo.dwAllocationGranularity)
+	windows_info.min_page_size_mask = int(math.maskUpperBits(math.ctz(windows_info.min_page_size)))
 	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
-	windows_info.min_large_page_size = coreWin.GetLargePageMinimum()
-	windows_info.min_large_page_size_mask = math.maskUpperBits(
-		math.ctz(windows_info.min_large_page_size),
+	windows_info.min_large_page_size = int(coreWin.GetLargePageMinimum())
+	windows_info.min_large_page_size_mask = int(
+		math.maskUpperBits(math.ctz(windows_info.min_large_page_size)),
 	)
 }

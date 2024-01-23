@@ -3,7 +3,7 @@ import "core:mem"
 
 ArenaData :: struct {
 	memory: []u8,
-	used:   uint, // TODO?: remove uint from allocators
+	used:   int,
 }
 
 isAtEnd :: proc(arena_data: ^ArenaData, ptr: rawptr, size: int) -> bool {
@@ -26,7 +26,7 @@ arenaAllocatorProc :: proc(
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		data := ([^]u8)(&arena_data.memory[arena_data.used])[:size]
-		arena_data.used += uint(size)
+		arena_data.used += size
 		if arena_data.used > len(arena_data.memory) {
 			return nil, .Out_Of_Memory
 		} else {
@@ -38,7 +38,7 @@ arenaAllocatorProc :: proc(
 		return nil, .Mode_Not_Implemented
 	case .Resize:
 		if isAtEnd(arena_data, old_ptr, old_size) {
-			arena_data.used += uint(size) - uint(old_size)
+			arena_data.used += size - old_size
 			data := ([^]u8)(old_ptr)[:size]
 			return data, nil
 		} else {
@@ -55,9 +55,9 @@ arenaAllocatorProc :: proc(
 	assert((uintptr(&data[0]) & 15) == 0)
 	return
 }
-arenaAllocator :: proc(size: uint) -> mem.Allocator {
+arenaAllocator :: proc(size: int) -> mem.Allocator {
 	memory := pageAlloc(size)
-	used := uint(size_of(ArenaData))
+	used := size_of(ArenaData)
 	arena_data := (^ArenaData)(&memory[0])
 	arena_data.memory = memory
 	arena_data.used = used

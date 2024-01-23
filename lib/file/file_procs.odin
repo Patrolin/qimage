@@ -11,7 +11,7 @@ readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
 
 Image :: struct {
 	data:                    [^]u32,
-	width, height, channels: u16,
+	width, height, channels: i16,
 }
 loadImageFromBuffer :: proc(data: [^]u8, image: ^Image) {
 	for y := 0; y < int(image.width); y += 1 {
@@ -37,9 +37,9 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 	switch (bitmapHeaderSize) {
 	case size_of(BMP_BITMAPV5HEADER):
 		bitmapHeader := &bmpFile.bitmapHeader.BITMAPV5HEADER
-		image.width = u16(bitmapHeader.width)
-		image.height = u16(bitmapHeader.height)
-		image.channels = u16(bitmapHeader.bitsPerPixel / 8)
+		image.width = i16(bitmapHeader.width)
+		image.height = i16(bitmapHeader.height)
+		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
 		image.data = make([^]u32, image.width * image.height)
 		assert(image.height >= 0, "Negative height is not supported")
 		assert(bitmapHeader.compression == 0, "Compression is not supported")

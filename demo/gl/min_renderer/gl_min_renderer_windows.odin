@@ -15,11 +15,11 @@ isRunning := false
 window: gl.Window
 
 main :: proc() {
-	context = alloc.default_context()
+	context = alloc.defaultContext()
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := gl.GetDC(window.handle)
 	gl.initOpenGL(dc)
@@ -46,7 +46,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.default_context()
+	context = alloc.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_SIZE:

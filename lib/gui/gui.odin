@@ -104,5 +104,6 @@ button :: proc(state: ^GuiState, str: string) -> bool {
 	return was_clicked
 }
 image :: proc(state: ^GuiState, image: ^file.Image, rect: math.Rect) {
+	rect := placeRect(state, {image.width, image.height})
 	append(&state.nodes, GuiNode{rect, ImageNode{image = image}})
 }

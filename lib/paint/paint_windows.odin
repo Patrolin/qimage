@@ -26,9 +26,9 @@ DeleteObject :: coreWin.DeleteObject
 GetClientRect :: coreWin.GetClientRect
 GetWindowRect :: coreWin.GetWindowRect
 
-resizeImage :: proc(image: ^file.Image, width, height: u16) {
+resizeImage :: proc(image: ^file.Image, width, height: i16) {
 	prev_image := image^
-	new_data_size := uint(width) * uint(height) * uint(image.channels)
+	new_data_size := int(width) * int(height) * int(image.channels)
 	image.data = ([^]u32)(&alloc.pageAlloc(new_data_size)[0]) // NOTE: width and height should never be zero
 	image.width = width
 	image.height = height

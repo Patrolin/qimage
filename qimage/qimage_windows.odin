@@ -70,7 +70,7 @@ main :: proc() {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
 		//fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
-		win.processMessages()
+		win.processMessages() // NOTE: this blocks while sizing
 		updateAndRender()
 		input.resetInputs(&inputs)
 
@@ -98,7 +98,7 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImage(&imageBuffer, window.width, window.height)
+		paint.resizeImage(&imageBuffer, i16(window.width), i16(window.height))
 		updateAndRender() // HACK: main loop is frozen while sizing
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
