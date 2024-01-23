@@ -21,7 +21,7 @@ pageAlloc :: proc "contextless" (size: int) -> []u8 {
 pageFree :: proc "contextless" (ptr: coreWin.LPVOID) {
 	coreWin.VirtualFree(ptr, 0, coreWin.MEM_RELEASE)
 }
-pageResize :: proc "contextless" (size: int, oldPtr: coreWin.LPVOID, oldSize: uint) -> []u8 {
+pageResize :: proc "contextless" (size: int, oldPtr: coreWin.LPVOID, oldSize: int) -> []u8 {
 	ptr := pageAlloc(size)
 	if ptr != nil {
 		size := len(ptr)
