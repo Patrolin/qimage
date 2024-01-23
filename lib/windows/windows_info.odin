@@ -1,4 +1,5 @@
 package lib_windows
+import "../math"
 import "core:os"
 import coreWin "core:sys/windows"
 
@@ -20,6 +21,10 @@ HeapReAlloc :: coreWin.HeapReAlloc
 WindowsInfo :: struct {
 	query_performance_frequency: f64,
 	process_heap:                HANDLE,
+	min_page_size:               uint,
+	min_page_size_mask:          uint,
+	min_large_page_size:         uint,
+	min_large_page_size_mask:    uint,
 }
 windows_info: WindowsInfo
 initWindowsInfo :: proc() {
@@ -40,4 +45,14 @@ initWindowsInfo :: proc() {
 	assert(coreWin.timeBeginPeriod(1) == coreWin.TIMERR_NOERROR) // set min sleep timeout (from 15ms) to 1ms
 	// HeapAlloc()
 	windows_info.process_heap = coreWin.GetProcessHeap()
+	// pageAlloc()
+	systemInfo: coreWin.SYSTEM_INFO
+	coreWin.GetSystemInfo(&systemInfo)
+	windows_info.min_page_size = uint(systemInfo.dwAllocationGranularity)
+	windows_info.min_page_size_mask = math.maskUpperBits(math.ctz(windows_info.min_page_size))
+	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
+	windows_info.min_large_page_size = coreWin.GetLargePageMinimum()
+	windows_info.min_large_page_size_mask = math.maskUpperBits(
+		math.ctz(windows_info.min_large_page_size),
+	)
 }

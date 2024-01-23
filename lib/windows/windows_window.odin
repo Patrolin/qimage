@@ -37,7 +37,7 @@ registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 	}
 	if class.lpszClassName == nil {
 		className := fmt.aprintf("libWin_%v", registerWindowClassCounter)
-		class.lpszClassName = string_to_wstring(className, context.allocator)
+		class.lpszClassName = stringToWstring(className, context.allocator)
 		registerWindowClassCounter += 1
 	}
 	if (RegisterClassExW(&class) == 0) {

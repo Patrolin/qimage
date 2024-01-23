@@ -6,12 +6,12 @@ ArenaData :: struct {
 	used:   uint, // TODO?: remove uint from allocators
 }
 
-is_at_end :: proc(arena_data: ^ArenaData, ptr: rawptr, size: int) -> bool {
+isAtEnd :: proc(arena_data: ^ArenaData, ptr: rawptr, size: int) -> bool {
 	ptr_end := &([^]u8)(ptr)[size]
 	arena_end := &arena_data.memory[arena_data.used]
 	return ptr_end == arena_end
 }
-arena_allocator_proc :: proc(
+arenaAllocatorProc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
@@ -37,7 +37,7 @@ arena_allocator_proc :: proc(
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
 	case .Resize:
-		if is_at_end(arena_data, old_ptr, old_size) {
+		if isAtEnd(arena_data, old_ptr, old_size) {
 			arena_data.used += uint(size) - uint(old_size)
 			data := ([^]u8)(old_ptr)[:size]
 			return data, nil
@@ -55,14 +55,14 @@ arena_allocator_proc :: proc(
 	assert((uintptr(&data[0]) & 15) == 0)
 	return
 }
-arena_allocator :: proc(size: uint) -> mem.Allocator {
-	memory := page_alloc(size)
+arenaAllocator :: proc(size: uint) -> mem.Allocator {
+	memory := pageAlloc(size)
 	used := uint(size_of(ArenaData))
 	arena_data := (^ArenaData)(&memory[0])
 	arena_data.memory = memory
 	arena_data.used = used
-	return mem.Allocator{procedure = arena_allocator_proc, data = rawptr(&arena_data)}
+	return mem.Allocator{procedure = arenaAllocatorProc, data = rawptr(&arena_data)}
 }
-destroy_arena_allocator :: proc(allocator: mem.Allocator) {
-	page_free(allocator.data)
+destroyArenaAllocator :: proc(allocator: mem.Allocator) {
+	pageFree(allocator.data)
 }

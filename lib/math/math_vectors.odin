@@ -11,7 +11,7 @@ Rect :: struct {
 	left, top, right, bottom: i16,
 }
 
-in_bounds :: proc(pos: v2i, rect: Rect) -> bool {
+inBounds :: proc(pos: v2i, rect: Rect) -> bool {
 	return(
 		(pos.x >= rect.left) &
 		(pos.x <= rect.right) &

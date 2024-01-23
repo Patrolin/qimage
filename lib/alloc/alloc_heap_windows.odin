@@ -2,7 +2,7 @@ package alloc
 import win "../windows"
 import "core:mem"
 
-heap_allocator_proc :: proc(
+heapAllocatorProc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
@@ -60,6 +60,6 @@ heap_allocator_proc :: proc(
 	assert((uintptr(&data[0]) & 15) == 0)
 	return
 }
-heap_allocator :: proc() -> mem.Allocator {
-	return mem.Allocator{procedure = heap_allocator_proc, data = nil}
+heapAllocator :: proc() -> mem.Allocator {
+	return mem.Allocator{procedure = heapAllocatorProc, data = nil}
 }

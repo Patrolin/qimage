@@ -2,7 +2,7 @@ package alloc
 import "core:fmt"
 import "core:mem"
 
-fail_allocator_proc :: proc(
+failAllocatorProc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
 	size, alignment: int,
@@ -27,6 +27,6 @@ fail_allocator_proc :: proc(
 	}
 	return
 }
-fail_allocator :: proc() -> mem.Allocator {
-	return mem.Allocator{procedure = fail_allocator_proc, data = nil}
+failAllocator :: proc() -> mem.Allocator {
+	return mem.Allocator{procedure = failAllocatorProc, data = nil}
 }

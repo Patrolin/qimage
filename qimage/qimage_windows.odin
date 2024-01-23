@@ -25,9 +25,9 @@ image: file.Image
 inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
-	context = alloc.default_context()
-	input.reset_inputs(&inputs)
-	input.add_mouse_path(&inputs, {min(i16), min(i16)})
+	context = alloc.defaultContext()
+	input.resetInputs(&inputs)
+	input.addMousePath(&inputs, {min(i16), min(i16)})
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
@@ -35,7 +35,7 @@ main :: proc() {
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
-	title_w := win.string_to_wstring(WINDOW_TITLE, allocator = context.allocator)
+	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 
 	raw_devices: []win.RAWINPUTDEVICE =  {
@@ -60,7 +60,7 @@ main :: proc() {
 	image = assets.loadImage("test_image.bmp")
 	fmt.println(image)
 	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
-	t := math.time()
+	t := win.time()
 	prev_t := t
 	i := 0
 	max_dt := 0.0
@@ -73,7 +73,7 @@ main :: proc() {
 		//fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
 		win.processMessages()
 		updateAndRender()
-		input.reset_inputs(&inputs)
+		input.resetInputs(&inputs)
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
@@ -91,7 +91,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.default_context()
+	context = alloc.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_SIZE:
@@ -113,7 +113,7 @@ messageHandler :: proc "stdcall" (
 	case win.WM_LBUTTONDOWN:
 		inputs.mouse.clickPos.x = i16(win.LOWORD(u32(lParam)))
 		inputs.mouse.clickPos.y = i16(win.HIWORD(u32(lParam)))
-		input.add_transitions(&inputs.mouse.LMB, 1)
+		input.addTransitions(&inputs.mouse.LMB, 1)
 		fmt.println(inputs)
 	case win.WM_INPUT:
 		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
@@ -156,37 +156,37 @@ messageHandler :: proc "stdcall" (
 						i16(monitorRect.bottom),
 					},
 				)
-				input.add_mouse_path(&inputs, pos)
+				input.addMousePath(&inputs, pos)
 			//fmt.println("REL dpos:", dpos, "path:", inputs.mouse.pos.slice)
 			case win.MOUSE_MOVE_ABSOLUTE:
 				assert(false) // NOTE: does this ever trigger?
 			}
 			switch raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags {
 			case win.RI_MOUSE_LEFT_BUTTON_UP:
-				input.add_transitions(&inputs.mouse.LMB, 1)
+				input.addTransitions(&inputs.mouse.LMB, 1)
 				fmt.println(inputs)
 			}
 		}
 	// TODO!: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
-		wasDown := u8(math.get_bit(u32(lParam), 30))
-		isDown := u8(math.get_bit(u32(lParam), 31) ~ 1)
+		wasDown := u8(math.getBit(u32(lParam), 30))
+		isDown := u8(math.getBit(u32(lParam), 31) ~ 1)
 		transitions := isDown ~ wasDown
 		switch (wParam) {
 		case win.VK_CONTROL:
-			input.add_transitions(&inputs.keyboard.Ctrl, transitions)
+			input.addTransitions(&inputs.keyboard.Ctrl, transitions)
 		case win.VK_MENU:
-			input.add_transitions(&inputs.keyboard.Alt, transitions)
+			input.addTransitions(&inputs.keyboard.Alt, transitions)
 		case win.VK_SHIFT:
-			input.add_transitions(&inputs.keyboard.Shift, transitions)
+			input.addTransitions(&inputs.keyboard.Shift, transitions)
 		case win.VK_KEYW:
-			input.add_transitions(&inputs.keyboard.W, transitions)
+			input.addTransitions(&inputs.keyboard.W, transitions)
 		case win.VK_KEYA:
-			input.add_transitions(&inputs.keyboard.A, transitions)
+			input.addTransitions(&inputs.keyboard.A, transitions)
 		case win.VK_KEYS:
-			input.add_transitions(&inputs.keyboard.S, transitions)
+			input.addTransitions(&inputs.keyboard.S, transitions)
 		case win.VK_KEYD:
-			input.add_transitions(&inputs.keyboard.D, transitions)
+			input.addTransitions(&inputs.keyboard.D, transitions)
 		}
 		fmt.println(inputs)
 	case:

@@ -21,7 +21,7 @@ loadImageFromBuffer :: proc(data: [^]u8, image: ^Image) {
 			if image.channels == 4 {
 				rgba.a = i16(data[i + 3])
 			}
-			image.data[x + y * int(image.width)] = math.pack_rgba(rgba)
+			image.data[x + y * int(image.width)] = math.packRgba(rgba)
 		}
 	}
 }

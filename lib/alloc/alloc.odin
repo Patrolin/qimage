@@ -7,21 +7,21 @@ DefaultAllocators :: struct {
 	temp_allocator: runtime.Allocator,
 }
 
-empty_context :: proc "contextless" () -> runtime.Context {
+emptyContext :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
 	ctx.allocator.procedure = nil
 	ctx.temp_allocator.procedure = nil
 	return ctx
 }
 
-default_context :: proc "contextless" () -> runtime.Context {
+defaultContext :: proc "contextless" () -> runtime.Context {
 	@(static)
 	default_allocators := DefaultAllocators{}
-	ctx := empty_context()
+	ctx := emptyContext()
 	context = ctx
 	if default_allocators.allocator.procedure == nil {
 		//default_allocators.allocator = page_allocator._page_allocator()
-		default_allocators.allocator = heap_allocator()
+		default_allocators.allocator = heapAllocator()
 		// TODO?: fixed_arena_allocator()??
 		//default_allocators.temp_allocator = fixed_arena_allocator(4 * Megabyte)
 		//default_allocators.temp_allocator = fail_allocator.fail_allocator()

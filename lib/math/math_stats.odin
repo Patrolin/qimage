@@ -1,12 +1,6 @@
 package lib_math
-import win "../windows"
 import "core:intrinsics"
 
-when ODIN_OS == .Windows {
-	time :: win.time
-} else {
-	time :: nil
-}
 cycles :: proc() -> u64 {
 	return u64(intrinsics.read_cycle_counter())
 }

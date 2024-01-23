@@ -29,12 +29,12 @@ GetWindowRect :: coreWin.GetWindowRect
 resizeImage :: proc(image: ^file.Image, width, height: u16) {
 	prev_image := image^
 	new_data_size := uint(width) * uint(height) * uint(image.channels)
-	image.data = ([^]u32)(&alloc.page_alloc(new_data_size)[0]) // NOTE: width and height should never be zero
+	image.data = ([^]u32)(&alloc.pageAlloc(new_data_size)[0]) // NOTE: width and height should never be zero
 	image.width = width
 	image.height = height
 	if prev_image.data != nil {
 		copyImage(prev_image, image^)
-		alloc.page_free(prev_image.data)
+		alloc.pageFree(prev_image.data)
 	}
 }
 copyImage :: proc(from: file.Image, to: file.Image) {

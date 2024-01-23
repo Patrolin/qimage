@@ -60,7 +60,7 @@ getTextSize :: proc(str: string) -> math.v2i {
 }
 
 placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
-	placeAt := state.placeAt.last
+	placeAt := state.placeAt.slice[len(state.placeAt.slice) - 1]
 	pos := placeAt.pos
 	rect = {
 		pos.x,
@@ -78,11 +78,12 @@ placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
 	return
 }
 isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
-	return (state.dragging == nil) && math.in_bounds(state.inputs.mouse.pos.last, rect)
+	lastMousePos := input.lastMousePos(state.inputs)
+	return (state.dragging == nil) && math.inBounds(lastMousePos, rect)
 }
 wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 	return(
-		input.went_down(state.inputs.mouse.LMB) & math.in_bounds(state.inputs.mouse.clickPos, rect)
+		input.went_down(state.inputs.mouse.LMB) & math.inBounds(state.inputs.mouse.clickPos, rect)
 	)
 }
 
