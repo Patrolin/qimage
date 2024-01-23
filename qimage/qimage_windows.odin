@@ -27,7 +27,7 @@ inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 main :: proc() {
 	context = alloc.default_context()
 	input.reset_inputs(&inputs)
-	inputs.mouse.pos = {min(i16), min(i16)}
+	input.add_mouse_path(&inputs, {min(i16), min(i16)})
 	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
@@ -135,10 +135,10 @@ messageHandler :: proc "stdcall" (
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
-				if inputs.mouse.pos == {min(i16), min(i16)} {
-					pos: win.POINT
-					win.GetCursorPos(&pos)
-					inputs.mouse.pos = {i16(pos.x), i16(pos.y)}
+				lastMousePos := input.lastMousePos(&inputs)
+				if lastMousePos == {min(i16), min(i16)} {
+					pos := win.getCursorPos()
+					inputs.mouse.pos.buffer[0] = {i16(pos.x), i16(pos.y)}
 				}
 				dpos := math.v2i {
 					i16(raw_input.data.mouse.lLastX),
@@ -148,7 +148,7 @@ messageHandler :: proc "stdcall" (
 					return
 				}
 				pos := math.clamp(
-					inputs.mouse.pos + dpos,
+					lastMousePos + dpos,
 					math.Rect {
 						i16(monitorRect.left),
 						i16(monitorRect.top),
@@ -157,7 +157,7 @@ messageHandler :: proc "stdcall" (
 					},
 				)
 				input.add_mouse_path(&inputs, pos)
-			//fmt.println("REL dpos:", dpos, "path:", inputs.mouse.path)
+			//fmt.println("REL dpos:", dpos, "path:", inputs.mouse.pos.slice)
 			case win.MOUSE_MOVE_ABSOLUTE:
 				assert(false) // NOTE: does this ever trigger?
 			}

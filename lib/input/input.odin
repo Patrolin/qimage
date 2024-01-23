@@ -5,6 +5,9 @@ Inputs :: struct {
 	mouse:    Mouse,
 	keyboard: Keyboard,
 }
+lastMousePos :: proc(inputs: ^Inputs) -> math.v2i {
+	return inputs.mouse.pos.slice[len(inputs.mouse.pos.slice) - 1]
+}
 reset_inputs :: proc(inputs: ^Inputs) {
 	reset_mouse(inputs)
 	reset_transitions(&inputs.keyboard.Ctrl)

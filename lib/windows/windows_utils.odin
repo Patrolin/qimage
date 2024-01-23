@@ -17,4 +17,7 @@ wstring_to_string :: proc(str: wstring, allocator := context.temp_allocator) -> 
 	return res
 }
 GetSystemMetrics :: coreWin.GetSystemMetrics
-GetCursorPos :: coreWin.GetCursorPos
+getCursorPos :: proc() -> (pos: POINT) {
+	coreWin.GetCursorPos(&pos)
+	return
+}

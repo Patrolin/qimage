@@ -2,6 +2,7 @@ package lib_gui
 import "../file"
 import "../input"
 import "../math"
+import "../alloc"
 import "core:mem"
 
 /*
@@ -26,7 +27,7 @@ render :: proc {
 GuiState :: struct {
 	allocator: mem.Allocator,
 	inputs:    ^input.Inputs,
-	placeAt:   [dynamic]GuiPlacement, // TODO!: make this be a buffer?
+	placeAt:   alloc.FixedBuffer(GuiPlacement, 16),
 	nodes:     [dynamic]GuiNode, // NOTE: context.allocator.resize() must not move .nodes
 	hovered:   ^GuiNode,
 	dragging:  ^GuiNode,
@@ -59,7 +60,7 @@ getTextSize :: proc(str: string) -> math.v2i {
 }
 
 placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
-	placeAt := state.placeAt[len(state.placeAt)-1]
+	placeAt := state.placeAt.last
 	pos := placeAt.pos
 	rect = {
 		pos.x,
@@ -77,12 +78,11 @@ placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
 	return
 }
 isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
-	return (state.dragging == nil) && math.in_bounds(state.inputs.mouse.pos, rect)
+	return (state.dragging == nil) && math.in_bounds(state.inputs.mouse.pos.last, rect)
 }
 wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 	return(
-		input.went_down(state.inputs.mouse.LMB) &
-		math.in_bounds(state.inputs.mouse.clickPos, rect)
+		input.went_down(state.inputs.mouse.LMB) & math.in_bounds(state.inputs.mouse.clickPos, rect)
 	)
 }
 
