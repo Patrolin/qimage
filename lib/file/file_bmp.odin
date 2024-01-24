@@ -4,28 +4,6 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
-	// TODO?: write this is win api, and use page_alloc (for big files)
-	return os.read_entire_file(fileName, allocator = context.temp_allocator)
-}
-
-Image :: struct {
-	data:                    [^]u32,
-	width, height, channels: i16,
-}
-loadImageFromBuffer :: proc(data: [^]u8, image: ^Image) {
-	for y := 0; y < int(image.width); y += 1 {
-		for x := 0; x < int(image.height); x += 1 {
-			i := (x + y * int(image.width)) * int(image.channels)
-			rgba := math.v4i{i16(data[i]), i16(data[i + 1]), i16(data[i + 2]), 0xff}
-			if image.channels == 4 {
-				rgba.a = i16(data[i + 3])
-			}
-			image.data[x + y * int(image.width)] = math.packRgba(rgba)
-		}
-	}
-}
-
 loadBmp_fromFileName :: proc(fileName: string) -> Image {
 	file, ok := readFile(fileName)
 	assert(ok)
@@ -40,7 +18,8 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		image.width = i16(bitmapHeader.width)
 		image.height = i16(bitmapHeader.height)
 		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
-		image.data = make([^]u32, image.width * image.height)
+		// TODO!: reuse the space used for the file as image space
+		image.data = make([]u8, image.width * image.height * image.channels)
 		assert(image.height >= 0, "Negative height is not supported")
 		assert(bitmapHeader.compression == 0, "Compression is not supported")
 		// NOTE: we ignore bV5XPelsPerMeter, bV5YPelsPerMeter, bV5ClrUsed, bV5ClrImportant
@@ -57,32 +36,15 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 	case:
 		assert(false, fmt.tprintf("Unsupported bitmapHeader size: %v", bitmapHeaderSize))
 	}
-	loadImageFromBuffer(&buffer[bmpFile.bitmapOffset], &image)
+	data_size := int(image.width) * int(image.height) * int(image.channels)
+	for i := 0; i < data_size; i += 1 {
+		image.data[i] = buffer[int(bmpFile.bitmapOffset) + i]
+	}
 	return
 }
 loadBmp :: proc {
 	loadBmp_fromFileName,
 	loadBmp_fromBuffer,
-}
-
-// TODO!: just printImage()
-tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
-	str: strings.Builder
-	strings.builder_init(&str, context.temp_allocator)
-	for Y := y; (Y < y + height) && (Y < int(image.height)); Y += 1 {
-		for X := x; (X < x + width) && X < int(image.width); X += 1 {
-			if X > x {
-				fmt.sbprintf(&str, ", ")
-			}
-			pixel := image.data[X + Y * int(image.width)]
-			fmt.sbprintf(&str, "% 3i", (pixel >> 24) & 0xff)
-			for c := 2; c >= 0; c -= 1 {
-				fmt.sbprintf(&str, " % 3i", (pixel >> uint(c * 8)) & 0xff)
-			}
-		}
-		fmt.sbprintf(&str, "\n")
-	}
-	return strings.to_string(str)
 }
 
 // TODO?: bypass default allocators

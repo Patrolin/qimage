@@ -17,9 +17,7 @@ WINDOW_WIDTH :: constants.WINDOW_WIDTH
 WINDOW_HEIGHT :: constants.WINDOW_HEIGHT
 
 isRunning := false
-imageBuffer := file.Image {
-	channels = 4, // TODO!: make this be 3?
-}
+frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 window: paint.Window
 image: file.Image
 inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
@@ -69,14 +67,14 @@ main :: proc() {
 		if (i > 20) {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
-		//fmt.printf("max_dt: %v ms, dt_diff: %v ms\n", max_dt, dt * 1000 - 16.6666666666666666666)
+		fmt.printf("dt: %v ms, max_dt: %v ms\n", dt * 1000, max_dt)
 		win.processMessages() // NOTE: this blocks while sizing
 		updateAndRender()
 		input.resetInputs(&inputs)
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
-		paint.copyImageToWindow(imageBuffer, window, window.dc) // NOTE: draw previous frame
+		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc) // NOTE: draw previous frame
 		free_all(context.temp_allocator)
 	}
 }
@@ -98,13 +96,13 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImage(&imageBuffer, i16(window.width), i16(window.height))
+		paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
 		updateAndRender() // HACK: main loop is frozen while sizing
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
-		paint.copyImageToWindow(imageBuffer, window, dc)
+		paint.copyFrameBufferToWindow(frame_buffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")

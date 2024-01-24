@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html max-size>
+  <head>
+    <link href="common.css" rel="stylesheet" />
+  </head>
+  <body max-size padding-2>
+    <div flex-column>
+      <span id="output"></span>
+      <span id="droppedFramesOutput"></span>
+    </div>
+    <script>
+      function now() {
+        return window.performance.now();
+      }
+      const FRAME_TIME = 16 + 2 / 3;
+      let startTime = 0;
+      let frameCount = 0;
+      let expectedFrameCount = -1;
+      let firefoxHack = 0;
+      let isRunning = false;
+      function main() {
+        if (!isRunning) return;
+        if (firefoxHack > 0) {
+          output.innerText = "Loading...";
+          droppedFramesOutput.innerText = "Loading...";
+          startTime = now();
+          firefoxHack--;
+          requestAnimationFrame(main);
+          return;
+        }
+        const time = now();
+        let expectedFrameCountDiff = Math.floor((time - startTime) / FRAME_TIME);
+        expectedFrameCount += expectedFrameCountDiff;
+        startTime += expectedFrameCountDiff * FRAME_TIME;
+        output.innerText = `${frameCount} / ${expectedFrameCount}`;
+        const droppedFrames = expectedFrameCount - frameCount;
+        const droppedFrameRate = Math.floor(expectedFrameCount / (droppedFrames || 1));
+        droppedFramesOutput.innerText = `${droppedFrames} dropped frames` + (droppedFrames > 0 ? ` (1 every ${droppedFrameRate})` : "");
+        frameCount++;
+        requestAnimationFrame(main);
+      }
+      let restartTimeout = 0;
+      function restart() {
+        isRunning = false;
+        output.innerText = "Loading...";
+        droppedFramesOutput.innerText = "Loading...";
+
+        clearTimeout(restartTimeout);
+        restartTimeout = setTimeout(() => {
+          isRunning = true;
+          firefoxHack = 30;
+          startTime = 0;
+          requestAnimationFrame(main);
+        }, 100);
+      }
+      restart();
+
+      /*window.addEventListener("focus", function () {
+                restart();
+            });
+            window.addEventListener("blur", function () {
+                isRunning = false;
+            });*/
+      document.addEventListener("visibilitychange", function () {
+        if (document.visibilityState === "visible") {
+          restart();
+        } else {
+          isRunning = false;
+        }
+      });
+    </script>
+  </body>
+</html>

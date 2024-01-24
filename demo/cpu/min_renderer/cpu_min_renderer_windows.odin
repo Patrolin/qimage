@@ -3,6 +3,7 @@ package main
 
 import "../../../lib/alloc"
 import "../../../lib/file"
+import "../../../lib/math"
 import "../../../lib/paint"
 import win "../../../lib/windows"
 import "core:fmt"
@@ -13,9 +14,7 @@ WINDOW_WIDTH :: 1366
 WINDOW_HEIGHT :: 768
 
 isRunning := false
-imageBuffer := file.Image {
-	channels = 4,
-}
+frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 window: paint.Window
 
 main :: proc() {
@@ -35,7 +34,7 @@ main :: proc() {
 			win.DispatchMessageW(&msg)
 		}
 		updateAndRender()
-		paint.copyImageToWindow(imageBuffer, window, window.dc)
+		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
 		free_all(context.temp_allocator)
 	}
 }
@@ -57,12 +56,12 @@ messageHandler :: proc "stdcall" (
 		window.handle = windowHandle
 		window.width = win.LOWORD(u32(lParam))
 		window.height = win.HIWORD(u32(lParam))
-		paint.resizeImage(&imageBuffer, i16(window.width), i16(window.height))
+		paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
 	case win.WM_PAINT:
 		fmt.println("WM_PAINT")
 		ps: paint.PAINTSTRUCT
 		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
-		paint.copyImageToWindow(imageBuffer, window, dc)
+		paint.copyFrameBufferToWindow(frame_buffer, window, dc)
 		paint.EndPaint(windowHandle, &ps)
 	case win.WM_DESTROY:
 		fmt.println("WM_DESTROY")
@@ -76,16 +75,10 @@ messageHandler :: proc "stdcall" (
 }
 
 updateAndRender :: proc() {
-	stride := int(imageBuffer.width)
-	pitch := 1
-	for Y := 0; Y < int(imageBuffer.height); Y += 1 {
-		for X := 0; X < int(imageBuffer.width); X += 1 {
-			red: u32 = 128
-			green: u32 = 128
-			blue: u32 = 255
-			// NOTE: register: xxRRGGBB, memory: BBGGRRxx
-			BGRX := blue | (green << 8) | (red << 16)
-			imageBuffer.data[Y * stride + X * pitch] = BGRX
+	for y := 0; y < int(frame_buffer.height); y += 1 {
+		for x := 0; x < int(frame_buffer.width); x += 1 {
+			rgba := math.v4{128, 128, 255, 0}
+			paint.packRGBA(frame_buffer, x, y, rgba)
 		}
 	}
 }
