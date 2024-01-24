@@ -17,7 +17,7 @@ WINDOW_WIDTH :: constants.WINDOW_WIDTH
 WINDOW_HEIGHT :: constants.WINDOW_HEIGHT
 
 isRunning := false
-frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
+frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow (16ms), so we instead we store it in an OS specific format
 window: paint.Window
 image: file.Image
 inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
