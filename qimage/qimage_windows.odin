@@ -186,6 +186,10 @@ messageHandler :: proc "stdcall" (
 			input.addTransitions(&inputs.keyboard.D, transitions)
 		}
 		fmt.println(inputs)
+	case win.WM_SETCURSOR:
+		// NOTE: on move inside window
+		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
+		result = 1
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
 	}
@@ -197,6 +201,5 @@ messageHandler :: proc "stdcall" (
 // NOTE: perfmon = systrace for windows
 // TODO!: load windows screenshots
 // TODO!: allow cropping svgs
-// TODO!: wtf is going on with cursor sprite?
 // TODO?: 1D LUTs + 16x16x16 3D LUTs
 // TODO?: multithreading around windows events to get above 10000fps

@@ -12,6 +12,22 @@ GWL_STYLE :: -16
 MONITOR_DEFAULTTONEAREST :: coreWin.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST
 SWP_FRAMECHANGED :: 0x0020
 SWP_NOOWNERZORDER :: 0x0200
+IDC_APPSTARTING := cstring(coreWin._IDC_APPSTARTING)
+IDC_ARROW := cstring(coreWin._IDC_ARROW)
+IDC_CROSS := cstring(coreWin._IDC_CROSS)
+IDC_HAND := cstring(coreWin._IDC_HAND)
+IDC_HELP := cstring(coreWin._IDC_HELP)
+IDC_IBEAM := cstring(coreWin._IDC_IBEAM)
+IDC_ICON := cstring(coreWin._IDC_ICON)
+IDC_NO := cstring(coreWin._IDC_NO)
+IDC_SIZE := cstring(coreWin._IDC_SIZE)
+IDC_SIZEALL := cstring(coreWin._IDC_SIZEALL)
+IDC_SIZENESW := cstring(coreWin._IDC_SIZENESW)
+IDC_SIZENS := cstring(coreWin._IDC_SIZENS)
+IDC_SIZENWSE := cstring(coreWin._IDC_SIZENWSE)
+IDC_SIZEWE := cstring(coreWin._IDC_SIZEWE)
+IDC_UPARROW := cstring(coreWin._IDC_UPARROW)
+IDC_WAIT := cstring(coreWin._IDC_WAIT)
 
 //GetModuleHandleW :: coreWin.GetModuleHandleW
 RegisterClassExW :: coreWin.RegisterClassExW
@@ -24,6 +40,8 @@ TranslateMessage :: coreWin.TranslateMessage
 DispatchMessageW :: coreWin.DispatchMessageW
 DefWindowProcW :: coreWin.DefWindowProcW
 PostQuitMessage :: coreWin.PostQuitMessage
+LoadCursorA :: coreWin.LoadCursorA
+SetCursor :: coreWin.SetCursor
 // rawinput
 RegisterRawInputDevices :: coreWin.RegisterRawInputDevices
 GetRawInputData :: coreWin.GetRawInputData
@@ -39,6 +57,9 @@ registerWindowClass :: proc(class: WNDCLASSEXW) -> wstring {
 		className := fmt.aprintf("libWin_%v", registerWindowClassCounter)
 		class.lpszClassName = stringToWstring(className, context.allocator)
 		registerWindowClassCounter += 1
+	}
+	if class.hCursor == nil {
+		class.hCursor = LoadCursorA(nil, IDC_ARROW)
 	}
 	if (RegisterClassExW(&class) == 0) {
 		lastError := GetLastError()

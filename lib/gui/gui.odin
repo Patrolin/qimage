@@ -84,7 +84,7 @@ wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 
 // TODO?: begin(row/column), end()
 // TODO!: margin(), indent()?
-// TODO!: wrap, elipses, color, ...
+// TODO!: wrap, ellipses, color, ...
 text :: proc(state: ^GuiState, str: string) {
 	text_size := getTextSize(str)
 	rect := placeRect(state, text_size)
