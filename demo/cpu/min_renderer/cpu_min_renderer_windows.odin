@@ -25,15 +25,32 @@ main :: proc() {
 	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	window.dc = paint.GetDC(window.handle)
+	t := win.time()
+	prev_t := t
+	i := 0
+	max_dt := 0.0
+	frame_time_prev_t := t
 	for isRunning = true; isRunning; {
-		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-			if msg.message == win.WM_QUIT {
-				isRunning = false
-			}
-			win.TranslateMessage(&msg)
-			win.DispatchMessageW(&msg)
+		dt := t - prev_t
+		i += 1
+		if (i > 20) {
+			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
+		win.processMessages() // NOTE: this blocks while sizing
+		frame_time_msg_t := win.time()
 		updateAndRender()
+		frame_time_t := win.time()
+		fmt.printf(
+			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+			dt * math.MILLIS,
+			max_dt,
+			(frame_time_msg_t - frame_time_prev_t) * math.MILLIS,
+			(frame_time_t - frame_time_msg_t) * math.MILLIS,
+		)
+
+		prev_t = t
+		t = win.doVsyncBadly() // TODO: vsync via opengl?
+		frame_time_prev_t = win.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
 		free_all(context.temp_allocator)
 	}
@@ -75,6 +92,7 @@ messageHandler :: proc "stdcall" (
 }
 
 updateAndRender :: proc() {
+	// NOTE: this takes 7 ms
 	for y := 0; y < int(frame_buffer.height); y += 1 {
 		for x := 0; x < int(frame_buffer.width); x += 1 {
 			rgba := math.v4{128, 128, 255, 0}

@@ -2,7 +2,8 @@
 package main
 
 import "../../../lib/alloc"
-import gl "../../../lib/gl"
+import "../../../lib/gl"
+import "../../../lib/math"
 import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
@@ -23,15 +24,32 @@ main :: proc() {
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := gl.GetDC(window.handle)
 	gl.initOpenGL(dc)
+	t := win.time()
+	prev_t := t
+	i := 0
+	max_dt := 0.0
+	frame_time_prev_t := t
 	for isRunning = true; isRunning; {
-		for msg: win.MSG; win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE); {
-			if msg.message == win.WM_QUIT {
-				isRunning = false
-			}
-			win.TranslateMessage(&msg)
-			win.DispatchMessageW(&msg)
+		dt := t - prev_t
+		i += 1
+		if (i > 20) {
+			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
+		win.processMessages() // NOTE: this blocks while sizing
+		frame_time_msg_t := win.time()
 		updateAndRender()
+		frame_time_t := win.time()
+		fmt.printf(
+			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+			dt * math.MILLIS,
+			max_dt,
+			(frame_time_msg_t - frame_time_prev_t) * math.MILLIS,
+			(frame_time_t - frame_time_msg_t) * math.MILLIS,
+		)
+
+		prev_t = t
+		t = win.doVsyncBadly() // TODO: vsync via opengl?
+		frame_time_prev_t = win.time()
 		gl.renderImageBufferToWindow(dc)
 		free_all(context.temp_allocator)
 	}
@@ -73,6 +91,7 @@ messageHandler :: proc "stdcall" (
 }
 
 updateAndRender :: proc() {
+	// NOTE: this takes 0.005 ms
 	gl.glClearColor(.5, .5, 1, 1)
 	gl.glClear(gl.COLOR_BUFFER_BIT)
 	// NOTE: render image here (hmh 237-238)

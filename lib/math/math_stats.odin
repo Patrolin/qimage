@@ -4,6 +4,9 @@ import "core:intrinsics"
 cycles :: proc() -> u64 {
 	return u64(intrinsics.read_cycle_counter())
 }
+MILLIS :: 1000
+MICROS :: 1000_000
+NANOS :: 1000_000
 
 min_i16 :: proc(a, b: i16) -> i16 {
 	return (a < b) ? a : b

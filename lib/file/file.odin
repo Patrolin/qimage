@@ -4,11 +4,15 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
+readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
+	// TODO?: write this is win api, and use page_alloc (for big files)
+	return os.read_entire_file(fileName, allocator = context.temp_allocator)
+}
+
 Image :: struct {
 	data:                    []u8 `fmt:"p"`, // stored as V, RGB or RGBA
 	width, height, channels: i16,
 }
-// TODO!: just printImage()
 tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 	str: strings.Builder
 	strings.builder_init(&str, context.temp_allocator)
@@ -26,9 +30,4 @@ tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
 		fmt.sbprintf(&str, "\n")
 	}
 	return strings.to_string(str)
-}
-
-readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
-	// TODO?: write this is win api, and use page_alloc (for big files)
-	return os.read_entire_file(fileName, allocator = context.temp_allocator)
 }

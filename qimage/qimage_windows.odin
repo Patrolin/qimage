@@ -61,19 +61,29 @@ main :: proc() {
 	prev_t := t
 	i := 0
 	max_dt := 0.0
+	frame_time_prev_t := t
 	for isRunning = true; isRunning; {
 		dt := t - prev_t
 		i += 1
 		if (i > 20) {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
-		fmt.printf("dt: %v ms, max_dt: %v ms\n", dt * 1000, max_dt)
 		win.processMessages() // NOTE: this blocks while sizing
+		frame_time_msg_t := win.time()
 		updateAndRender()
 		input.resetInputs(&inputs)
+		frame_time_t := win.time()
+		fmt.printf(
+			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_time: %v ms\n",
+			dt * 1000,
+			max_dt,
+			(frame_time_msg_t - frame_time_prev_t) * 1000,
+			(frame_time_t - frame_time_prev_t) * 1000,
+		)
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
+		frame_time_prev_t = win.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc) // NOTE: draw previous frame
 		free_all(context.temp_allocator)
 	}
