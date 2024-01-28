@@ -27,6 +27,7 @@ DeleteObject :: coreWin.DeleteObject
 GetClientRect :: coreWin.GetClientRect
 GetWindowRect :: coreWin.GetWindowRect
 
+// TODO?: simd and multithread this?
 FrameBuffer :: struct {
 	data:   []u32 `fmt:"p"`, // MEM: BGRA?
 	width:  i16,

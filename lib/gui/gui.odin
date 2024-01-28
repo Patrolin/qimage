@@ -32,6 +32,7 @@ GuiState :: struct {
 	hovered:   ^GuiNode,
 	dragging:  ^GuiNode,
 	focused:   ^GuiNode,
+	// TODO!: notion of z order??
 }
 GuiPlacement :: struct {
 	pos:           math.v2i,
