@@ -19,6 +19,7 @@ HeapFree :: coreWin.HeapFree
 HeapReAlloc :: coreWin.HeapReAlloc
 
 WindowsInfo :: struct {
+	is_initialized:              bool,
 	query_performance_frequency: f64,
 	process_heap:                HANDLE,
 	min_page_size:               int,
@@ -28,6 +29,9 @@ WindowsInfo :: struct {
 }
 windows_info: WindowsInfo
 initWindowsInfo :: proc() {
+	if (windows_info.is_initialized) {
+		return
+	}
 	// fmt.print()
 	ATTACH_PARENT_PROCESS :: transmute(DWORD)i32(-1)
 	STD_INPUT_HANDLE :: transmute(DWORD)i32(-10)
@@ -55,4 +59,5 @@ initWindowsInfo :: proc() {
 	windows_info.min_large_page_size_mask = int(
 		math.maskUpperBits(math.ctz(windows_info.min_large_page_size)),
 	)
+	windows_info.is_initialized = true
 }

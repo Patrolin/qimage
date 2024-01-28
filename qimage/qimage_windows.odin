@@ -35,13 +35,13 @@ main :: proc() {
 	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 
-	raw_devices: []win.RAWINPUTDEVICE =  {
+	raw_devices: []win.RAWINPUTDEVICE = {
 		win.RAWINPUTDEVICE {
 			usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
 			usUsage = win.RIU_MOUSE,
 			dwFlags = 0,
 			hwndTarget = window.handle,
-		},
+		}, // TODO: don't send WM_MOVE events
 	}
 	assert(
 		bool(
@@ -74,11 +74,11 @@ main :: proc() {
 		input.resetInputs(&inputs)
 		frame_time_t := win.time()
 		fmt.printf(
-			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_time: %v ms\n",
+			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			dt * 1000,
 			max_dt,
 			(frame_time_msg_t - frame_time_prev_t) * 1000,
-			(frame_time_t - frame_time_prev_t) * 1000,
+			(frame_time_t - frame_time_msg_t) * 1000,
 		)
 
 		prev_t = t
@@ -142,28 +142,10 @@ messageHandler :: proc "stdcall" (
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
-				lastMousePos := input.lastMousePos(&inputs)
-				if lastMousePos == {min(i16), min(i16)} {
-					pos := win.getCursorPos()
-					inputs.mouse.pos.buffer[0] = {i16(pos.x), i16(pos.y)}
-				}
-				dpos := math.v2i {
-					i16(raw_input.data.mouse.lLastX),
-					i16(raw_input.data.mouse.lLastY),
-				}
-				if dpos == {0, 0} {
-					return
-				}
-				pos := math.clamp(
-					lastMousePos + dpos,
-					math.Rect {
-						i16(monitorRect.left),
-						i16(monitorRect.top),
-						i16(monitorRect.right),
-						i16(monitorRect.bottom),
-					},
-				)
-				input.addMousePath(&inputs, pos)
+				last_mouse_pos := input.lastMousePos(&inputs)
+				// NOTE: this is slow (.4+ ms), but eh, faster version would do https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
+				next_pos := win.getCursorPos()
+				input.addMousePath(&inputs, math.v2i{i16(next_pos.x), i16(next_pos.y)})
 			//fmt.println("REL dpos:", dpos, "path:", inputs.mouse.pos.slice)
 			case win.MOUSE_MOVE_ABSOLUTE:
 				assert(false) // NOTE: does this ever trigger?
