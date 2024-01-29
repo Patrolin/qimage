@@ -8,11 +8,11 @@ function lerp(t, x, y) {
 function clamp(x, min, max) {
   return Math.min(Math.max(min, x), max);
 }
-function fold(a, b) {
-  return a / (a + b);
+function fold(x, a) {
+  return x / (x + a);
 }
-function unfold(y, b) {
-  return y*b / (1 - y);
+function unfold(y, a) {
+  return y*a / (1 - y);
 }
 function abs(x) {
   return Math.abs(x);
