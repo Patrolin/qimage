@@ -15,7 +15,7 @@ failAllocatorProc :: proc(
 ) {
 	fmt.printf("fail_loc = %v\n", loc)
 	switch mode {
-	case .Alloc, .Alloc_Non_Zeroed, .Free, .Free_All, .Resize:
+	case .Alloc, .Alloc_Non_Zeroed, .Free, .Free_All, .Resize, .Resize_Non_Zeroed:
 		assert(false)
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_ptr)

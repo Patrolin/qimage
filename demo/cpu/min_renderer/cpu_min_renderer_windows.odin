@@ -1,4 +1,5 @@
 // odin run demo/cpu/min_renderer -subsystem:windows
+// odin run demo/cpu/min_renderer -subsystem:windows -o:speed
 package main
 
 import "../../../lib/alloc"

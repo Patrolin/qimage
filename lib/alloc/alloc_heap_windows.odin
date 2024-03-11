@@ -32,7 +32,7 @@ heapAllocatorProc :: proc(
 		return nil, nil
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
-	case .Resize:
+	case .Resize, .Resize_Non_Zeroed:
 		if old_ptr == nil {
 			ptr := ([^]u8)(
 				win.HeapAlloc(win.windows_info.process_heap, HEAP_ZERO_MEMORY, uint(size)),

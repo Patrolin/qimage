@@ -36,7 +36,7 @@ arenaAllocatorProc :: proc(
 		return nil, nil
 	case .Free_All:
 		return nil, .Mode_Not_Implemented
-	case .Resize:
+	case .Resize, .Resize_Non_Zeroed:
 		if isAtEnd(arena_data, old_ptr, old_size) {
 			arena_data.used += size - old_size
 			data := ([^]u8)(old_ptr)[:size]

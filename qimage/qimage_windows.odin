@@ -1,7 +1,5 @@
 // odin run qimage -subsystem:windows
 package main
-import "../common/assets"
-import "../common/constants"
 import "../lib/alloc"
 import "../lib/file"
 import "../lib/gl"
@@ -9,6 +7,8 @@ import "../lib/input"
 import "../lib/math"
 import "../lib/paint"
 import win "../lib/windows"
+import "../qimage/assets"
+import "../qimage/constants"
 import "core:fmt"
 import "core:runtime"
 

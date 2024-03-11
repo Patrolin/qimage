@@ -27,12 +27,12 @@ DeleteObject :: coreWin.DeleteObject
 GetClientRect :: coreWin.GetClientRect
 GetWindowRect :: coreWin.GetWindowRect
 
-// TODO?: simd and multithread this?
 FrameBuffer :: struct {
 	data:   []u32 `fmt:"p"`, // MEM: BGRA?
 	width:  i16,
 	height: i16,
 }
+// NOTE: you would want to simd and multithread these
 resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	prev_buffer := frameBuffer^
 	new_data_size := int(width) * int(height) * 4
@@ -53,35 +53,38 @@ copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {
 	}
 }
 packRGBA_v4 :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.v4) {
-	bgra := (
-		(u32(rgba.b) & 0xff << 0) |
-		(u32(rgba.g) & 0xff << 8) |
-		(u32(rgba.r) & 0xff << 16) |
-		(u32(rgba.a) & 0xff << 24)
-	)
+	bgra :=
+		((u32(rgba.b) & 0xff << 0) |
+			(u32(rgba.g) & 0xff << 8) |
+			(u32(rgba.r) & 0xff << 16) |
+			(u32(rgba.a) & 0xff << 24))
 	stride := int(frameBuffer.width)
-	frameBuffer.data[y*stride + x] = bgra
+	frameBuffer.data[y * stride + x] = bgra
 }
 packRGBA_v4i :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.v4i) {
-	bgra := (
-		(u32(rgba.b) & 0xff << 0) |
-		(u32(rgba.g) & 0xff << 8) |
-		(u32(rgba.r) & 0xff << 16) |
-		(u32(rgba.a) & 0xff << 24)
-	)
+	bgra :=
+		((u32(rgba.b) & 0xff << 0) |
+			(u32(rgba.g) & 0xff << 8) |
+			(u32(rgba.r) & 0xff << 16) |
+			(u32(rgba.a) & 0xff << 24))
 	stride := int(frameBuffer.width)
-	frameBuffer.data[y*stride + x] = bgra
+	frameBuffer.data[y * stride + x] = bgra
 }
-packRGBA :: proc{packRGBA_v4, packRGBA_v4i}
+packRGBA :: proc {
+	packRGBA_v4,
+	packRGBA_v4i,
+}
 unpackRGBA :: proc(frameBuffer: FrameBuffer, x, y: int) -> math.v4 {
 	stride := int(frameBuffer.width)
-	bgra := frameBuffer.data[y*stride + x]
-	return math.v4{
-		f32((bgra >> 16) & 0xff),
-		f32((bgra >> 8) & 0xff),
-		f32((bgra >> 0) & 0xff),
-		f32((bgra >> 24) & 0xff),
-	}
+	bgra := frameBuffer.data[y * stride + x]
+	return(
+		math.v4 {
+			f32((bgra >> 16) & 0xff),
+			f32((bgra >> 8) & 0xff),
+			f32((bgra >> 0) & 0xff),
+			f32((bgra >> 24) & 0xff),
+		} \
+	)
 }
 
 Window :: struct {
