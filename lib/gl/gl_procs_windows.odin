@@ -59,3 +59,20 @@ resizeImageBuffer :: proc(width, height: u16) {
 renderImageBufferToWindow :: proc(dc: HDC) {
 	SwapBuffers(dc)
 }
+/*
+TODO!: compile .odin to gpu shaders
+VSIn :: struct {
+	vertex_id: u32,
+	instance_id: u32,
+}
+vertexShader :: proc(input: VSIn) -> FSIn {
+	// ...
+}
+FSIn :: struct {
+	position: v2 `position`,
+	color: v2,
+}
+fragmentShader :: proc(input: FSIn) -> v4 {
+	// ...
+}
+*/
