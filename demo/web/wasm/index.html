@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head></head>
+  <body>
+    <script>
+      (async () => {
+        // NOTE: this fails due to CORS
+        const wasmResponse = fetch("index.wasm", {
+          referrer: "file:///C:/Users/patri/Documents/Programming/qimage/demo/web/wasm",
+        });
+        const wasm = await WebAssembly.instantiateStreaming(wasmResponse);
+        console.log(wasm);
+      })();
+    </script>
+  </body>
+</html>
