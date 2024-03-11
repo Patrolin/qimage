@@ -69,8 +69,8 @@ vertexShader :: proc(input: VSIn) -> FSIn {
 	// ...
 }
 FSIn :: struct {
-	position: v2 `position`,
-	color: v2,
+	position: v2,
+	color: v2 `nointerp`,
 }
 fragmentShader :: proc(input: FSIn) -> v4 {
 	// ...
