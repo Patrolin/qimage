@@ -1,26 +1,8 @@
 package lib_math
 import coreBits "core:math/bits"
 
-clz_uint :: proc(v: uint) -> uint {
-	return coreBits.count_leading_zeros(v)
-}
-clz_int :: proc(v: int) -> uint {
-	return clz_uint(uint(v))
-}
-clz :: proc {
-	clz_uint,
-	clz_int,
-}
-ctz_uint :: proc(v: uint) -> uint {
-	return coreBits.count_trailing_zeros(v)
-}
-ctz_int :: proc(v: int) -> uint {
-	return ctz_uint(uint(v))
-}
-ctz :: proc {
-	ctz_uint,
-	ctz_int,
-}
+clz :: coreBits.count_leading_zeros
+ctz :: coreBits.count_trailing_zeros
 count_ones :: coreBits.count_ones
 count_zeros :: coreBits.count_zeros
 

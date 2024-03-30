@@ -1,6 +1,7 @@
 // odin run qimage -subsystem:windows
 package main
 import "../lib/alloc"
+import "../lib/ast"
 import "../lib/file"
 import "../lib/gl"
 import "../lib/input"
@@ -55,8 +56,31 @@ main :: proc() {
 
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
+	//
+	fmt.println("size_of([]u8)", size_of([]u8))
+	fmt.println("size_of(int)", size_of(int))
+	fmt.println("size_of(^alloc.SlabSlot)", size_of(^alloc.SlabSlot))
+	fmt.println("size_of(SlabCache)", size_of(alloc.SlabCache))
+	slab_cache := alloc.bootstrapSlabCache(1, 32)
+	x := cast(^u32)alloc.slabAlloc(slab_cache, 32)
+	y := cast(^u32)alloc.slabAlloc(slab_cache, 32)
+	x^ = 13
+	y^ = 21
+	fmt.println("x:", x^, "y:", y^)
+	/*
 	fmt.println(image)
 	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
+	x := "bÄ + 2"
+	for codepoint, index in x {
+		fmt.println(index, codepoint)
+		// 0 A
+		// 1 B
+		// 2 C
+	}
+	tokens := ast.tokenize(x, "+-0123456789", "\"'", "\\", "abcdefxyz", " \n\r\t")
+	fmt.println(tokens)
+	*/
+	assert(false, "ayaya")
 	t := win.time()
 	prev_t := t
 	i := 0
@@ -180,6 +204,7 @@ messageHandler :: proc "stdcall" (
 		fmt.println(inputs)
 	case win.WM_SETCURSOR:
 		// NOTE: on move inside window
+		// TODO!: how to tell if can resize?
 		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
 		result = 1
 	case:
