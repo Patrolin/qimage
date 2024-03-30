@@ -50,3 +50,33 @@ writeBit :: proc {
 	writeBit_u32,
 	writeBit_u64,
 }
+ilog2_ceil_u8 :: proc(x: u8) -> u8 {
+	if x == 0 {return 0}
+	leading_zeros := clz(x)
+	remainder := u8((x << (leading_zeros + 1)) > 0)
+	return 7 - leading_zeros + remainder
+}
+ilog2_ceil_u16 :: proc(x: u16) -> u16 {
+	if x == 0 {return 0}
+	leading_zeros := clz(x)
+	remainder := u16((x << (leading_zeros + 1)) > 0)
+	return 15 - leading_zeros + remainder
+}
+ilog2_ceil_u32 :: proc(x: u32) -> u32 {
+	if x == 0 {return 0}
+	leading_zeros := clz(x)
+	remainder := u32((x << (leading_zeros + 1)) > 0)
+	return 31 - leading_zeros + remainder
+}
+ilog2_ceil_u64 :: proc(x: u64) -> u64 {
+	if x == 0 {return 0}
+	leading_zeros := clz(x)
+	remainder := u64((x << (leading_zeros + 1)) > 0)
+	return 63 - leading_zeros + remainder
+}
+ilog2_ceil :: proc {
+	ilog2_ceil_u8,
+	ilog2_ceil_u16,
+	ilog2_ceil_u32,
+	ilog2_ceil_u64,
+}

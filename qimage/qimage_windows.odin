@@ -57,19 +57,14 @@ main :: proc() {
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
 	//
-	fmt.println("size_of([]u8)", size_of([]u8))
-	fmt.println("size_of(int)", size_of(int))
 	slabAllocator := alloc.slabAllocator()
-	fmt.println("size_of(^alloc.SlabSlot)", size_of(^alloc.SlabSlot))
 	context.allocator = slabAllocator
-	fmt.println("size_of(SlabCache)", size_of(alloc.SlabCache))
-	fmt.println("size_of(SlabAllocator)", size_of(alloc.SlabAllocator))
-	x := new(u32)
+	x := make([]u8, 24)
 	y := new(u32)
-	fmt.println("x:", x^, "y:", y^)
-	x^ = 13
+	fmt.println("x:", x, "y:", y^)
+	x[0] = 13
 	y^ = 21
-	fmt.println("x:", x^, "y:", y^)
+	fmt.println("x:", x, "y:", y^)
 	/*
 	fmt.println(image)
 	fmt.print(file.tprintImage(image, 0, 0, 3, 3))

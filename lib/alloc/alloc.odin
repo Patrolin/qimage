@@ -21,6 +21,7 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	context = ctx
 	if default_allocators.allocator.procedure == nil {
 		default_allocators.allocator = heapAllocator()
+		//default_allocators.allocator = slabAllocator()
 	}
 	ctx.allocator = default_allocators.allocator
 	//ctx.temp_allocator = default_allocators.temp_allocator

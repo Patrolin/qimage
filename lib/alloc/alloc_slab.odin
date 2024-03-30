@@ -1,4 +1,5 @@
 package alloc
+import "../math"
 import "core:fmt"
 import "core:mem"
 
@@ -45,10 +46,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 			slab.data = pageAlloc(1)
 		}
 		used_bytes := int(slab.used_slots) * int(slab.slot_size)
-		fmt.println("ayaya.used_bytes", slab.used_slots, '*', slab.slot_size, '=', used_bytes)
-		if used_bytes >= len(slab.data) {
-			return nil
-		}
+		if used_bytes >= len(slab.data) {return nil}
 		ptr = &slab.data[used_bytes]
 		slab.used_slots += 1
 	}
@@ -122,10 +120,30 @@ slabAllocator :: proc() -> mem.Allocator {
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
-	if size == 0 {
-		return nil
+	assert(size <= 4096)
+	group := math.ilog2_ceil(u64(size))
+	switch group {
+	case:
+		return slab_allocator._8_bytes
+	case 4:
+		return slab_allocator._16_bytes
+	case 5:
+		return slab_allocator._32_bytes
+	case 6:
+		return slab_allocator._64_bytes
+	case 7:
+		return slab_allocator._128_bytes
+	case 8:
+		return slab_allocator._256_bytes
+	case 9:
+		return slab_allocator._512_bytes
+	case 10:
+		return slab_allocator._1024_bytes
+	case 11:
+		return slab_allocator._2048_bytes
+	case 12:
+		return slab_allocator._4096_bytes
 	}
-	return slab_allocator._8_bytes // TODO: choose a slab by size
 }
 // TODO: alignment?
 slabAllocatorProc :: proc(
