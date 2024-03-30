@@ -59,11 +59,14 @@ main :: proc() {
 	//
 	fmt.println("size_of([]u8)", size_of([]u8))
 	fmt.println("size_of(int)", size_of(int))
+	slabAllocator := alloc.slabAllocator()
 	fmt.println("size_of(^alloc.SlabSlot)", size_of(^alloc.SlabSlot))
+	context.allocator = slabAllocator
 	fmt.println("size_of(SlabCache)", size_of(alloc.SlabCache))
-	slab_cache := alloc.bootstrapSlabCache(1, 32)
-	x := cast(^u32)alloc.slabAlloc(slab_cache, 32)
-	y := cast(^u32)alloc.slabAlloc(slab_cache, 32)
+	fmt.println("size_of(SlabAllocator)", size_of(alloc.SlabAllocator))
+	x := new(u32)
+	y := new(u32)
+	fmt.println("x:", x^, "y:", y^)
 	x^ = 13
 	y^ = 21
 	fmt.println("x:", x^, "y:", y^)
