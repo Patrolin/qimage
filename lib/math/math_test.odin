@@ -9,4 +9,5 @@ test_ilog2 :: proc(t: ^testing.T) {
 	testing.expect(t, ilog2_ceil_u64(3) == 2)
 	testing.expect(t, ilog2_ceil_u64(4) == 2)
 	testing.expect(t, ilog2_ceil_u64(7) == 3)
+	testing.expect(t, ilog2_ceil_u64(4096) == 12)
 }
