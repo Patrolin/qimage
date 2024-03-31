@@ -1,4 +1,4 @@
-package libGl
+package lib_gl
 import "../paint"
 import coreWin "core:sys/windows"
 import coreGl "vendor:OpenGL"

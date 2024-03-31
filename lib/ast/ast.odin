@@ -1,4 +1,4 @@
-package ast
+package lib_ast
 import "../math"
 import "core:fmt"
 

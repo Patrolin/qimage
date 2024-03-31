@@ -1,4 +1,4 @@
-package alloc
+package lib_alloc
 
 FixedBuffer :: struct($T: typeid, $N: int) {
 	used:   int,

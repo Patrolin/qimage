@@ -1,4 +1,4 @@
-package libGl
+package lib_gl
 
 GLboolean :: bool
 GLbyte :: i8

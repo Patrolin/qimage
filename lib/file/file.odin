@@ -1,4 +1,4 @@
-package file
+package lib_file
 import "../math"
 import "core:fmt"
 import "core:os"

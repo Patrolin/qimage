@@ -1,17 +1,19 @@
-package alloc
+package lib_alloc
 import "../math"
+import "../windows"
 import "core:fmt"
 import "core:mem"
+import "core:testing"
 
 SlabCache :: struct {
-	data:         []u8, // 16 B
+	data:         []u8 `fmt:"p"`, // 16 B
 	used_slots:   u32, // 4 B
 	slot_size:    u16, // 2 B
 	header_slots: u16, // 2 B
 	free_list:    ^SlabSlot, // 8 B
 }
 SlabSlot :: struct {
-	next: ^SlabSlot,
+	next: ^SlabSlot, // 8 B
 }
 bootstrapSlabCache_first :: proc(slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabCache), "Must have slot_size >= size_of(SlabCache)")
@@ -24,6 +26,7 @@ bootstrapSlabCache_first :: proc(slot_size: u16) -> ^SlabCache {
 	return slab
 }
 bootstrapSlabCache_second :: proc(prev_slab: ^SlabCache, slot_size: u16) -> ^SlabCache {
+	assert(slot_size >= size_of(SlabSlot), "Must have slot_size >= size_of(SlabSlot)")
 	prev_slab.header_slots += 1
 	slab := cast(^SlabCache)slabAlloc(prev_slab, size_of(SlabCache))
 	slab.slot_size = slot_size
@@ -37,9 +40,8 @@ bootstrapSlabCache :: proc {
 slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 	assert(size <= int(slab.slot_size), "Must have size <= slab.slot_size")
 	ptr := rawptr(nil)
-	curr := slab.free_list
-	if (ptr != nil) {
-		ptr = curr
+	if (slab.free_list != nil) {
+		ptr = slab.free_list
 		slab.free_list = (cast(^SlabSlot)ptr).next
 	} else {
 		if slab.data == nil {
@@ -58,7 +60,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 }
 slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr) {
 	assert(
-		(old_ptr >= &slab.data[0]) && (old_ptr < &slab.data[len(slab.data)]),
+		(old_ptr >= &slab.data[0]) && (old_ptr <= &slab.data[len(slab.data) - 1]),
 		"Can't free old_ptr outside the slab",
 	)
 	slot := cast(^SlabSlot)old_ptr
@@ -75,7 +77,8 @@ slabRealloc :: proc(
 	ptr := slabAlloc(slab, size, zero)
 	old_ptr_slice := (cast([^]u8)old_ptr)[:old_slab.slot_size]
 	ptr_slice := (cast([^]u8)ptr)[:slab.slot_size]
-	for i := 0; i < int(old_slab.slot_size); i += 1 {
+	min_size := min(int(old_slab.slot_size), int(slab.slot_size))
+	for i := 0; i < min_size; i += 1 {
 		ptr_slice[i] = old_ptr_slice[i]
 	}
 	slabFree(old_slab, old_slab)
@@ -120,7 +123,7 @@ slabAllocator :: proc() -> mem.Allocator {
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
-	assert(size <= 4096)
+	assert(size <= 4096) // TODO: handle this?
 	group := math.ilog2_ceil(u64(size))
 	switch group {
 	case:
@@ -207,4 +210,25 @@ slabAllocatorProc :: proc(
 		return nil, .Mode_Not_Implemented
 	}
 	return
+}
+
+@(test)
+testSlabAlloc :: proc(t: ^testing.T) {
+	context = defaultContext()
+	slab := bootstrapSlabCache(64)
+	x := cast(^u8)slabAlloc(slab, 1)
+	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
+	x^ = 13
+	testing.expect(t, x^ == 13, "Failed to allocate")
+	slabFree(slab, x)
+	y := cast(^u8)slabAlloc(slab, 1)
+	testing.expectf(t, y == x, "Failed to free, x: %v, y: %v", x, y)
+	z := cast(^u8)slabAlloc(slab, 1)
+	testing.expectf(t, z != y, "Failed to allocate, y: %v, z: %v", y, z)
+	slabFreeAll(slab)
+	y = cast(^u8)slabAlloc(slab, 1)
+	testing.expectf(t, y == x, "Failed to free all, x: %v, y: %v", x, y)
+	slab_2 := bootstrapSlabCache(slab, 8)
+	y = cast(^u8)slabRealloc(slab, x, slab_2, 1)
+	testing.expectf(t, (y != x) && (y != z), "Failed to realloc, x: %v, y: %v, z: %v", x, y, z)
 }

@@ -1,4 +1,4 @@
-package file
+package lib_file
 import coreWin "core:sys/windows"
 
 LONG :: coreWin.LONG

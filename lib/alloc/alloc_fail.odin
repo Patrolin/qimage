@@ -1,4 +1,4 @@
-package alloc
+package lib_alloc
 import "core:fmt"
 import "core:mem"
 
