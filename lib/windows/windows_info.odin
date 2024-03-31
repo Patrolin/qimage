@@ -54,12 +54,12 @@ initWindowsInfo :: proc() {
 	coreWin.GetSystemInfo(&systemInfo)
 	windows_info.min_page_size = int(systemInfo.dwAllocationGranularity)
 	windows_info.min_page_size_mask = int(
-		math.maskUpperBits(math.ctz(uint(windows_info.min_page_size))),
+		math.upperBitsMask(math.ctz(uint(windows_info.min_page_size))),
 	)
 	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
 	windows_info.min_large_page_size = int(coreWin.GetLargePageMinimum())
 	windows_info.min_large_page_size_mask = int(
-		math.maskUpperBits(math.ctz(uint(windows_info.min_large_page_size))),
+		math.upperBitsMask(math.ctz(uint(windows_info.min_large_page_size))),
 	)
 	windows_info.is_initialized = true
 }

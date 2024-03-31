@@ -1,4 +1,5 @@
 package lib_math
+import "core:intrinsics"
 
 // NOTE: Odin vector types (.xyzw, .rgba)
 v2i :: [2]i16
@@ -16,15 +17,18 @@ inBounds :: proc(pos: v2i, rect: Rect) -> bool {
 		(pos.x >= rect.left) &
 		(pos.x <= rect.right) &
 		(pos.y >= rect.bottom) &
-		(pos.y <= rect.top)
+		(pos.y <= rect.top) \
 	)
 }
-clamp_i16 :: proc(x, min, max: i16) -> i16 {
-	x := x + (min-x)*i16(x < min)
-	x = x + (max-x)*i16(x > max)
+clamp_int :: proc(x, min, max: $T) -> T where intrinsics.type_is_numeric(T) {
+	x := x + (min - x) * T(x < min)
+	x = x + (max - x) * T(x > max)
 	return x
 }
-clamp_v2_rect :: proc(pos: v2i, rect: Rect) -> v2i {
+clamp_v2i :: proc(pos: v2i, rect: Rect) -> v2i {
 	return {clamp(pos.x, rect.left, rect.right), clamp(pos.y, rect.top, rect.bottom)}
 }
-clamp :: proc{clamp_i16, clamp_v2_rect}
+clamp :: proc {
+	clamp_int,
+	clamp_v2i,
+}
