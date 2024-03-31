@@ -56,15 +56,6 @@ main :: proc() {
 
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
-	//
-	slabAllocator := alloc.slabAllocator()
-	context.allocator = slabAllocator
-	x := make([]u8, 24)
-	y := new(u32)
-	fmt.println("x:", x, "y:", y^)
-	x[0] = 13
-	y^ = 21
-	fmt.println("x:", x, "y:", y^)
 	/*
 	fmt.println(image)
 	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
@@ -77,8 +68,8 @@ main :: proc() {
 	}
 	tokens := ast.tokenize(x, "+-0123456789", "\"'", "\\", "abcdefxyz", " \n\r\t")
 	fmt.println(tokens)
-	*/
 	assert(false, "ayaya")
+	*/
 	t := win.time()
 	prev_t := t
 	i := 0

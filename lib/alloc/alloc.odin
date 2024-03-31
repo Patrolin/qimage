@@ -19,16 +19,15 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	default_allocators := DefaultAllocators{}
 	ctx := emptyContext()
 	context = ctx
+	when ODIN_OS == .Windows {
+		win.initWindowsInfo() // NOTE: we pretend we have a context, since it's not actually used...
+	}
 	if default_allocators.allocator.procedure == nil {
-		default_allocators.allocator = heapAllocator()
-		//default_allocators.allocator = slabAllocator()
+		default_allocators.allocator = slabAllocator()
 	}
 	ctx.allocator = default_allocators.allocator
 	//ctx.temp_allocator = default_allocators.temp_allocator
 	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc
 	ctx.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
-	when ODIN_OS == .Windows {
-		win.initWindowsInfo()
-	}
 	return ctx
 }
