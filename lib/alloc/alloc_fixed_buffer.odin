@@ -24,3 +24,4 @@ fixedBufferAppendOrReplace :: proc(fixed_buffer: ^FixedBuffer($T, $N), new_data:
 	fixed_buffer.buffer[new_size - 1] = new_data
 	fixed_buffer.used = new_size
 }
+// TODO!: remove this

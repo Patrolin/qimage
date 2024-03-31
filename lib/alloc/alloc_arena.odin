@@ -53,12 +53,20 @@ arenaAllocatorProc :: proc(
 			data := ([^]u8)(old_ptr)[:size]
 			return data, nil
 		} else {
-			return nil, .Invalid_Pointer
+			return nil, .Invalid_Pointer // TODO: handle this
 		}
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {
-			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Query_Features}
+			set^ =  {
+				.Alloc,
+				.Alloc_Non_Zeroed,
+				.Free,
+				.Free_All,
+				.Resize,
+				.Resize_Non_Zeroed,
+				.Query_Features,
+			}
 		}
 	case .Query_Info:
 		return nil, .Mode_Not_Implemented
