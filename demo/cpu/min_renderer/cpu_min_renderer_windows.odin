@@ -5,8 +5,8 @@ package main
 import "../../../lib/alloc"
 import "../../../lib/file"
 import "../../../lib/math"
+import win "../../../lib/os/windows"
 import "../../../lib/paint"
-import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
 
@@ -50,7 +50,7 @@ main :: proc() {
 		)
 
 		prev_t = t
-		t = win.doVsyncBadly() // TODO: vsync via opengl?
+		t = win.doVsyncBadly()
 		frame_time_prev_t = win.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
 		free_all(context.temp_allocator)
@@ -93,7 +93,7 @@ messageHandler :: proc "stdcall" (
 }
 
 updateAndRender :: proc() {
-	// NOTE: this takes 7 ms
+	// NOTE: this takes 7 ms (.7 ms with -o:speed)
 	for y := 0; y < int(frame_buffer.height); y += 1 {
 		for x := 0; x < int(frame_buffer.width); x += 1 {
 			rgba := math.v4{128, 128, 255, 0}

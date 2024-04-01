@@ -4,7 +4,7 @@ package main
 import "../../../lib/alloc"
 import "../../../lib/gl"
 import "../../../lib/math"
-import win "../../../lib/windows"
+import win "../../../lib/os/windows"
 import "core:fmt"
 import "core:runtime"
 

@@ -1,29 +1,29 @@
 package lib_gl
 import "../paint"
-import coreWin "core:sys/windows"
-import coreGl "vendor:OpenGL"
+import win "core:sys/windows"
+import gl "vendor:OpenGL"
 
-HDC :: coreWin.HDC
-PIXELFORMATDESCRIPTOR :: coreWin.PIXELFORMATDESCRIPTOR
+HDC :: win.HDC
+PIXELFORMATDESCRIPTOR :: win.PIXELFORMATDESCRIPTOR
 Window :: paint.Window
 PAINTSTRUCT :: paint.PAINTSTRUCT
 
-PFD_TYPE_RGBA :: coreWin.PFD_TYPE_RGBA
-PFD_SUPPORT_OPENGL :: coreWin.PFD_SUPPORT_OPENGL
-PFD_DRAW_TO_WINDOW :: coreWin.PFD_DRAW_TO_WINDOW
-PFD_DOUBLEBUFFER :: coreWin.PFD_DOUBLEBUFFER
-PFD_MAIN_PLANE :: coreWin.PFD_MAIN_PLANE
-COLOR_BUFFER_BIT :: coreGl.COLOR_BUFFER_BIT
+PFD_TYPE_RGBA :: win.PFD_TYPE_RGBA
+PFD_SUPPORT_OPENGL :: win.PFD_SUPPORT_OPENGL
+PFD_DRAW_TO_WINDOW :: win.PFD_DRAW_TO_WINDOW
+PFD_DOUBLEBUFFER :: win.PFD_DOUBLEBUFFER
+PFD_MAIN_PLANE :: win.PFD_MAIN_PLANE
+COLOR_BUFFER_BIT :: gl.COLOR_BUFFER_BIT
 
 GetDC :: paint.GetDC
 BeginPaint :: paint.BeginPaint
 EndPaint :: paint.EndPaint
-ChoosePixelFormat :: coreWin.ChoosePixelFormat
-DescribePixelFormat :: coreWin.DescribePixelFormat
-SetPixelFormat :: coreWin.SetPixelFormat
-wglCreateContext :: coreWin.wglCreateContext
-wglMakeCurrent :: coreWin.wglMakeCurrent
-SwapBuffers :: coreWin.SwapBuffers
+ChoosePixelFormat :: win.ChoosePixelFormat
+DescribePixelFormat :: win.DescribePixelFormat
+SetPixelFormat :: win.SetPixelFormat
+wglCreateContext :: win.wglCreateContext
+wglMakeCurrent :: win.wglMakeCurrent
+SwapBuffers :: win.SwapBuffers
 foreign import Opengl32 "system:Opengl32.lib"
 @(default_calling_convention = "std")
 foreign Opengl32 {

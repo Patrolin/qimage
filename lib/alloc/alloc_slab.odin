@@ -1,6 +1,6 @@
 package lib_alloc
 import "../math"
-import "../windows"
+import "../os/windows"
 import "core:fmt"
 import "core:mem"
 import "core:testing"

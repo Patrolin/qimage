@@ -1,8 +1,8 @@
 package lib_file
-import coreWin "core:sys/windows"
+import win "core:sys/windows"
 
-LONG :: coreWin.LONG
-FXPT2DOT30 :: coreWin.LONG
+LONG :: win.LONG
+FXPT2DOT30 :: win.LONG
 CIEXYZ :: struct {
 	ciexyzX, ciexyzY, ciexyzZ: FXPT2DOT30,
 }

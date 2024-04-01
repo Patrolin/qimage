@@ -1,5 +1,5 @@
 package lib_alloc
-import win "../windows"
+import "../os"
 import "core:runtime"
 
 DefaultAllocators :: struct {
@@ -19,9 +19,7 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	default_allocators := DefaultAllocators{}
 	ctx := emptyContext()
 	context = ctx
-	when ODIN_OS == .Windows {
-		win.initWindowsInfo() // NOTE: we pretend we have a context, since it's not actually used...
-	}
+	os.initInfo() // NOTE: we pretend we have a context, since it's not actually used...
 	if default_allocators.allocator.procedure == nil {
 		default_allocators.allocator = slabAllocator()
 	}

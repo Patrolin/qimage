@@ -3,29 +3,29 @@ import "../alloc"
 import "../file"
 import "../math"
 import "core:fmt"
-import coreWin "core:sys/windows"
+import win "core:sys/windows"
 
-HWND :: coreWin.HWND
-HDC :: coreWin.HDC
-BITMAPINFO :: coreWin.BITMAPINFO
-BITMAPINFOHEADER :: coreWin.BITMAPINFOHEADER
-PAINTSTRUCT :: coreWin.PAINTSTRUCT
+HWND :: win.HWND
+HDC :: win.HDC
+BITMAPINFO :: win.BITMAPINFO
+BITMAPINFOHEADER :: win.BITMAPINFOHEADER
+PAINTSTRUCT :: win.PAINTSTRUCT
 
-BI_RGB :: coreWin.BI_RGB
-DIB_RGB_COLORS :: coreWin.DIB_RGB_COLORS
-SRCCOPY :: coreWin.SRCCOPY
+BI_RGB :: win.BI_RGB
+DIB_RGB_COLORS :: win.DIB_RGB_COLORS
+SRCCOPY :: win.SRCCOPY
 
-GetDC :: coreWin.GetDC
-ReleaseDC :: coreWin.ReleaseDC
-BeginPaint :: coreWin.BeginPaint
-PatBlt :: coreWin.PatBlt
-EndPaint :: coreWin.EndPaint
-CreateCompatibleDC :: coreWin.CreateCompatibleDC
-CreateDIBSection :: coreWin.CreateDIBSection
-StretchDIBits :: coreWin.StretchDIBits
-DeleteObject :: coreWin.DeleteObject
-GetClientRect :: coreWin.GetClientRect
-GetWindowRect :: coreWin.GetWindowRect
+GetDC :: win.GetDC
+ReleaseDC :: win.ReleaseDC
+BeginPaint :: win.BeginPaint
+PatBlt :: win.PatBlt
+EndPaint :: win.EndPaint
+CreateCompatibleDC :: win.CreateCompatibleDC
+CreateDIBSection :: win.CreateDIBSection
+StretchDIBits :: win.StretchDIBits
+DeleteObject :: win.DeleteObject
+GetClientRect :: win.GetClientRect
+GetWindowRect :: win.GetWindowRect
 
 FrameBuffer :: struct {
 	data:   []u32 `fmt:"p"`, // MEM: BGRA?
@@ -36,8 +36,8 @@ FrameBuffer :: struct {
 resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	prev_buffer := frameBuffer^
 	new_data_size := int(width) * int(height) * 4
-	new_data_buffer := alloc.pageAlloc(new_data_size) // NOTE: width and height should never be zero
-	frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)]
+	new_data_buffer := alloc.pageAlloc(new_data_size)
+	frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)] // NOTE: width and height should never be zero
 	frameBuffer.width = width
 	frameBuffer.height = height
 	if prev_buffer.data != nil {
