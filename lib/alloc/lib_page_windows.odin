@@ -11,7 +11,7 @@ pageAlloc :: proc "contextless" (size: int) -> []u8 {
 	ptr := ([^]u8)(
 		win.VirtualAlloc(nil, uint(size), win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE),
 	)
-	return ptr[:size]
+	return mem.slice_ptr(ptr, size)
 }
 pageFree :: proc "contextless" (ptr: win.LPVOID) {
 	win.VirtualFree(ptr, 0, win.MEM_RELEASE)

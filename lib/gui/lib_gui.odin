@@ -27,20 +27,24 @@ render :: proc {
 GuiState :: struct {
 	allocator: mem.Allocator,
 	inputs:    ^input.Inputs,
-	placeAt:   alloc.FixedBuffer(GuiPlacement, 16),
-	nodes:     [dynamic]GuiNode, // NOTE: context.allocator.resize() must not move .nodes
+	placeAt:   ^GuiPlacement,
+	nodes:     ^GuiNode,
 	hovered:   ^GuiNode,
 	dragging:  ^GuiNode,
 	focused:   ^GuiNode,
-	// TODO!: notion of z order??
 }
 GuiPlacement :: struct {
+	// TODO: sizes
+	prev:          ^GuiPlacement,
 	pos:           math.v2i,
 	rect:          math.Rect,
 	is_horizontal: bool,
 }
 GuiNode :: struct {
+	prev: ^GuiNode,
+	next: ^GuiNode,
 	rect: math.Rect,
+	// TODO: z order
 	node: union {
 		TextNode,
 		ButtonNode,
@@ -48,20 +52,20 @@ GuiNode :: struct {
 	},
 }
 TextNode :: struct {
-	text: string,
+	text: string, // ? B
 }
 ButtonNode :: struct {
-	text: string,
+	text: string, // ? B
 }
 ImageNode :: struct {
-	image: ^file.Image,
+	image: ^file.Image, // 8 B
 }
 getTextSize :: proc(str: string) -> math.v2i {
 	return math.v2i{50, 12} // TODO!: fonts?
 }
 
 placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
-	placeAt := alloc.fixedBufferLast(&state.placeAt)
+	placeAt := state.placeAt
 	pos := placeAt.pos
 	rect = {pos.x, pos.y, pos.x + size.x, pos.y + size.y}
 	if placeAt.is_horizontal {
@@ -87,25 +91,40 @@ wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 // TODO?: begin(row/column), end()
 // TODO!: margin(), indent()?
 // TODO!: wrap, ellipses, color, ...
+addNode :: proc(state: ^GuiState, node: ^GuiNode) {
+	node.prev = state.nodes.next
+	state.nodes.next = node
+}
 text :: proc(state: ^GuiState, str: string) {
-	text_size := getTextSize(str)
-	rect := placeRect(state, text_size)
-	append(&state.nodes, GuiNode{rect, TextNode{text = str}})
+	gui_node := new(GuiNode)
+	gui_node^ = {
+		rect = placeRect(state, getTextSize(str)),
+		node = TextNode{text = str},
+	}
+	addNode(state, gui_node)
 }
 button :: proc(state: ^GuiState, str: string) -> bool {
-	text_size := getTextSize(str)
-	rect := placeRect(state, text_size)
-	append(&state.nodes, GuiNode{rect, ButtonNode{text = str}})
-	was_clicked := wasClicked(state, rect)
-	if was_clicked {
-		state.dragging = &state.nodes[len(state.nodes) - 1]
+	gui_node := new(GuiNode)
+	gui_node^ = {
+		rect = placeRect(state, getTextSize(str)),
+		node = ButtonNode{text = str},
 	}
-	if isHovered(state, rect) {
-		state.hovered = &state.nodes[len(state.nodes) - 1]
+	addNode(state, gui_node)
+
+	was_clicked := wasClicked(state, gui_node.rect)
+	if was_clicked {
+		state.dragging = gui_node
+	}
+	if isHovered(state, gui_node.rect) {
+		state.hovered = gui_node
 	}
 	return was_clicked
 }
 image :: proc(state: ^GuiState, image: ^file.Image, rect: math.Rect) {
-	rect := placeRect(state, {image.width, image.height})
-	append(&state.nodes, GuiNode{rect, ImageNode{image = image}})
+	gui_node := new(GuiNode)
+	gui_node^ = {
+		rect = placeRect(state, {image.width, image.height}),
+		node = ImageNode{image = image},
+	}
+	addNode(state, gui_node)
 }

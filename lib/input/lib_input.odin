@@ -7,25 +7,31 @@ Inputs :: struct {
 	keyboard: Keyboard,
 }
 Mouse :: struct {
-	pos:      alloc.FixedBuffer(math.v2i, 4),
+	pos:      [dynamic]math.v2i,
 	clickPos: math.v2i,
 	LMB:      Button,
 	RMB:      Button,
 }
 initMouse :: proc(inputs: ^Inputs) {
-	inputs.mouse.pos.buffer[0] = {max(i16), max(i16)}
-	inputs.mouse.pos.used = 1
+	inputs.mouse.pos = make([dynamic]math.v2i, 0, 4)
+	append(&inputs.mouse.pos, math.v2i{max(i16), max(i16)})
 }
 addMousePath :: proc(inputs: ^Inputs, moveTo: math.v2i) {
-	alloc.fixedBufferAppendOrReplace(&inputs.mouse.pos, moveTo)
+	MAX_MOUSE_PATH :: 4
+	if (len(inputs.mouse.pos) < MAX_MOUSE_PATH) { 	// NOTE: we may get an infinite number of mouse events when sizing on windows
+		append(&inputs.mouse.pos, moveTo)
+	} else {
+		inputs.mouse.pos[MAX_MOUSE_PATH - 1] = moveTo
+	}
 }
 lastMousePos :: proc(inputs: ^Inputs) -> math.v2i {
-	return alloc.fixedBufferLast(&inputs.mouse.pos)
+	return inputs.mouse.pos[len(inputs.mouse.pos) - 1]
 }
 resetInputs :: proc(inputs: ^Inputs) {
 	// mouse
-	inputs.mouse.pos.buffer[0] = lastMousePos(inputs)
-	inputs.mouse.pos.used = 1
+	last_mouse_pos := lastMousePos(inputs)
+	clear(&inputs.mouse.pos)
+	addMousePath(inputs, last_mouse_pos)
 	resetTransitions(&inputs.mouse.LMB)
 	resetTransitions(&inputs.mouse.RMB)
 	// keyboard

@@ -46,6 +46,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 	} else {
 		if slab.data == nil {
 			slab.data = pageAlloc(1)
+			assert(slab.data != nil)
 		}
 		used_bytes := int(slab.used_slots) * int(slab.slot_size)
 		if used_bytes >= len(slab.data) {return nil}
@@ -59,10 +60,11 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 	return ptr
 }
 slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr) {
-	assert(
-		(old_ptr >= &slab.data[0]) && (old_ptr <= &slab.data[len(slab.data) - 1]),
-		"Can't free old_ptr outside the slab",
-	)
+	offset := int(uintptr(old_ptr) - uintptr(&slab.data[0]))
+	start_offset := int(slab.header_slots) * int(slab.slot_size)
+	end_offset := len(slab.data)
+	assert((offset >= 0) && (offset < end_offset), "Can't free old_ptr outside the slab")
+	assert(offset >= start_offset, "Can't free a header slot")
 	slot := cast(^SlabSlot)old_ptr
 	slot.next = slab.free_list
 	slab.free_list = slot
@@ -81,7 +83,7 @@ slabRealloc :: proc(
 	for i := 0; i < min_size; i += 1 {
 		ptr_slice[i] = old_ptr_slice[i]
 	}
-	slabFree(old_slab, old_slab)
+	slabFree(old_slab, old_ptr)
 	return ptr
 }
 slabFreeAll :: proc(slab: ^SlabCache) {

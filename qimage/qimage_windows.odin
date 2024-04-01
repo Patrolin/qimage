@@ -25,8 +25,8 @@ inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
 	context = alloc.defaultContext()
+	fmt.printf("hello world, %v\n", size_of(string))
 	input.initMouse(&inputs)
-	fmt.printf("hello world\n")
 	a := make([]u8, 4, allocator = context.temp_allocator)
 	fmt.println(a)
 	fmt.printf("inputs: %v\n", uintptr(&inputs) & 63)

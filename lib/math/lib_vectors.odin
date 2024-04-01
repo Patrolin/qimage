@@ -2,12 +2,12 @@ package lib_math
 import "core:intrinsics"
 
 // NOTE: Odin vector types (.xyzw, .rgba)
-v2i :: [2]i16
-v3i :: [3]i16
-v4i :: [4]i16
-v2 :: [2]f32
-v3 :: [3]f32
-v4 :: [4]f32
+v2i :: [2]i16 // 4 B
+v3i :: [3]i16 // 6 B
+v4i :: [4]i16 // 8 B
+v2 :: [2]f32 // 8 B
+v3 :: [3]f32 // 12 B
+v4 :: [4]f32 // 16 B
 Rect :: struct {
 	left, top, right, bottom: i16,
 }
