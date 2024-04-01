@@ -160,6 +160,7 @@ slabAllocatorProc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
+	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:

@@ -79,7 +79,8 @@ isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 }
 wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
 	return(
-		input.wentDown(state.inputs.mouse.LMB) & math.inBounds(state.inputs.mouse.clickPos, rect)
+		input.wentDown(state.inputs.mouse.LMB) &&
+		math.inBounds(state.inputs.mouse.clickPos, rect) \
 	)
 }
 
