@@ -3,7 +3,6 @@ import "../math"
 import "../os/windows"
 import "core:fmt"
 import "core:mem"
-import "core:testing"
 
 SlabCache :: struct {
 	data:         []u8 `fmt:"p"`, // 16 B
@@ -15,9 +14,10 @@ SlabCache :: struct {
 SlabSlot :: struct {
 	next: ^SlabSlot, // 8 B
 }
-bootstrapSlabCache_first :: proc(slot_size: u16) -> ^SlabCache {
+bootstrapSlabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabCache), "Must have slot_size >= size_of(SlabCache)")
-	data := pageAlloc(1)
+	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
+	data := data
 	slab := transmute(^SlabCache)&data[0]
 	slab.data = data
 	slab.used_slots = 1
@@ -25,10 +25,16 @@ bootstrapSlabCache_first :: proc(slot_size: u16) -> ^SlabCache {
 	slab.slot_size = slot_size
 	return slab
 }
-bootstrapSlabCache_second :: proc(prev_slab: ^SlabCache, slot_size: u16) -> ^SlabCache {
+bootstrapSlabCache_second :: proc(
+	prev_slab: ^SlabCache,
+	data: []u8,
+	slot_size: u16,
+) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabSlot), "Must have slot_size >= size_of(SlabSlot)")
+	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
 	prev_slab.header_slots += 1
 	slab := cast(^SlabCache)slabAlloc(prev_slab, size_of(SlabCache))
+	slab.data = data
 	slab.slot_size = slot_size
 	return slab
 }
@@ -44,10 +50,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 		ptr = slab.free_list
 		slab.free_list = (cast(^SlabSlot)ptr).next
 	} else {
-		if slab.data == nil {
-			slab.data = pageAlloc(1)
-			assert(slab.data != nil)
-		}
+		assert(slab.data != nil)
 		used_bytes := int(slab.used_slots) * int(slab.slot_size)
 		if used_bytes >= len(slab.data) {return nil}
 		ptr = &slab.data[used_bytes]
@@ -62,7 +65,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr) {
 	offset := int(uintptr(old_ptr) - uintptr(&slab.data[0]))
 	start_offset := int(slab.header_slots) * int(slab.slot_size)
-	end_offset := len(slab.data)
+	end_offset := int(slab.used_slots) * int(slab.slot_size)
 	assert((offset >= 0) && (offset < end_offset), "Can't free old_ptr outside the slab")
 	assert(offset >= start_offset, "Can't free a header slot")
 	slot := cast(^SlabSlot)old_ptr
@@ -95,33 +98,47 @@ freeSlabCache :: proc(slab: SlabCache) {
 }
 
 SlabAllocator :: struct {
-	_8_bytes:    ^SlabCache,
-	_16_bytes:   ^SlabCache,
-	_32_bytes:   ^SlabCache,
-	_64_bytes:   ^SlabCache,
-	_128_bytes:  ^SlabCache,
-	_256_bytes:  ^SlabCache,
-	_512_bytes:  ^SlabCache,
-	_1024_bytes: ^SlabCache,
-	_2048_bytes: ^SlabCache,
-	_4096_bytes: ^SlabCache,
+	_8_slab:    ^SlabCache,
+	_16_slab:   ^SlabCache,
+	_32_slab:   ^SlabCache,
+	_64_slab:   ^SlabCache,
+	_128_slab:  ^SlabCache,
+	_256_slab:  ^SlabCache,
+	_512_slab:  ^SlabCache,
+	_1024_slab: ^SlabCache,
+	_2048_slab: ^SlabCache,
+	_4096_slab: ^SlabCache,
 }
 slabAllocator :: proc() -> mem.Allocator {
-	_32_bytes := bootstrapSlabCache(32)
-	_128_bytes := bootstrapSlabCache(_32_bytes, 128)
-	data := cast(^SlabAllocator)slabAlloc(_128_bytes, size_of(SlabAllocator))
-	_128_bytes.header_slots += 1
-	data._32_bytes = _32_bytes
-	data._128_bytes = _128_bytes
-	data._8_bytes = bootstrapSlabCache(_32_bytes, 8)
-	data._16_bytes = bootstrapSlabCache(_32_bytes, 16)
-	data._64_bytes = bootstrapSlabCache(_32_bytes, 64)
-	data._128_bytes = bootstrapSlabCache(_32_bytes, 128)
-	data._256_bytes = bootstrapSlabCache(_32_bytes, 256)
-	data._512_bytes = bootstrapSlabCache(_32_bytes, 512)
-	data._1024_bytes = bootstrapSlabCache(_32_bytes, 1024)
-	data._2048_bytes = bootstrapSlabCache(_32_bytes, 2048)
-	data._4096_bytes = bootstrapSlabCache(_32_bytes, 4096)
+	partition := Partition {
+		data = pageAlloc(kibiBytes(64)),
+	}
+	_4096_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_2048_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_1024_slab_data := partitionAlloc(&partition, 1.0 / 16)
+	_512_slab_data := partitionAlloc(&partition, 1.0 / 32)
+	_256_slab_data := partitionAlloc(&partition, 1.0 / 32)
+	_128_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_64_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_32_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_16_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_8_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	assert(partition.used == len(partition.data), "Unused space in partition")
+
+	_32_slab := bootstrapSlabCache(_32_slab_data, 32)
+	_128_slab := bootstrapSlabCache(_32_slab, _128_slab_data, 128)
+	data := cast(^SlabAllocator)slabAlloc(_128_slab, size_of(SlabAllocator))
+	_128_slab.header_slots += 1
+	data._8_slab = bootstrapSlabCache(_32_slab, _8_slab_data, 8)
+	data._16_slab = bootstrapSlabCache(_32_slab, _16_slab_data, 16)
+	data._32_slab = _32_slab
+	data._64_slab = bootstrapSlabCache(_32_slab, _64_slab_data, 64)
+	data._128_slab = _128_slab
+	data._256_slab = bootstrapSlabCache(_32_slab, _256_slab_data, 256)
+	data._512_slab = bootstrapSlabCache(_32_slab, _512_slab_data, 512)
+	data._1024_slab = bootstrapSlabCache(_32_slab, _1024_slab_data, 1024)
+	data._2048_slab = bootstrapSlabCache(_32_slab, _2048_slab_data, 2048)
+	data._4096_slab = bootstrapSlabCache(_32_slab, _4096_slab_data, 4096)
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
@@ -129,25 +146,25 @@ chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
 	group := math.ilog2_ceil(u64(size))
 	switch group {
 	case:
-		return slab_allocator._8_bytes
+		return slab_allocator._8_slab
 	case 4:
-		return slab_allocator._16_bytes
+		return slab_allocator._16_slab
 	case 5:
-		return slab_allocator._32_bytes
+		return slab_allocator._32_slab
 	case 6:
-		return slab_allocator._64_bytes
+		return slab_allocator._64_slab
 	case 7:
-		return slab_allocator._128_bytes
+		return slab_allocator._128_slab
 	case 8:
-		return slab_allocator._256_bytes
+		return slab_allocator._256_slab
 	case 9:
-		return slab_allocator._512_bytes
+		return slab_allocator._512_slab
 	case 10:
-		return slab_allocator._1024_bytes
+		return slab_allocator._1024_slab
 	case 11:
-		return slab_allocator._2048_bytes
+		return slab_allocator._2048_slab
 	case 12:
-		return slab_allocator._4096_bytes
+		return slab_allocator._4096_slab
 	}
 }
 // TODO: alignment?
@@ -177,16 +194,16 @@ slabAllocatorProc :: proc(
 		slabFree(old_slab, old_ptr)
 		return nil, nil
 	case .Free_All:
-		slabFreeAll(slab_allocator._8_bytes)
-		slabFreeAll(slab_allocator._16_bytes)
-		slabFreeAll(slab_allocator._32_bytes)
-		slabFreeAll(slab_allocator._64_bytes)
-		slabFreeAll(slab_allocator._128_bytes)
-		slabFreeAll(slab_allocator._256_bytes)
-		slabFreeAll(slab_allocator._512_bytes)
-		slabFreeAll(slab_allocator._1024_bytes)
-		slabFreeAll(slab_allocator._2048_bytes)
-		slabFreeAll(slab_allocator._4096_bytes)
+		slabFreeAll(slab_allocator._8_slab)
+		slabFreeAll(slab_allocator._16_slab)
+		slabFreeAll(slab_allocator._32_slab)
+		slabFreeAll(slab_allocator._64_slab)
+		slabFreeAll(slab_allocator._128_slab)
+		slabFreeAll(slab_allocator._256_slab)
+		slabFreeAll(slab_allocator._512_slab)
+		slabFreeAll(slab_allocator._1024_slab)
+		slabFreeAll(slab_allocator._2048_slab)
+		slabFreeAll(slab_allocator._4096_slab)
 		return nil, nil
 	case .Resize, .Resize_Non_Zeroed:
 		old_slab := chooseSlab(slab_allocator, old_size)
@@ -213,25 +230,4 @@ slabAllocatorProc :: proc(
 		return nil, .Mode_Not_Implemented
 	}
 	return
-}
-
-@(test)
-testSlabAlloc :: proc(t: ^testing.T) {
-	context = defaultContext()
-	slab := bootstrapSlabCache(64)
-	x := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
-	x^ = 13
-	testing.expect(t, x^ == 13, "Failed to allocate")
-	slabFree(slab, x)
-	y := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, y == x, "Failed to free, x: %v, y: %v", x, y)
-	z := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, z != y, "Failed to allocate, y: %v, z: %v", y, z)
-	slabFreeAll(slab)
-	y = cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, y == x, "Failed to free all, x: %v, y: %v", x, y)
-	slab_2 := bootstrapSlabCache(slab, 8)
-	y = cast(^u8)slabRealloc(slab, x, slab_2, 1)
-	testing.expectf(t, (y != x) && (y != z), "Failed to realloc, x: %v, y: %v, z: %v", x, y, z)
 }

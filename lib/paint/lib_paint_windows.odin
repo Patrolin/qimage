@@ -36,7 +36,7 @@ FrameBuffer :: struct {
 resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	prev_buffer := frameBuffer^
 	new_data_size := int(width) * int(height) * 4
-	new_data_buffer := alloc.pageAlloc(new_data_size)
+	new_data_buffer := alloc.pageAlloc(alloc.bytes(new_data_size))
 	frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)] // NOTE: width and height should never be zero
 	frameBuffer.width = width
 	frameBuffer.height = height
