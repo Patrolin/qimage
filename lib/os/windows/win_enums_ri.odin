@@ -1,6 +1,7 @@
 package lib_windows
 import win "core:sys/windows"
 
+// TODO: move this stuff into lib_input
 // https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/hid-architecture#hid-clients-supported-in-windows
 // raw input usage page + usage
 RIUP_MOUSE_CONTROLLER_KEYBOARD :: 0x1

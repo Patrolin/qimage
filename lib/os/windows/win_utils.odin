@@ -17,7 +17,7 @@ wstringToString :: proc(str: wstring, allocator := context.temp_allocator) -> st
 	return res
 }
 GetSystemMetrics :: win.GetSystemMetrics
-getCursorPos :: proc() -> (pos: POINT) {
+getCursorPos :: proc() -> (pos: POINT) { 	// todo: make a lib_window?
 	win.GetCursorPos(&pos)
 	return
 }
