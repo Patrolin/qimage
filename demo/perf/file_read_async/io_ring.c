@@ -1,4 +1,5 @@
 // zig cc demo/perf/file_read_async/io_ring.c -shared -o demo/perf/file_read_async/io_ring.dll
+//#define NTDDI_VERSION 167772171
 #include <ntstatus.h>
 #define WIN32_NO_STATUS
 #include <Windows.h>
