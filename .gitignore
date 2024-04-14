@@ -1,2 +1,4 @@
 *.exe
 .vs/*
+demo/**/*.pdb
+1gb_file.txt
