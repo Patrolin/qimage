@@ -8,6 +8,7 @@ cycles :: proc() -> u64 {
 MILLIS :: 1000
 MICROS :: 1000 * MILLIS
 NANOS :: 1000 * MICROS
+// time() -> f64
 
 min_2 :: proc(a, b: $T) -> T where intrinsics.type_is_numeric(T) {
 	return (a < b) ? a : b
@@ -35,7 +36,6 @@ abs :: proc(a: $T) -> T where intrinsics.type_is_numeric(T) {
 	return (a < 0) ? -a : a
 }
 
-round :: math.round
 roundToInt_f32 :: proc(x: f32) -> int {
 	return int(x + .5)
 }

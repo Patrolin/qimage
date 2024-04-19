@@ -1,13 +1,13 @@
 // odin run qimage -subsystem:windows
 package main
-import "../lib/alloc"
 import "../lib/ast"
 import "../lib/file"
 import "../lib/gl"
+import "../lib/init"
 import "../lib/input"
 import "../lib/math"
-import win "../lib/os/windows"
 import "../lib/paint"
+import win "../lib/windows"
 import "../qimage/assets"
 import "../qimage/constants"
 import "core:fmt"
@@ -24,7 +24,7 @@ image: file.Image
 inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
-	context = alloc.defaultContext()
+	context = init.init()
 	fmt.printf("hello world, %v\n", size_of(string))
 	input.initMouse(&inputs)
 	a := make([]u8, 4, allocator = context.temp_allocator)
@@ -70,7 +70,7 @@ main :: proc() {
 	fmt.println(tokens)
 	assert(false, "ayaya")
 	*/
-	t := win.time()
+	t := init.time()
 	prev_t := t
 	i := 0
 	max_dt := 0.0
@@ -82,10 +82,10 @@ main :: proc() {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
 		win.processMessages() // NOTE: this blocks while sizing
-		frame_time_msg_t := win.time()
+		frame_time_msg_t := init.time()
 		updateAndRender()
 		input.resetInputs(&inputs)
-		frame_time_t := win.time()
+		frame_time_t := init.time()
 		fmt.printf(
 			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			dt * 1000,
@@ -96,7 +96,7 @@ main :: proc() {
 
 		prev_t = t
 		t = win.doVsyncBadly() // NOTE: we don't care about dropped frames
-		frame_time_prev_t = win.time()
+		frame_time_prev_t = init.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc) // NOTE: draw previous frame
 		free_all(context.temp_allocator)
 	}
@@ -111,7 +111,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.defaultContext()
+	context = init.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_SIZE:

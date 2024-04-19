@@ -1,5 +1,4 @@
 package lib_input
-import "../alloc"
 import "../math"
 
 Inputs :: struct {

@@ -3,6 +3,11 @@ import intrinsics "core:intrinsics"
 import bits "core:math/bits"
 import "core:testing"
 
+bytes :: distinct int
+kibiBytes :: proc(v: int) -> bytes {return bytes(1024 * v)}
+mebiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * v)}
+gibiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * 1024 * v)}
+
 clz :: bits.count_leading_zeros
 ctz :: bits.count_trailing_zeros
 count_ones :: bits.count_ones

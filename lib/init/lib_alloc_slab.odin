@@ -1,6 +1,5 @@
-package lib_alloc
+package lib_init
 import "../math"
-import "../os/windows"
 import "core:fmt"
 import "core:mem"
 
@@ -111,7 +110,7 @@ SlabAllocator :: struct {
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
-		data = pageAlloc(kibiBytes(64)),
+		data = pageAlloc(math.kibiBytes(64)),
 	}
 	_4096_slab_data := partitionAlloc(&partition, 1.0 / 8)
 	_2048_slab_data := partitionAlloc(&partition, 1.0 / 8)

@@ -6,6 +6,7 @@ import "../lib/paint"
 import "core:fmt"
 
 updateAndRender :: proc() {
+	// TODO: use opengl instead
 	// clear to blue // NOTE: this takes .7+ ms
 	for y := 0; y < int(frame_buffer.height); y += 1 {
 		for x := 0; x < int(frame_buffer.width); x += 1 {

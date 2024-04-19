@@ -1,13 +1,14 @@
-package lib_alloc
-import "../os"
+package lib_init
+import "../math"
 import "core:fmt"
 import "core:runtime"
 import "core:testing"
 
-bytes :: distinct int
-kibiBytes :: proc(v: int) -> bytes {return bytes(1024 * v)}
-mebiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * v)}
-gibiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * 1024 * v)}
+// pageAlloc :: proc(size: math.bytes) -> []u8 {
+// pageFree :: proc(ptr: win.LPVOID) {
+
+// initOsInfo()
+// time() -> f64
 
 DefaultAllocators :: struct {
 	allocator: runtime.Allocator,
@@ -15,9 +16,7 @@ DefaultAllocators :: struct {
 
 emptyContext :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
-	ctx.allocator.procedure = nil
-	ctx.temp_allocator.procedure = nil
-	return ctx
+	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
 }
 
 defaultContext :: proc "contextless" () -> runtime.Context {
@@ -25,30 +24,45 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	default_allocators := DefaultAllocators{}
 	ctx := emptyContext()
 	context = ctx
-	os.initInfo() // NOTE: we pretend we have allocators, since they're not used...
 	if default_allocators.allocator.procedure == nil {
-		default_allocators.allocator = slabAllocator()
+		default_allocators.allocator = slabAllocator() // TODO: mutex this allocator
 	}
 	ctx.allocator = default_allocators.allocator
-	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc
+	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc // TODO: custom allocator here
 	ctx.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
 	return ctx
 }
 
+OsInfo :: struct {
+	timer_resolution:         f64,
+	min_page_size:            int,
+	min_page_size_mask:       int,
+	min_large_page_size:      int,
+	min_large_page_size_mask: int,
+}
+os_info: OsInfo
+
+init :: proc() -> runtime.Context {
+	initOsInfo()
+	//initThreads() // TODO
+	return defaultContext()
+}
+
+// tests
 @(test)
 testPageAlloc :: proc(t: ^testing.T) {
-	os.initInfo()
-	data := pageAlloc(bytes(1))
+	initOsInfo()
+	data := pageAlloc(math.bytes(1))
 	testing.expectf(t, data != nil, "Failed to pageAlloc 1 byte, data: %v", data)
-	data = pageAlloc(kibiBytes(64))
+	data = pageAlloc(math.kibiBytes(64))
 	testing.expectf(t, data != nil, "Failed to pageAlloc 64 kiB, data: %v", data)
 }
 
 @(test)
 testPartitionAlloc :: proc(t: ^testing.T) {
-	os.initInfo()
+	initOsInfo()
 	partition := Partition {
-		data = pageAlloc(kibiBytes(64)),
+		data = pageAlloc(math.kibiBytes(64)),
 	}
 	testing.expectf(
 		t,
@@ -56,12 +70,12 @@ testPartitionAlloc :: proc(t: ^testing.T) {
 		"Failed to pageAlloc 64 kiB, data: %v",
 		partition.data,
 	)
-	part1 := partitionAlloc(&partition, bytes(64))
+	part1 := partitionAlloc(&partition, math.bytes(64))
 	testing.expectf(t, len(part1) == 64, "Failed to partitionAlloc 64 B, part1: %v", part1)
 	part2 := partitionAlloc(&partition, 0.5)
 	testing.expectf(
 		t,
-		len(part2) == int(kibiBytes(32)),
+		len(part2) == int(math.kibiBytes(32)),
 		"Failed to partitionAlloc 50%, part2: %v",
 		part2,
 	)
@@ -69,10 +83,10 @@ testPartitionAlloc :: proc(t: ^testing.T) {
 
 @(test)
 testSlabAlloc :: proc(t: ^testing.T) {
-	os.initInfo()
-	slab_data := pageAlloc(kibiBytes(64))
+	initOsInfo()
+	slab_data := pageAlloc(math.kibiBytes(64))
 	slab := bootstrapSlabCache(slab_data, 64)
-	slab2_data := pageAlloc(kibiBytes(64))
+	slab2_data := pageAlloc(math.kibiBytes(64))
 	slab2 := bootstrapSlabCache(slab, slab2_data, 8)
 	x := cast(^u8)slabAlloc(slab, 1)
 	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)

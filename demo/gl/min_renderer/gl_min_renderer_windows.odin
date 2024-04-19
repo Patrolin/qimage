@@ -1,10 +1,10 @@
 // odin run demo/gl/min_renderer -subsystem:windows
 package main
 
-import "../../../lib/alloc"
 import "../../../lib/gl"
+import "../../../lib/init"
 import "../../../lib/math"
-import win "../../../lib/os/windows"
+import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
 
@@ -16,7 +16,7 @@ isRunning := false
 window: gl.Window
 
 main :: proc() {
-	context = alloc.defaultContext()
+	context = init.init()
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
@@ -24,7 +24,7 @@ main :: proc() {
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 	dc := gl.GetDC(window.handle)
 	gl.initOpenGL(dc)
-	t := win.time()
+	t := init.time()
 	prev_t := t
 	i := 0
 	max_dt := 0.0
@@ -36,9 +36,9 @@ main :: proc() {
 			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
 		}
 		win.processMessages() // NOTE: this blocks while sizing
-		frame_time_msg_t := win.time()
+		frame_time_msg_t := init.time()
 		updateAndRender()
-		frame_time_t := win.time()
+		frame_time_t := init.time()
 		fmt.printf(
 			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			dt * math.MILLIS,
@@ -49,7 +49,7 @@ main :: proc() {
 
 		prev_t = t
 		t = win.doVsyncBadly() // TODO: vsync via opengl?
-		frame_time_prev_t = win.time()
+		frame_time_prev_t = init.time()
 		gl.renderImageBufferToWindow(dc)
 		free_all(context.temp_allocator)
 	}
@@ -64,7 +64,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.defaultContext()
+	context = init.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_SIZE:

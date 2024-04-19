@@ -1,5 +1,4 @@
 package lib_gui
-import "../alloc"
 import "../file"
 import "../input"
 import "../math"

@@ -1,4 +1,6 @@
 package lib_windows
+import "../init"
+import "../math"
 import "core:fmt"
 import win "core:sys/windows"
 
@@ -152,7 +154,7 @@ processMessages :: proc() {
 // NOTE: sometimes this returns up to 5.832 ms later than it should
 doVsyncBadly :: proc() -> f64 {
 	win.DwmFlush()
-	return time()
+	return init.time()
 }
 /* NOTE: doVsyncWell():
 	for isRunning {
