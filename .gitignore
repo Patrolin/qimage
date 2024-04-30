@@ -2,3 +2,4 @@
 .vs/*
 demo/**/*.pdb
 1gb_file.txt
+.vscode
