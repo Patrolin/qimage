@@ -25,6 +25,12 @@ void* MyCreateIoRing() {
   CreateIoRing(IORING_VERSION_1, flags, 8, 8, &handle);
   return handle;
 }
+const s1 = sizeof(HIORING);
+const s2 = sizeof(IORING_VERSION);
+const s3 = sizeof(IORING_CREATE_REQUIRED_FLAGS);
+const s4 = sizeof(IORING_CREATE_FLAGS);
+const s5 = sizeof(IORING_INFO);
+const s6 = sizeof(UINT32)
 
 #if !(NTDDI_VERSION >= NTDDI_WIN10_CO)
   "NT version is too low";
