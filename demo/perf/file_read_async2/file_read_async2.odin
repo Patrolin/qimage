@@ -13,12 +13,7 @@ main :: proc() {
 		advisory = .NONE,
 	}
 	error := CreateIoRing(.VERSION_3, flags, 0, 0, &ioring)
-	fmt.printf(
-		"CreateIoRing, error = %v, ioring: %v, ioring_ptr: %v\n",
-		error,
-		ioring,
-		uintptr(&ioring),
-	)
+	fmt.printf("CreateIoRing, error = %v, ioring: %v\n", error, ioring)
 	checkIoRingInfo(ioring)
 	/*
 	BuildIoRingReadFile
@@ -38,7 +33,6 @@ IORING_VERSION :: enum i32 {
 	VERSION_1,
 	VERSION_2,
 	VERSION_3 = 300,
-	//VERSION_4 = ?,
 }
 IORING_CREATE_REQUIRED_FLAGS :: enum i32 {
 	NONE,
@@ -51,7 +45,7 @@ IORING_CREATE_FLAGS :: struct {
 	advisory: IORING_CREATE_ADVISORY_FLAGS,
 }
 IORING_INFO :: struct {
-	version:               IORING_VERSION, // NOTE: windows returns random garbage
+	version:               IORING_VERSION,
 	flags:                 IORING_CREATE_FLAGS,
 	submission_queue_size: u32,
 	completion_queue_size: u32,
