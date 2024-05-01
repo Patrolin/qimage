@@ -4,20 +4,24 @@ import "../../../lib/math"
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import "core:time"
 
-printTime :: proc(t1, t2: u64) {
-	time := f64(t2 - t1) / 3e9
-	fmt.printf("cycles: %v, time: %.5f s\n", t2 - t1, time)
+prev_time: time.Time
+startTiming :: proc() {
+	prev_time = time.now()
 }
+endTiming :: proc() {
+	current_time := time.now()
+	fmt.printf("-- timing: %.3f s\n", f64(time.diff(prev_time, current_time)) / f64(time.Second))
+	prev_time = current_time
+}
+
 main :: proc() {
-	t1 := math.cycles()
+	startTiming()
 	file, errno := os.open("1gb_file.txt", os.O_RDONLY)
-	t2 := math.cycles()
-	printTime(t1, t2)
+	endTiming()
 	buffer := make([]u8, 1024 * 1024 * 1024)
-	t3 := math.cycles()
-	printTime(t2, t3)
+	endTiming()
 	os.read(file, buffer)
-	t4 := math.cycles()
-	printTime(t3, t4)
+	endTiming()
 }
