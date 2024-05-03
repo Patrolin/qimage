@@ -8,44 +8,28 @@ import "../math"
 // waitForSemaphore :: proc(semaphore: OsSemaphore)
 
 ThreadInfo :: struct {
-	queue:        ^WorkQueue,
-	thread_index: int,
+	thread_index: int, // TODO: throw this in context.user_index?
 }
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
 	context = defaultContext() // TODO: pass in thread_index?
 	for {
-		for work := submitAndGetNextWorkItem(thread_info.queue, nil);
-		    work != nil;
-		    work = submitAndGetNextWorkItem(thread_info.queue, work) {
-			work.function(work.data)
+		if doNextWorkItem(&work_queue) {
+			waitForSemaphore(work_queue.semaphore)
 		}
-		waitForSemaphore(thread_info.queue.semaphore)
 	}
 }
 initThreads :: proc() {
 	core_count := 2 // TODO: get cpu core counts
-	MAX_BACKGROUND_THREADS :: 1
-	work_queues.front = {
-		semaphore = createSemaphore(i32(core_count - MAX_BACKGROUND_THREADS - 1)),
-	}
-	work_queues.background = {
-		semaphore = createSemaphore(1),
+	background_threads := core_count - 1
+	work_queue = {
+		semaphore = createSemaphore(i32(background_threads)),
 	}
 	i: int
-	for i = 1; i < core_count - MAX_BACKGROUND_THREADS; i += 1 {
+	for i = 1; i < background_threads + 1; i += 1 {
 		info := new(ThreadInfo)
 		info^ = ThreadInfo {
-			queue        = &work_queues.front,
-			thread_index = 1,
-		}
-		createThread(math.kibiBytes(64), threadProc, info)
-	}
-	for ; i < core_count; i += 1 {
-		info := new(ThreadInfo)
-		info^ = ThreadInfo {
-			queue        = &work_queues.background,
-			thread_index = 1,
+			thread_index = i,
 		}
 		createThread(math.kibiBytes(64), threadProc, info)
 	}
