@@ -55,7 +55,7 @@ main :: proc() {
 	endTiming()
 	// get result
 	submit_buffer := make([]u32, 1)
-	error = SubmitIoRing(ioring, u32(len(submit_buffer)), win.INFINITE, &submit_buffer[0])
+	error = SubmitIoRing(ioring, u32(len(submit_buffer)), win.INFINITE, &submit_buffer[0]) // TODO: use PopIoRingCompletion() for waiting
 	fmt.printf("  SubmitIoRing, error = %v\n", error)
 	fmt.printf("  buffer[:4]: %v\n", buffer[:8])
 	endTiming()
@@ -113,6 +113,11 @@ IORING_BUFFER_REF :: struct {
 IORING_SQE_FLAGS :: enum i32 {
 	NONE,
 }
+IORING_CQE :: struct {
+	user_data:   uintptr,
+	result_code: win.HRESULT,
+	information: win.ULONG_PTR,
+}
 
 @(default_calling_convention = "std")
 foreign ioringapi {
@@ -121,4 +126,5 @@ foreign ioringapi {
 	BuildIoRingReadFile :: proc(ioring: HIORING, file: IORING_HANDLE_REF, data: IORING_BUFFER_REF, bytes_to_read: u64, file_offset: u64, user_data: ^u32, flags: IORING_SQE_FLAGS) -> win.HRESULT ---
 	BuildIoRingCancelRequest :: proc(ioring: HIORING, file: IORING_HANDLE_REF, op_to_cancel: win.PVOID, user_data: win.PVOID) -> win.HRESULT ---
 	SubmitIoRing :: proc(ioring: HIORING, buffer_size: u32, timeout_millis: u32, buffer: ^u32) -> win.HRESULT ---
+	PopIoRingCompletion :: proc(ioring: HIORING, cqe: ^IORING_CQE) ---
 }
