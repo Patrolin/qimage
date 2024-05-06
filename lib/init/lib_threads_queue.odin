@@ -12,7 +12,8 @@ WorkItem :: struct {
 	data:      rawptr,
 }
 
-addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) { 	// NOTE: single producer
+// NOTE: single producer
+addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	if (queue.submission_count - queue.in_progress_count) >= len(queue.items) {
 		doNextWorkItem(queue)
 	}
@@ -33,10 +34,10 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (can_sleep: bool) {
 			intrinsics.atomic_add(&queue.completion_count, 1)
 		}
 	}
-	return work_queue.completion_count != work_queue.submission_count
+	return work_queue.completion_count != intrinsics.atomic_load(&work_queue.submission_count)
 }
 joinFrontQueue :: proc(queue: ^WorkQueue) {
-	for queue.completion_count != queue.submission_count {
+	for queue.completion_count != queue.submission_count { // TODO: can this ever exit?
 		doNextWorkItem(queue)
 	}
 }
