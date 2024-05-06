@@ -1,5 +1,6 @@
 *.exe
 .vs/*
-demo/**/*.pdb
 1gb_file.txt
+demo/**/*.pdb
+demo/test
 .vscode
