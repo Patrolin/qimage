@@ -40,13 +40,15 @@ OsInfo :: struct {
 	min_page_size_mask:       int,
 	min_large_page_size:      int,
 	min_large_page_size_mask: int,
+	logical_core_count:       int,
 }
 os_info: OsInfo
 
 init :: proc() -> runtime.Context {
 	initOsInfo()
+	context = defaultContext()
 	initThreads()
-	return defaultContext()
+	return context
 }
 
 // odin test lib/init
@@ -119,14 +121,16 @@ testDefaultContext :: proc(t: ^testing.T) {
 @(test)
 testWorkQueue :: proc(t: ^testing.T) {
 	initOsInfo()
-	initThreads()
 	context = defaultContext()
+	initThreads()
 	checksum: int = 3
-	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
-	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
-	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
+	for i := 0; i < checksum; i += 1 {
+		addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
+	}
 	joinFrontQueue(&work_queue)
-	testing.expectf(t, checksum == 0, "checksum should be 0, got: %v", checksum)
+	got_checksum := intrinsics.atomic_load(&checksum)
+	fmt.printfln("got_checksum: %v", got_checksum)
+	testing.expectf(t, got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
 }
 checkWorkQueue :: proc(data: rawptr) {
 	data := (^int)(data)

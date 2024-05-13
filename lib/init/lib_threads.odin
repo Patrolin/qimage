@@ -1,5 +1,6 @@
 package lib_init
 import "../math"
+import "core:fmt"
 
 // createThread :: proc(stack_size: uint, thread_proc: proc "stdcall" (data: rawptr) -> u32, param: rawptr)
 // OsSemaphore :: ...
@@ -21,8 +22,7 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	}
 }
 initThreads :: proc() {
-	core_count := 2 // TODO: get cpu core counts
-	background_threads := core_count - 1
+	background_threads := os_info.logical_core_count - 1
 	work_queue = {
 		semaphore = createSemaphore(i32(background_threads)),
 	}

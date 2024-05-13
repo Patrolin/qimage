@@ -18,6 +18,7 @@ const s3 = sizeof(IORING_CREATE_REQUIRED_FLAGS);
 const s4 = sizeof(IORING_CREATE_FLAGS);
 const s5 = sizeof(IORING_INFO);
 const s6 = sizeof(UINT32);
+const s7 = sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
 
 int main() {
   HIORING ioring = 0;

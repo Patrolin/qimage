@@ -35,6 +35,10 @@ initOsInfo :: proc "contextless" () {
 	os_info.min_large_page_size_mask = int(
 		math.upperBitsMask(math.ctz(uint(os_info.min_large_page_size))),
 	)
+	// core count
+	system_info: win.SYSTEM_INFO
+	win.GetSystemInfo(&system_info)
+	os_info.logical_core_count = int(system_info.dwNumberOfProcessors) // NOTE: this cannot go above 64
 }
 
 time :: proc() -> f64 {
