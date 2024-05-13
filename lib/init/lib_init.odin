@@ -123,17 +123,17 @@ testWorkQueue :: proc(t: ^testing.T) {
 	initOsInfo()
 	context = defaultContext()
 	initThreads()
-	checksum: int = 3
-	for i := 0; i < checksum; i += 1 {
+	total_count := 3
+	checksum := total_count
+	for i in 0 ..< total_count {
 		addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
 	}
 	joinFrontQueue(&work_queue)
 	got_checksum := intrinsics.atomic_load(&checksum)
-	fmt.printfln("got_checksum: %v", got_checksum)
 	testing.expectf(t, got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
 }
 checkWorkQueue :: proc(data: rawptr) {
+	//fmt.printfln("thread %v: checkWorkQueue", context.user_index)
 	data := (^int)(data)
 	intrinsics.atomic_add(data, -1)
-	fmt.printfln("thread %v", context.user_index)
 }

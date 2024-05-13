@@ -16,10 +16,12 @@ WorkItem :: struct {
 // NOTE: single producer
 addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	if (queue.submission_count - queue.in_progress_count) >= len(queue.items) {
+		assert(false) // TODO: remove this
 		doNextWorkItem(queue)
 	}
 	queue.items[queue.submission_count % len(queue.items)] = work
-	intrinsics.atomic_add(&queue.submission_count, 1)
+	queue.submission_count += 1
+	incrementSemaphore(queue.semaphore)
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (can_sleep: bool) {
 	in_progress_count_old := queue.in_progress_count
@@ -38,5 +40,24 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (can_sleep: bool) {
 	return work_queue.completion_count == intrinsics.atomic_load(&work_queue.submission_count)
 }
 joinFrontQueue :: proc(queue: ^WorkQueue) {
-	for !doNextWorkItem(queue) {}
+	/*a, b, c := queue.submission_count, queue.in_progress_count, queue.completion_count
+	new_a, new_b, new_c := a, b, c*/
+	for !doNextWorkItem(queue) {
+		/*new_a, new_b, new_c =
+			intrinsics.atomic_load(&queue.submission_count),
+			intrinsics.atomic_load(&queue.in_progress_count),
+			intrinsics.atomic_load(&queue.completion_count)
+		if new_a != a || new_b != b || new_c != c {
+			a, b, c = new_a, new_b, new_c
+			fmt.printfln("vals: %v, %v, %v", a, b, c)
+		}*/
+	}
+	/*new_a, new_b, new_c =
+		intrinsics.atomic_load(&queue.submission_count),
+		intrinsics.atomic_load(&queue.in_progress_count),
+		intrinsics.atomic_load(&queue.completion_count)
+	if new_a != a || new_b != b || new_c != c {
+		a, b, c = new_a, new_b, new_c
+		fmt.printfln("vals: %v, %v, %v", a, b, c)
+	}*/
 }
