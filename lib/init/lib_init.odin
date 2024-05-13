@@ -135,5 +135,5 @@ testWorkQueue :: proc(t: ^testing.T) {
 checkWorkQueue :: proc(data: rawptr) {
 	data := (^int)(data)
 	intrinsics.atomic_add(data, -1)
-	fmt.printfln("hello, %v", context.user_index)
+	fmt.printfln("thread %v", context.user_index)
 }
