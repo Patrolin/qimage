@@ -12,7 +12,8 @@ ThreadInfo :: struct {
 }
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
-	context = defaultContext() // TODO: pass in thread_index?
+	context = defaultContext()
+	context.user_index = thread_info.thread_index
 	for {
 		if doNextWorkItem(&work_queue) {
 			waitForSemaphore(work_queue.semaphore)

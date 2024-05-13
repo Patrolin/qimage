@@ -1,6 +1,7 @@
 package lib_init
 import "../math"
 import "core:fmt"
+import "core:intrinsics"
 import "core:runtime"
 import "core:testing"
 
@@ -44,11 +45,11 @@ os_info: OsInfo
 
 init :: proc() -> runtime.Context {
 	initOsInfo()
-	//initThreads() // TODO
+	initThreads()
 	return defaultContext()
 }
 
-// tests
+// odin test lib/init
 @(test)
 testPageAlloc :: proc(t: ^testing.T) {
 	initOsInfo()
@@ -106,10 +107,29 @@ testSlabAlloc :: proc(t: ^testing.T) {
 
 @(test)
 testDefaultContext :: proc(t: ^testing.T) {
+	initOsInfo()
 	context = defaultContext()
 	x := new(int)
 	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
 	x^ = 13
 	testing.expect(t, x^ == 13, "Failed to allocate")
 	free(x)
+}
+
+@(test)
+testWorkQueue :: proc(t: ^testing.T) {
+	initOsInfo()
+	initThreads()
+	context = defaultContext()
+	checksum: int = 3
+	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
+	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
+	addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
+	joinFrontQueue(&work_queue)
+	testing.expectf(t, checksum == 0, "checksum should be 0, got: %v", checksum)
+}
+checkWorkQueue :: proc(data: rawptr) {
+	data := (^int)(data)
+	intrinsics.atomic_add(data, -1)
+	fmt.printfln("hello, %v", context.user_index)
 }
