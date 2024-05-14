@@ -9,7 +9,7 @@ import "core:fmt"
 // waitForSemaphore :: proc(semaphore: OsSemaphore)
 
 ThreadInfo :: struct {
-	thread_index: int, // TODO: throw this in context.user_index?
+	thread_index: int,
 }
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
@@ -21,13 +21,13 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 		}
 	}
 }
-initThreads :: proc() {
-	background_threads := os_info.logical_core_count - 1
+initThreads :: proc() { 	// TODO: return thread infos
+	thread_count := os_info.logical_core_count - 1
 	work_queue = {
-		semaphore = createSemaphore(i32(background_threads)),
+		semaphore = createSemaphore(i32(thread_count)),
 	}
 	i: int
-	for i = 1; i < background_threads + 1; i += 1 {
+	for i in 1 ..= thread_count {
 		info := new(ThreadInfo)
 		info^ = ThreadInfo {
 			thread_index = i,

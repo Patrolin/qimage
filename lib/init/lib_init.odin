@@ -21,7 +21,6 @@ import "core:intrinsics"
 import "core:runtime"
 import "core:testing"
 
-
 DefaultAllocators :: struct {
 	allocator: runtime.Allocator,
 }
@@ -32,15 +31,14 @@ emptyContext :: proc "contextless" () -> runtime.Context {
 defaultContext :: proc "contextless" () -> runtime.Context {
 	@(static)
 	default_allocators := DefaultAllocators{}
-	ctx := emptyContext()
-	context = ctx
+	context = emptyContext()
 	if default_allocators.allocator.procedure == nil {
 		default_allocators.allocator = slabAllocator() // TODO: mutex this allocator
 	}
-	ctx.allocator = default_allocators.allocator
-	ctx.temp_allocator.procedure = runtime.default_temp_allocator_proc // TODO: custom allocator here
-	ctx.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
-	return ctx
+	context.allocator = default_allocators.allocator
+	context.temp_allocator.procedure = runtime.default_temp_allocator_proc // TODO: custom allocator here
+	context.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
+	return context
 }
 init :: proc "contextless" () -> runtime.Context {
 	initOsInfo()
@@ -129,6 +127,7 @@ testWorkQueue :: proc(t: ^testing.T) {
 	joinQueue(&work_queue)
 	got_checksum := intrinsics.atomic_load(&checksum)
 	testing.expectf(t, got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
+	// TODO!: wait for threads to shut down for test to succeed
 }
 checkWorkQueue :: proc(data: rawptr) {
 	//fmt.printfln("thread %v: checkWorkQueue", context.user_index)
