@@ -40,6 +40,3 @@ waitForSemaphore :: proc(semaphore: OsSemaphore) {
 	//fmt.printfln("thread %v: sleep", context.user_index)
 	win.WaitForSingleObject(win.HANDLE(semaphore), win.INFINITE)
 }
-closeSemaphore :: proc(semaphore: OsSemaphore) {
-	win.CloseHandle(win.HANDLE(semaphore))
-}

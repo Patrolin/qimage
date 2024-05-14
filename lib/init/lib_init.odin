@@ -1,34 +1,34 @@
 /*
 lib_init
-	emptyContext :: proc "contextless" ()
-	defaultContext :: proc "contextless" ()
-	init :: proc "contextless" ()
+emptyContext :: proc "contextless" ()
+defaultContext :: proc "contextless" ()
+init :: proc "contextless" ()
 lib_os_info
-	initOsInfo :: proc "contextless" ()
-	time :: proc()
+initOsInfo :: proc "contextless" ()
+time :: proc()
 lib_alloc_page
-	pageAlloc :: proc(size: math.bytes) -> []u8
-	pageFree :: proc(ptr: rawptr)
+pageAlloc :: proc(size: math.bytes) -> []u8
+pageFree :: proc(ptr: rawptr)
 lib_alloc_partition
-	partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
-	partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
+partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
+partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
 lib_alloc_slab
-	bootstrapSlabCache :: proc(data: []u8, slot_size: u16)
-	slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr
-	slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr)
-	slabRealloc :: proc(old_slab: ^SlabCache, old_ptr: rawptr, slab: ^SlabCache, size: int, zero: bool = true) -> rawptr
-	slabFreeAll :: proc(slab: ^SlabCache)
-	slabAllocator :: proc() -> mem.Allocator
+bootstrapSlabCache :: proc(data: []u8, slot_size: u16)
+slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr
+slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr)
+slabRealloc :: proc(old_slab: ^SlabCache, old_ptr: rawptr, slab: ^SlabCache, size: int, zero: bool = true) -> rawptr
+slabFreeAll :: proc(slab: ^SlabCache)
+slabAllocator :: proc() -> mem.Allocator
 lib_threads
-	initThreads :: proc()
-	addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
-	joinQueue :: proc(queue: ^WorkQueue)
-	lib_threads_xx
-		createThread :: proc(stack_size: uint, thread_proc: proc "stdcall" (data: rawptr) -> u32, param: rawptr)
-		createSemaphore :: proc(max_count: i32) -> OsSemaphore
-		incrementSemaphore :: proc(semaphore: OsSemaphore)
-		waitForSemaphore :: proc(semaphore: OsSemaphore)
-		waitForThreadsToSleep :: proc()
+initThreads :: proc()
+addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
+joinQueue :: proc(queue: ^WorkQueue)
+lib_threads_xx
+createThread :: proc(stack_size: uint, thread_proc: proc "stdcall" (data: rawptr) -> u32, param: rawptr)
+createSemaphore :: proc(max_count: i32) -> OsSemaphore
+incrementSemaphore :: proc(semaphore: OsSemaphore)
+waitForSemaphore :: proc(semaphore: OsSemaphore)
+waitForThreadsToSleep :: proc()
 */
 package lib_init
 import "../math"
@@ -36,6 +36,7 @@ import "core:fmt"
 import "core:intrinsics"
 import "core:runtime"
 import "core:testing"
+import "core:time"
 
 DefaultAllocators :: struct {
 	allocator: runtime.Allocator,
@@ -49,11 +50,10 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	default_allocators := DefaultAllocators{}
 	context = emptyContext()
 	if default_allocators.allocator.procedure == nil {
-		default_allocators.allocator = slabAllocator() // TODO: mutex this allocator
+		default_allocators.allocator = slabAllocator()
 	}
 	context.allocator = default_allocators.allocator
-	context.temp_allocator.procedure = runtime.default_temp_allocator_proc // TODO: custom allocator here
-	context.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
+	context.temp_allocator = slabAllocator()
 	return context
 }
 init :: proc "contextless" () -> runtime.Context {
@@ -143,7 +143,7 @@ testWorkQueue :: proc(t: ^testing.T) {
 	joinQueue(&work_queue)
 	got_checksum := intrinsics.atomic_load(&checksum)
 	testing.expectf(t, got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
-	waitForThreadsToSleep(thread_infos)
+	time.sleep(time.Millisecond)
 }
 checkWorkQueue :: proc(data: rawptr) {
 	//fmt.printfln("thread %v: checkWorkQueue", context.user_index)

@@ -104,6 +104,7 @@ SlabAllocator :: struct {
 	_1024_slab: ^SlabCache,
 	_2048_slab: ^SlabCache,
 	_4096_slab: ^SlabCache,
+	mutex:      Mutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
@@ -177,6 +178,7 @@ slabAllocatorProc :: proc(
 ) {
 	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
+	getMutexStrong(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		slab := chooseSlab(slab_allocator, size)
@@ -188,7 +190,7 @@ slabAllocatorProc :: proc(
 	case .Free:
 		old_slab := chooseSlab(slab_allocator, old_size)
 		slabFree(old_slab, old_ptr)
-		return nil, nil
+		data, err = nil, nil
 	case .Free_All:
 		slabFreeAll(slab_allocator._8_slab)
 		slabFreeAll(slab_allocator._16_slab)
@@ -200,7 +202,7 @@ slabAllocatorProc :: proc(
 		slabFreeAll(slab_allocator._1024_slab)
 		slabFreeAll(slab_allocator._2048_slab)
 		slabFreeAll(slab_allocator._4096_slab)
-		return nil, nil
+		data, err = nil, nil
 	case .Resize, .Resize_Non_Zeroed:
 		old_slab := chooseSlab(slab_allocator, old_size)
 		slab := chooseSlab(slab_allocator, size)
@@ -223,7 +225,8 @@ slabAllocatorProc :: proc(
 			}
 		}
 	case .Query_Info:
-		return nil, .Mode_Not_Implemented
+		data, err = nil, .Mode_Not_Implemented
 	}
+	releaseMutex(&slab_allocator.mutex)
 	return
 }

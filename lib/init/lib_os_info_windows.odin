@@ -8,6 +8,8 @@ foreign import kernel32 "system:kernel32.lib"
 foreign kernel32 {
 	@(private)
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
+	@(private)
+	ExitThread :: proc(dwExitCode: win.DWORD) ---
 }
 
 initOsInfo :: proc "contextless" () {
