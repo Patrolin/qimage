@@ -39,7 +39,7 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (can_sleep: bool) {
 	}
 	return work_queue.completion_count == intrinsics.atomic_load(&work_queue.submission_count)
 }
-joinFrontQueue :: proc(queue: ^WorkQueue) {
+joinQueue :: proc(queue: ^WorkQueue) {
 	/*a, b, c := queue.submission_count, queue.in_progress_count, queue.completion_count
 	new_a, new_b, new_c := a, b, c*/
 	for !doNextWorkItem(queue) {

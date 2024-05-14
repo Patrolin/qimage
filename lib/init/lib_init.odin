@@ -1,3 +1,19 @@
+/*
+lib_init
+	emptyContext :: proc "contextless" ()
+	defaultContext :: proc "contextless" ()
+	init :: proc "contextless" ()
+lib_os_info
+	initOsInfo :: proc "contextless" ()
+	time :: proc()
+lib_alloc
+	pageAlloc :: proc(size: math.bytes) -> []u8
+	pageFree :: proc(ptr: win.LPVOID)
+lib_threads
+	initThreads :: proc()
+	addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
+	joinQueue :: proc(queue: ^WorkQueue)
+*/
 package lib_init
 import "../math"
 import "core:fmt"
@@ -5,21 +21,14 @@ import "core:intrinsics"
 import "core:runtime"
 import "core:testing"
 
-// pageAlloc :: proc(size: math.bytes) -> []u8 {
-// pageFree :: proc(ptr: win.LPVOID) {
-
-// initOsInfo()
-// time() -> f64
 
 DefaultAllocators :: struct {
 	allocator: runtime.Allocator,
 }
-
 emptyContext :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
 	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
 }
-
 defaultContext :: proc "contextless" () -> runtime.Context {
 	@(static)
 	default_allocators := DefaultAllocators{}
@@ -33,18 +42,7 @@ defaultContext :: proc "contextless" () -> runtime.Context {
 	ctx.temp_allocator.data = &runtime.global_default_temp_allocator_data // NOTE: get temp_allocator for current thread
 	return ctx
 }
-
-OsInfo :: struct {
-	timer_resolution:         f64,
-	min_page_size:            int,
-	min_page_size_mask:       int,
-	min_large_page_size:      int,
-	min_large_page_size_mask: int,
-	logical_core_count:       int,
-}
-os_info: OsInfo
-
-init :: proc() -> runtime.Context {
+init :: proc "contextless" () -> runtime.Context {
 	initOsInfo()
 	context = defaultContext()
 	initThreads()
@@ -128,7 +126,7 @@ testWorkQueue :: proc(t: ^testing.T) {
 	for i in 0 ..< total_count {
 		addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})
 	}
-	joinFrontQueue(&work_queue)
+	joinQueue(&work_queue)
 	got_checksum := intrinsics.atomic_load(&checksum)
 	testing.expectf(t, got_checksum == 0, "checksum should be 0, got: %v", got_checksum)
 }

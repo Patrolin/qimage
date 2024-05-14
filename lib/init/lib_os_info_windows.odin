@@ -28,19 +28,13 @@ initOsInfo :: proc "contextless" () {
 	// pageAlloc()
 	systemInfo: win.SYSTEM_INFO
 	win.GetSystemInfo(&systemInfo)
-	os_info.min_page_size = int(systemInfo.dwAllocationGranularity)
-	os_info.min_page_size_mask = int(math.upperBitsMask(math.ctz(uint(os_info.min_page_size))))
-	// NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
-	os_info.min_large_page_size = int(win.GetLargePageMinimum())
-	os_info.min_large_page_size_mask = int(
-		math.upperBitsMask(math.ctz(uint(os_info.min_large_page_size))),
-	)
+	os_info.page_size = int(systemInfo.dwAllocationGranularity)
+	os_info.large_page_size = int(win.GetLargePageMinimum()) // NOTE: windows large pages require nonsense: https://stackoverflow.com/questions/42354504/enable-large-pages-in-windows-programmatically
 	// core count
 	system_info: win.SYSTEM_INFO
 	win.GetSystemInfo(&system_info)
 	os_info.logical_core_count = int(system_info.dwNumberOfProcessors) // NOTE: this cannot go above 64
 }
-
 time :: proc() -> f64 {
 	counter: win.LARGE_INTEGER
 	win.QueryPerformanceCounter(&counter)
