@@ -92,9 +92,6 @@ slabFreeAll :: proc(slab: ^SlabCache) {
 	slab.free_list = nil
 	slab.used_slots = u32(slab.header_slots)
 }
-freeSlabCache :: proc(slab: SlabCache) {
-	pageFree(&slab.data[0])
-}
 
 SlabAllocator :: struct {
 	_8_slab:    ^SlabCache,
@@ -215,7 +212,7 @@ slabAllocatorProc :: proc(
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {
-			set^ =  {
+			set^ = {
 				.Alloc,
 				.Alloc_Non_Zeroed,
 				.Free,

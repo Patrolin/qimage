@@ -4,45 +4,54 @@ import "core:intrinsics"
 
 work_queue: WorkQueue
 WorkQueue :: struct {
-	semaphore:                                             OsSemaphore,
-	submission_count, in_progress_count, completion_count: int,
-	items:                                                 [32]WorkItem,
+	semaphore:                                                         OsSemaphore,
+	index_to_write, submission_count, index_to_read, completion_count: int,
+	items:                                                             [32]WorkItem,
 }
 WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
 }
 
-// NOTE: single producer
 addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
-	if (queue.submission_count - queue.in_progress_count) >= len(queue.items) {
-		assert(false) // TODO: remove this
+	for {
+		index_to_write_old := intrinsics.atomic_load(&queue.index_to_write)
+		if (index_to_write_old - intrinsics.atomic_load(&queue.index_to_read)) < len(queue.items) {
+			index_to_write := intrinsics.atomic_compare_exchange_weak(
+				&queue.index_to_write,
+				index_to_write_old,
+				index_to_write_old + 1,
+			)
+			if index_to_write == index_to_write_old {
+				queue.items[index_to_write % len(queue.items)] = work
+				intrinsics.atomic_add(&queue.submission_count, 1)
+				incrementSemaphore(queue.semaphore)
+				break
+			}
+		}
 		doNextWorkItem(queue)
 	}
-	queue.items[queue.submission_count % len(queue.items)] = work
-	queue.submission_count += 1
-	incrementSemaphore(queue.semaphore)
 }
-doNextWorkItem :: proc(queue: ^WorkQueue) -> (can_sleep: bool) {
-	in_progress_count_old := queue.in_progress_count
-	if in_progress_count_old < work_queue.submission_count {
-		in_progress_count_got := intrinsics.atomic_compare_exchange_weak(
-			&queue.in_progress_count,
-			in_progress_count_old,
-			in_progress_count_old + 1,
+doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
+	index_to_read_old := queue.index_to_read
+	if index_to_read_old < work_queue.submission_count {
+		index_to_read_got := intrinsics.atomic_compare_exchange_weak(
+			&queue.index_to_read,
+			index_to_read_old,
+			index_to_read_old + 1,
 		)
-		if in_progress_count_got == in_progress_count_old {
-			work := queue.items[in_progress_count_old % len(queue.items)]
+		if index_to_read_got == index_to_read_old {
+			work := queue.items[index_to_read_old % len(queue.items)]
 			work.procedure(work.data)
 			intrinsics.atomic_add(&queue.completion_count, 1)
 		}
 	}
-	return work_queue.completion_count == intrinsics.atomic_load(&work_queue.submission_count)
+	return work_queue.completion_count != work_queue.index_to_write
 }
 joinQueue :: proc(queue: ^WorkQueue) {
 	/*a, b, c := queue.submission_count, queue.in_progress_count, queue.completion_count
 	new_a, new_b, new_c := a, b, c*/
-	for !doNextWorkItem(queue) {
+	for doNextWorkItem(queue) {
 		/*new_a, new_b, new_c =
 			intrinsics.atomic_load(&queue.submission_count),
 			intrinsics.atomic_load(&queue.in_progress_count),

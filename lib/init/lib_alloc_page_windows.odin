@@ -10,6 +10,6 @@ pageAlloc :: proc(size: math.bytes) -> []u8 {
 	ptr := win.VirtualAlloc(nil, uint(size), win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE)
 	return (cast([^]u8)ptr)[:size]
 }
-pageFree :: proc(ptr: win.LPVOID) {
+pageFree :: proc(ptr: rawptr) {
 	win.VirtualFree(ptr, 0, win.MEM_RELEASE)
 }

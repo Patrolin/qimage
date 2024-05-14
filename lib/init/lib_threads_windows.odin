@@ -1,15 +1,29 @@
 package lib_init
 import "../math"
 import "core:fmt"
+import "core:intrinsics"
 import win "core:sys/windows"
 
+OsThreadId :: struct {
+	id:     u32,
+	handle: win.HANDLE,
+}
 createThread :: proc(
 	stack_size: math.bytes,
 	thread_proc: proc "stdcall" (data: rawptr) -> u32,
 	param: rawptr,
+) -> (
+	thread_id: OsThreadId,
 ) {
-	thread_id: u32
-	win.CreateThread(nil, uint(stack_size), thread_proc, param, 0, &thread_id)
+	thread_id.handle = win.CreateThread(
+		nil,
+		uint(stack_size),
+		thread_proc,
+		param,
+		0,
+		&thread_id.id,
+	)
+	return
 }
 
 OsSemaphore :: distinct win.HANDLE
@@ -25,4 +39,7 @@ incrementSemaphore :: proc(semaphore: OsSemaphore) {
 waitForSemaphore :: proc(semaphore: OsSemaphore) {
 	//fmt.printfln("thread %v: sleep", context.user_index)
 	win.WaitForSingleObject(win.HANDLE(semaphore), win.INFINITE)
+}
+closeSemaphore :: proc(semaphore: OsSemaphore) {
+	win.CloseHandle(win.HANDLE(semaphore))
 }
