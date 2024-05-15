@@ -31,7 +31,7 @@ main :: proc() {
 	endTiming()
 	// start read file
 	file := win.CreateFileW(
-		win.utf8_to_wstring("1gb_file.txt"),
+		win.utf8_to_wstring("demo/perf/make_1gb_file/1gb_file.txt"),
 		win.GENERIC_READ,
 		win.FILE_SHARE_READ,
 		nil,
