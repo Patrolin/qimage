@@ -37,7 +37,7 @@ initThreads :: proc() -> []ThreadInfo {
 
 // mutex
 TicketMutex :: struct {
-	next: u32,
+	next:    u32,
 	serving: u32,
 }
 getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
@@ -62,10 +62,10 @@ releaseMutex :: proc(mutex: ^TicketMutex) {
 // queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	semaphore:                                                         OsSemaphore,
+	semaphore:               OsSemaphore,
 	write_mutex, read_mutex: TicketMutex,
-	completed_count: u32,
-	items:                                                             [32]WorkItem,
+	completed_count:         u32,
+	items:                   [32]WorkItem,
 }
 WorkItem :: struct {
 	procedure: proc(_: rawptr),
@@ -76,7 +76,8 @@ addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	for {
 		writing_count := intrinsics.atomic_load(&queue.write_mutex.next)
 		read_count := intrinsics.atomic_load(&queue.read_mutex.serving)
-		if (writing_count - read_count) < len(queue.items) && intrinsics.atomic_load(&queue.write_mutex.serving) == ticket {
+		if (writing_count - read_count) < len(queue.items) &&
+		   intrinsics.atomic_load(&queue.write_mutex.serving) == ticket {
 			queue.items[ticket % len(queue.items)] = work
 			releaseMutex(&queue.write_mutex)
 			incrementSemaphore(queue.semaphore)
