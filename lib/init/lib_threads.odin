@@ -94,9 +94,8 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 		free_all(allocator = context.temp_allocator)
 		intrinsics.atomic_add(&queue.completed_count, 1)
 	}
-	completed_count := intrinsics.atomic_load(&queue.completed_count)
-	writing_count := intrinsics.atomic_load(&queue.write_mutex.next)
-	return completed_count != writing_count
+	writing_count := queue.write_mutex.next
+	return queue.completed_count != writing_count
 }
 joinQueue :: proc(queue: ^WorkQueue) {
 	for doNextWorkItem(queue) {
