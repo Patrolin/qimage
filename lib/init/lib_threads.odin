@@ -34,3 +34,72 @@ initThreads :: proc() -> []ThreadInfo {
 	}
 	return thread_infos
 }
+
+// mutex
+TicketMutex :: struct {
+	next: u32,
+	serving: u32,
+}
+getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
+	return intrinsics.atomic_add(&mutex.next, 1)
+}
+getMutexTicketIfNotEqual :: proc(mutex: ^TicketMutex, test: u32) -> (ticket: u32, ok: bool) {
+	value := mutex.next
+	if value != test {
+		value_got := intrinsics.atomic_compare_exchange_weak(&mutex.next, value, value + 1)
+		return value, value_got == value
+	}
+	return value, false
+}
+getMutex :: proc(mutex: ^TicketMutex) {
+	ticket := getMutexTicket(mutex)
+	for intrinsics.atomic_load(&mutex.serving) != ticket {}
+}
+releaseMutex :: proc(mutex: ^TicketMutex) {
+	intrinsics.atomic_add(&mutex.serving, 1)
+}
+
+// queue
+work_queue: WorkQueue
+WorkQueue :: struct {
+	semaphore:                                                         OsSemaphore,
+	write_mutex, read_mutex: TicketMutex,
+	completed_count: u32,
+	items:                                                             [32]WorkItem,
+}
+WorkItem :: struct {
+	procedure: proc(_: rawptr),
+	data:      rawptr,
+}
+addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
+	ticket := getMutexTicket(&queue.write_mutex)
+	for {
+		writing_count := intrinsics.atomic_load(&queue.write_mutex.next)
+		read_count := intrinsics.atomic_load(&queue.read_mutex.serving)
+		if (writing_count - read_count) < len(queue.items) && intrinsics.atomic_load(&queue.write_mutex.serving) == ticket {
+			queue.items[ticket % len(queue.items)] = work
+			releaseMutex(&queue.write_mutex)
+			incrementSemaphore(queue.semaphore)
+			break
+		}
+		doNextWorkItem(queue)
+	}
+}
+doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
+	ticket, ok := getMutexTicketIfNotEqual(&queue.read_mutex, queue.write_mutex.serving)
+	if ok {
+		work := queue.items[ticket % len(queue.items)]
+		releaseMutex(&queue.read_mutex)
+		work.procedure(work.data)
+		free_all(allocator = context.temp_allocator)
+		intrinsics.atomic_add(&queue.completed_count, 1)
+	}
+	completed_count := intrinsics.atomic_load(&queue.completed_count)
+	writing_count := intrinsics.atomic_load(&queue.write_mutex.next)
+	return completed_count != writing_count
+}
+joinQueue :: proc(queue: ^WorkQueue) {
+	for doNextWorkItem(queue) {
+		//fmt.printfln("wm: %v, rm: %v", work_queue.write_mutex, work_queue.read_mutex)
+	}
+}

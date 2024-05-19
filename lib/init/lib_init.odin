@@ -135,7 +135,7 @@ testWorkQueue :: proc(t: ^testing.T) {
 	initOsInfo()
 	context = defaultContext()
 	thread_infos := initThreads()
-	total_count := 3
+	total_count := 200
 	checksum := total_count
 	for i in 0 ..< total_count {
 		addWorkItem(&work_queue, {procedure = checkWorkQueue, data = &checksum})

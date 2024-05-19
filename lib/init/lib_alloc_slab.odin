@@ -104,7 +104,7 @@ SlabAllocator :: struct {
 	_1024_slab: ^SlabCache,
 	_2048_slab: ^SlabCache,
 	_4096_slab: ^SlabCache,
-	mutex:      Mutex,
+	mutex:      TicketMutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
@@ -178,7 +178,7 @@ slabAllocatorProc :: proc(
 ) {
 	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
-	getMutexStrong(&slab_allocator.mutex)
+	getMutex(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		slab := chooseSlab(slab_allocator, size)
