@@ -12,7 +12,6 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
 	context = defaultContext()
 	context.user_index = thread_info.thread_index
-	ctx := context
 	for {
 		intrinsics.atomic_add(&running_thread_count, 1)
 		for doNextWorkItem(&work_queue) {}
