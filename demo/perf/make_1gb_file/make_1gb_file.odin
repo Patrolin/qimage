@@ -9,7 +9,7 @@ main :: proc() {
 	string_to_write := strings.repeat("aaaabbb\n", 512)
 	assert(len(string_to_write) == 4096)
 	REPEAT_COUNT := 1024 * 1024 * 1024 / 4096
-	for i := 0; i < REPEAT_COUNT; i += 1 {
+	for i in 0 ..< REPEAT_COUNT {
 		os.write(file, transmute([]u8)string_to_write)
 	}
 }

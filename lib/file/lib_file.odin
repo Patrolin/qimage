@@ -13,21 +13,24 @@ Image :: struct {
 	data:                    []u8 `fmt:"p"`, // stored as V, RGB or RGBA
 	width, height, channels: i16,
 }
-tprintImage :: proc(image: Image, x, y, width, height: int) -> string {
-	str: strings.Builder
-	strings.builder_init(&str, context.temp_allocator)
-	for Y := y; (Y < y + height) && (Y < int(image.height)); Y += 1 {
-		for X := x; (X < x + width) && X < int(image.width); X += 1 {
-			if X > x {
-				fmt.sbprintf(&str, ", ")
+printImage :: proc(image: Image, x_start, y_start, width, height: int) {
+	sb: strings.Builder
+	strings.builder_init(&sb, context.temp_allocator)
+	fmt.sbprintfln(&sb, "%v at (%v, %v, %v, %v)", image, x_start, y_start, width, height)
+	x_end := x_start + int(width)
+	y_end := y_start + int(height)
+	for y in y_start ..< y_end {
+		for x in x_start ..< x_end {
+			if x > x_start {
+				fmt.sbprintf(&sb, "; ")
 			}
-			pixel := image.data[X + Y * int(image.width)]
-			fmt.sbprintf(&str, "% 3i", (pixel >> 24) & 0xff)
+			pixel := image.data[x + y * int(image.width)]
+			fmt.sbprintf(&sb, "% 3i", (pixel >> 24) & 0xff)
 			for c := 2; c >= 0; c -= 1 {
-				fmt.sbprintf(&str, " % 3i", (pixel >> uint(c * 8)) & 0xff)
+				fmt.sbprintf(&sb, " % 3i", (pixel >> uint(c * 8)) & 0xff)
 			}
 		}
-		fmt.sbprintf(&str, "\n")
+		fmt.sbprintf(&sb, "\n")
 	}
-	return strings.to_string(str)
+	fmt.print(strings.to_string(sb))
 }

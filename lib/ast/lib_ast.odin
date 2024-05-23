@@ -15,7 +15,7 @@ eatUtf8Char :: proc(iterator: ^Utf8Iterator) -> rune {
 	byte_count := int(neg_bits)
 	iterator.j = iterator.i + byte_count
 	code_point := u32(first_byte) & (0xff >> neg_bits)
-	for x := 1; x < byte_count; x += 1 {
+	for x in 1 ..< byte_count {
 		next_byte := iterator.str[iterator.i + x]
 		code_point = (code_point << 6) | (u32(next_byte) & 0x3f)
 	}

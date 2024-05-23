@@ -82,7 +82,7 @@ slabRealloc :: proc(
 	old_ptr_slice := (cast([^]u8)old_ptr)[:old_slab.slot_size]
 	ptr_slice := (cast([^]u8)ptr)[:slab.slot_size]
 	min_size := min(int(old_slab.slot_size), int(slab.slot_size))
-	for i := 0; i < min_size; i += 1 {
+	for i in 0 ..< min_size {
 		ptr_slice[i] = old_ptr_slice[i]
 	}
 	slabFree(old_slab, old_ptr)
@@ -139,7 +139,7 @@ slabAllocator :: proc() -> mem.Allocator {
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
-	assert(size <= 4096) // TODO: handle this?
+	assert(size <= 4096, "Allocation size too big") // TODO: handle this?
 	group := math.ilog2_ceil(u64(size))
 	switch group {
 	case:

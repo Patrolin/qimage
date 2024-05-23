@@ -1,15 +1,15 @@
-// odin run qimage -subsystem:windows
+// odin run src/qimage -subsystem:windows
 package main
-import "../lib/ast"
-import "../lib/file"
-import "../lib/gl"
-import "../lib/init"
-import "../lib/input"
-import "../lib/math"
-import "../lib/paint"
-import win "../lib/windows"
-import "assets"
-import "constants"
+import "../../lib/ast"
+import "../../lib/file"
+import "../../lib/gl"
+import "../../lib/init"
+import "../../lib/input"
+import "../../lib/math"
+import "../../lib/paint"
+import win "../../lib/windows"
+import "../assets"
+import "../constants"
 import "core:fmt"
 import "core:runtime"
 
@@ -57,8 +57,7 @@ main :: proc() {
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
 	/*
-	fmt.println(image)
-	fmt.print(file.tprintImage(image, 0, 0, 3, 3))
+	file.printImage(image, 0, 0, 3, 3)
 	x := "bÄ + 2"
 	for codepoint, index in x {
 		fmt.println(index, codepoint)

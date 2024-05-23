@@ -37,7 +37,7 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		assert(false, fmt.tprintf("Unsupported bitmapHeader size: %v", bitmapHeaderSize))
 	}
 	data_size := int(image.width) * int(image.height) * int(image.channels)
-	for i := 0; i < data_size; i += 1 {
+	for i in 0 ..< data_size {
 		image.data[i] = buffer[int(bmpFile.bitmapOffset) + i]
 	}
 	return

@@ -46,8 +46,10 @@ resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	}
 }
 copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {
-	for y := 0; y < int(to.height) && y < int(from.height); y += 1 {
-		for x := 0; x < int(to.width) && x < int(from.width); x += 1 {
+	x_end := min(int(from.width), int(to.width))
+	y_end := min(int(from.height), int(to.height))
+	for y in 0 ..< y_end {
+		for x in 0 ..< x_end {
 			to.data[y * int(to.width) + x] = from.data[y * int(from.width) + x]
 		}
 	}
@@ -77,14 +79,12 @@ packRGBA :: proc {
 unpackRGBA :: proc(frameBuffer: FrameBuffer, x, y: int) -> math.v4 {
 	stride := int(frameBuffer.width)
 	bgra := frameBuffer.data[y * stride + x]
-	return(
-		math.v4 {
-			f32((bgra >> 16) & 0xff),
-			f32((bgra >> 8) & 0xff),
-			f32((bgra >> 0) & 0xff),
-			f32((bgra >> 24) & 0xff),
-		} \
-	)
+	return (math.v4 {
+				f32((bgra >> 16) & 0xff),
+				f32((bgra >> 8) & 0xff),
+				f32((bgra >> 0) & 0xff),
+				f32((bgra >> 24) & 0xff),
+			})
 }
 
 Window :: struct {

@@ -94,8 +94,8 @@ messageHandler :: proc "stdcall" (
 
 updateAndRender :: proc() {
 	// NOTE: this takes 7 ms (.7 ms with -o:speed)
-	for y := 0; y < int(frame_buffer.height); y += 1 {
-		for x := 0; x < int(frame_buffer.width); x += 1 {
+	for y in 0 ..< int(frame_buffer.height) {
+		for x in 0 ..< int(frame_buffer.width) {
 			rgba := math.v4{128, 128, 255, 0}
 			paint.packRGBA(frame_buffer, x, y, rgba)
 		}
