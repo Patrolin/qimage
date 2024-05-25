@@ -10,7 +10,7 @@ ThreadInfo :: struct {
 }
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
-	context = defaultContext()
+	context = defaultContext(false)
 	context.user_index = thread_info.thread_index
 	for {
 		intrinsics.atomic_add(&running_thread_count, 1)

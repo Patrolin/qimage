@@ -7,21 +7,24 @@ import "core:testing"
 import "core:time"
 
 DefaultAllocators :: struct {
-	allocator: runtime.Allocator,
+	allocator:      runtime.Allocator,
+	temp_allocator: runtime.Allocator,
 }
 emptyContext :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
 	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
 }
-defaultContext :: proc "contextless" () -> runtime.Context {
+defaultContext :: proc "contextless" (useDefaultTempAllocator: bool = true) -> runtime.Context {
 	@(static)
 	default_allocators := DefaultAllocators{}
 	context = emptyContext()
 	if default_allocators.allocator.procedure == nil {
 		default_allocators.allocator = slabAllocator()
+		default_allocators.temp_allocator = slabAllocator()
 	}
 	context.allocator = default_allocators.allocator
-	context.temp_allocator = slabAllocator()
+	context.temp_allocator =
+		useDefaultTempAllocator ? default_allocators.temp_allocator : slabAllocator()
 	return context
 }
 init :: proc "contextless" () -> runtime.Context {
