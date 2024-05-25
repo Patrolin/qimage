@@ -15,7 +15,7 @@ RIM_BACKGROUND :: 1
 // TODO: how to specify this?
 onPaint :: proc(dc: win.HDC) {}
 
-// NOTE: this blocks the main thread
+// NOTE: this steals the main thread (and blocks while sizing)
 messageHandler :: proc "stdcall" (
 	windowHandle: win.HWND,
 	message: win.UINT,
