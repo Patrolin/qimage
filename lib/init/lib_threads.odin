@@ -36,8 +36,7 @@ initThreads :: proc() -> []ThreadInfo {
 
 // mutex
 TicketMutex :: struct {
-	next:    u32,
-	serving: u32,
+	next, serving: u32,
 }
 getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
 	return intrinsics.atomic_add(&mutex.next, 1)

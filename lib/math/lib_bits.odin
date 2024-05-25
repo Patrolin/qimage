@@ -1,4 +1,6 @@
 package lib_math
+import "../test"
+import "core:fmt"
 import intrinsics "core:intrinsics"
 import bits "core:math/bits"
 import "core:testing"
@@ -10,36 +12,51 @@ gibiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * 1024 * v)}
 
 clz :: bits.count_leading_zeros
 ctz :: bits.count_trailing_zeros
-count_ones :: bits.count_ones
-count_zeros :: bits.count_zeros
+countOnes :: bits.count_ones
+countZeros :: bits.count_zeros
 
-upperBitsMask :: proc(n: $T) -> T where intrinsics.type_is_unsigned(T) {
-	tmp := (transmute(uint)int(-1))
-	return tmp << n
+lowMask :: proc(power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+	return power_of_two - 1
 }
-lowerBitsMask :: proc(n: $T) -> T where intrinsics.type_is_unsigned(T) {
-	tmp := (transmute(uint)int(-1))
-	return ~(tmp << n)
+getBit :: proc(x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
+	return (x >> bit_index) & 1
 }
-getBit :: proc(x, index: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return (x >> index) & 1
+setBit :: proc(x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsigned(T) {
+	toggle_bit := ((x >> bit_index) ~ bit_value) & 1
+	return x ~ (toggle_bit << bit_index)
 }
-writeBit :: proc(x, index, value: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return (x >> index) & 1
-}
-ilog2_ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
-	if x == 0 {return 0}
+ilog2Ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	leading_zeros := clz(x)
 	remainder := T((x << (leading_zeros + 1)) > 0)
-	return size_of(T) * 8 - 1 - leading_zeros + remainder
+	return size_of(T) * 8 - T(x > 0) - leading_zeros + remainder
+}
+// odin test lib/math
+@(test)
+test_clz :: proc(t: ^testing.T) {
+	for test_case in ([]test.Case(u64, u64){{0, 64}, {1, 63}, {2, 62}, {3, 62}}) {
+		using test_case
+		got := clz(key)
+		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
+	}
+	for test_case in ([]test.Case(u8, u8){{0, 8}, {1, 7}, {2, 6}, {3, 6}}) {
+		using test_case
+		got := clz(key)
+		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
+	}
 }
 @(test)
 test_ilog2 :: proc(t: ^testing.T) {
-	testing.expect(t, ilog2_ceil(u64(0)) == 0)
-	testing.expect(t, ilog2_ceil(u64(1)) == 0)
-	testing.expect(t, ilog2_ceil(u64(2)) == 1)
-	testing.expect(t, ilog2_ceil(u64(3)) == 2)
-	testing.expect(t, ilog2_ceil(u64(4)) == 2)
-	testing.expect(t, ilog2_ceil(u64(7)) == 3)
-	testing.expect(t, ilog2_ceil(u64(4096)) == 12)
+	for test_case in ([]test.Case(u64, u64) {
+			{0, 0},
+			{1, 0},
+			{2, 1},
+			{3, 2},
+			{4, 2},
+			{7, 3},
+			{4096, 12},
+		}) {
+		using test_case
+		got := ilog2Ceil(key)
+		testing.expectf(t, got == expected, "ilog2_ceil(%v): %v", key, got)
+	}
 }

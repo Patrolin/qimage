@@ -72,13 +72,13 @@ main :: proc() {
 	t := init.time()
 	prev_t := t
 	i := 0
-	max_dt := 0.0
+	max_ddt := 0.0
 	frame_time_prev_t := t
 	for isRunning = true; isRunning; {
 		dt := t - prev_t
 		i += 1
 		if (i > 20) {
-			max_dt = math.max(max_dt, math.abs(dt * 1000 - 16.6666666666666666666))
+			max_ddt = max(max_ddt, abs(dt * 1000 - 16.6666666666666666666))
 		}
 		win.processMessages() // NOTE: this blocks while sizing
 		frame_time_msg_t := init.time()
@@ -86,9 +86,9 @@ main :: proc() {
 		input.resetInputs(&inputs)
 		frame_time_t := init.time()
 		fmt.printf(
-			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			dt * 1000,
-			max_dt,
+			max_ddt,
 			(frame_time_msg_t - frame_time_prev_t) * 1000,
 			(frame_time_t - frame_time_msg_t) * 1000,
 		)

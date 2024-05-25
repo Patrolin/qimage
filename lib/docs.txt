@@ -1,3 +1,22 @@
+test
+  Case :: struct($K: typeid, $V: typeid)
+math/bits
+  bytes :: distinct int
+  kibiBytes :: proc(v: int) -> bytes
+  mebiBytes :: proc(v: int) -> bytes
+  gibiBytes :: proc(v: int) -> bytes
+  clz :: proc(x: $T) -> T
+  ctz :: proc(x: $T) -> T
+  count_ones :: proc(x: $T) -> T
+  count_zeros :: proc(x: $T) -> T
+  lowMask :: proc(power_of_two: $T) -> T
+  getBit :: proc(x, bit_index: $T) -> T
+  setBit :: proc(x, bit_index, bit_value: $T) -> T
+math/stats
+  cycles :: proc() -> int
+  roundToInt :: proc(x: $T) -> int
+math/vectors
+  TODO!: document math/vectors
 init
   emptyContext :: proc "contextless" ()
   defaultContext :: proc "contextless" ()
@@ -9,7 +28,7 @@ init/os_info
     logical_core_count: int,
   }
   initOsInfo :: proc "contextless" ()
-  time :: proc()
+  time :: proc() -> f64
 init/alloc
   pageAlloc :: proc(size: math.bytes) -> []u8
   pageFree :: proc(ptr: rawptr)
@@ -20,9 +39,14 @@ init/threads
   initThreads :: proc()
   addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
   joinQueue :: proc(queue: ^WorkQueue)
-  TicketMutex :: struct {...}
+  TicketMutex :: struct {
+    next, serving: u32
+  }
   getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
   getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
   getMutex :: proc(mutex: ^TicketMutex)
   releaseMutex :: proc(mutex: ^TicketMutex)
 TODO!: document other libs
+window
+  initWindow :: proc()
+  openWindow :: proc(...)

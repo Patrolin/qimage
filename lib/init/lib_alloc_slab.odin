@@ -13,6 +13,7 @@ SlabCache :: struct {
 SlabSlot :: struct {
 	next: ^SlabSlot, // 8 B
 }
+@(private)
 bootstrapSlabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabCache), "Must have slot_size >= size_of(SlabCache)")
 	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
@@ -24,6 +25,7 @@ bootstrapSlabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 	slab.slot_size = slot_size
 	return slab
 }
+@(private)
 bootstrapSlabCache_second :: proc(
 	prev_slab: ^SlabCache,
 	data: []u8,
@@ -140,7 +142,7 @@ slabAllocator :: proc() -> mem.Allocator {
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
 	assert(size <= 4096, "Allocation size too big") // TODO: handle this?
-	group := math.ilog2_ceil(u64(size))
+	group := math.ilog2Ceil(uint(size))
 	switch group {
 	case:
 		return slab_allocator._8_slab

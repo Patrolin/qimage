@@ -40,7 +40,6 @@ testPageAlloc :: proc(t: ^testing.T) {
 	data = pageAlloc(math.kibiBytes(64))
 	testing.expectf(t, data != nil, "Failed to pageAlloc 64 kiB, data: %v", data)
 }
-
 @(test)
 testPartitionAlloc :: proc(t: ^testing.T) {
 	initOsInfo()
@@ -63,7 +62,6 @@ testPartitionAlloc :: proc(t: ^testing.T) {
 		part2,
 	)
 }
-
 @(test)
 testSlabAlloc :: proc(t: ^testing.T) {
 	initOsInfo()
@@ -86,7 +84,6 @@ testSlabAlloc :: proc(t: ^testing.T) {
 	y = cast(^u8)slabRealloc(slab, x, slab2, 1)
 	testing.expectf(t, (y != x) && (y != z), "Failed to realloc, x: %v, y: %v, z: %v", x, y, z)
 }
-
 @(test)
 testDefaultContext :: proc(t: ^testing.T) {
 	initOsInfo()
@@ -97,7 +94,6 @@ testDefaultContext :: proc(t: ^testing.T) {
 	testing.expect(t, x^ == 13, "Failed to allocate")
 	free(x)
 }
-
 @(test)
 testWorkQueue :: proc(t: ^testing.T) {
 	initOsInfo()

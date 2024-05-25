@@ -72,8 +72,8 @@ placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
 	} else {
 		pos.y += size.y
 	}
-	placeAt.rect.right = math.max(placeAt.rect.right, rect.right)
-	placeAt.rect.bottom = math.max(placeAt.rect.bottom, rect.bottom)
+	placeAt.rect.right = max(placeAt.rect.right, rect.right)
+	placeAt.rect.bottom = max(placeAt.rect.bottom, rect.bottom)
 	return
 }
 isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
