@@ -42,9 +42,9 @@ TicketMutex :: struct {
 getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
 	return intrinsics.atomic_add(&mutex.next, 1)
 }
-getMutexTicketIfNotEqual :: proc(mutex: ^TicketMutex, test: u32) -> (ticket: u32, ok: bool) {
+getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool) {
 	value := mutex.next
-	if value != test {
+	if value != max {
 		value_got := intrinsics.atomic_compare_exchange_weak(&mutex.next, value, value + 1)
 		return value, value_got == value
 	}
@@ -73,10 +73,10 @@ WorkItem :: struct {
 addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	ticket := getMutexTicket(&queue.write_mutex)
 	for {
-		writing_count := intrinsics.atomic_load(&queue.write_mutex.next)
+		written_count := intrinsics.atomic_load(&queue.write_mutex.serving)
 		read_count := intrinsics.atomic_load(&queue.read_mutex.serving)
-		if (writing_count - read_count) < len(queue.items) &&
-		   intrinsics.atomic_load(&queue.write_mutex.serving) == ticket {
+		open_slots := len(queue.items) + read_count - written_count // NOTE: len: 8, read: 99, written: 100 -> open: 8+99-100 = 7-0 = 7
+		if open_slots > 0 && written_count == ticket {
 			queue.items[ticket % len(queue.items)] = work
 			releaseMutex(&queue.write_mutex)
 			incrementSemaphore(queue.semaphore)
@@ -86,7 +86,7 @@ addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	}
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
-	ticket, ok := getMutexTicketIfNotEqual(&queue.read_mutex, queue.write_mutex.serving)
+	ticket, ok := getMutexTicketUntil(&queue.read_mutex, queue.write_mutex.serving)
 	if ok {
 		work := queue.items[ticket % len(queue.items)]
 		releaseMutex(&queue.read_mutex)

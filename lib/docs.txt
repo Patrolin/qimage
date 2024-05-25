@@ -1,0 +1,28 @@
+init
+  emptyContext :: proc "contextless" ()
+  defaultContext :: proc "contextless" ()
+  init :: proc "contextless" ()
+init/os_info
+  os_info: struct {
+    page_size:          int,
+    large_page_size:    int,
+    logical_core_count: int,
+  }
+  initOsInfo :: proc "contextless" ()
+  time :: proc()
+init/alloc
+  pageAlloc :: proc(size: math.bytes) -> []u8
+  pageFree :: proc(ptr: rawptr)
+  partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
+  partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
+  slabAllocator :: proc() -> mem.Allocator
+init/threads
+  initThreads :: proc()
+  addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
+  joinQueue :: proc(queue: ^WorkQueue)
+  TicketMutex :: struct {...}
+  getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
+  getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
+  getMutex :: proc(mutex: ^TicketMutex)
+  releaseMutex :: proc(mutex: ^TicketMutex)
+TODO!: document other libs
