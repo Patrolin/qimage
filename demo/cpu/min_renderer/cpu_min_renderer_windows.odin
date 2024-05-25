@@ -9,6 +9,7 @@ import "../../../lib/paint"
 import win "../../../lib/windows"
 import "core:fmt"
 import "core:runtime"
+import "core:sys/windows"
 
 WINDOW_TITLE :: "cpu_min_renderer"
 WINDOW_WIDTH :: 1366
@@ -18,6 +19,7 @@ isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 window: paint.Window
 
+foobar := false
 main :: proc() {
 	context = init.init()
 	windowClass := win.registerWindowClass(
@@ -41,18 +43,26 @@ main :: proc() {
 		frame_time_msg_t := init.time()
 		updateAndRender()
 		frame_time_t := init.time()
-		fmt.printf(
-			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
-			math.millis(dt),
-			max_ddt,
-			math.millis(frame_time_msg_t - frame_time_prev_t),
-			math.millis(frame_time_t - frame_time_msg_t),
-		)
+		if false {
+			fmt.printf(
+				"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+				math.millis(dt),
+				max_ddt,
+				math.millis(frame_time_msg_t - frame_time_prev_t),
+				math.millis(frame_time_t - frame_time_msg_t),
+			)
+		}
 
 		prev_t = t
 		t = win.doVsyncBadly()
 		frame_time_prev_t = init.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
+		if foobar { 	// TODO: remove this
+			windows.SetWindowPos(window.handle, win.HWND(nil), 0, 0, 600, 400, 0)
+		} else {
+			windows.SetWindowPos(window.handle, win.HWND(nil), 20, 20, 580, 380, 0)
+		}
+		foobar = !foobar
 		free_all(context.temp_allocator)
 	}
 }
