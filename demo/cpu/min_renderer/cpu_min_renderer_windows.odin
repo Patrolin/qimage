@@ -60,8 +60,8 @@ main :: proc() {
 		windows.SetWindowPos(
 			window.handle,
 			win.HWND(nil),
-			i32(foobar.x),
-			i32(foobar.y),
+			i32(foobar[0]),
+			i32(foobar[1]),
 			i32(foobar[2]),
 			i32(foobar[3]),
 			windows.SWP_NOACTIVATE,
