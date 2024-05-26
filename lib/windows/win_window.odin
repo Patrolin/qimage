@@ -88,7 +88,7 @@ createWindow :: proc(
 		0,
 		windowClass,
 		title,
-		windowStyle | WS_VISIBLE,
+		windowStyle,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		width,
@@ -98,6 +98,10 @@ createWindow :: proc(
 		nil,
 		nil,
 	)
+	// NOTE: windows animations are bad and may cause flicker, so we hide them behind unminimize animation
+	win.ShowWindow(window, win.SW_MINIMIZE)
+	win.ShowWindow(window, win.SW_RESTORE)
+	win.ShowWindow(window, win.SW_SHOWNORMAL)
 	if window == nil {
 		lastError := GetLastError()
 		assert(false, fmt.tprintf("error: %v\n", lastError))

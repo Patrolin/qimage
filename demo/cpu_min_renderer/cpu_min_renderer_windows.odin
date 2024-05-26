@@ -1,12 +1,12 @@
-// odin run demo/cpu/min_renderer -subsystem:windows
-// odin run demo/cpu/min_renderer -subsystem:windows -o:speed
+// odin run demo/cpu_min_renderer -subsystem:windows
+// odin run demo/cpu_min_renderer -subsystem:windows -o:speed
 package main
 
-import "../../../lib/file"
-import "../../../lib/init"
-import "../../../lib/math"
-import "../../../lib/paint"
-import win "../../../lib/windows"
+import "../../lib/file"
+import "../../lib/init"
+import "../../lib/math"
+import "../../lib/paint"
+import win "../../lib/windows"
 import "core:fmt"
 import "core:runtime"
 import "core:sys/windows"
@@ -19,16 +19,18 @@ isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 window: paint.Window
 
-foobar: [4]f64 = {0, 0, 100, 100}
-foobar_velocities: [4]f64 = {1.5, 1.3, 1.1, 1.1}
 main :: proc() {
 	context = init.init()
 	windowClass := win.registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
 	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
-	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
-	window.dc = paint.GetDC(window.handle)
+	window = {
+		handle = win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT),
+		width  = WINDOW_WIDTH,
+		height = WINDOW_HEIGHT,
+		dc     = paint.GetDC(window.handle),
+	}
 	t := init.time()
 	prev_t := t
 	i := 0
@@ -56,16 +58,6 @@ main :: proc() {
 		t = win.doVsyncBadly()
 		frame_time_prev_t = init.time()
 		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
-		foobar = foobar + foobar_velocities
-		windows.SetWindowPos(
-			window.handle,
-			win.HWND(nil),
-			i32(foobar[0]),
-			i32(foobar[1]),
-			i32(foobar[2]),
-			i32(foobar[3]),
-			windows.SWP_NOACTIVATE,
-		)
 		free_all(context.temp_allocator)
 	}
 }

@@ -1,10 +1,10 @@
-// odin run demo/gl/min_renderer -subsystem:windows
+// odin run demo/gl_min_renderer -subsystem:windows
 package main
 
-import "../../../lib/gl"
-import "../../../lib/init"
-import "../../../lib/math"
-import win "../../../lib/windows"
+import "../../lib/gl"
+import "../../lib/init"
+import "../../lib/math"
+import win "../../lib/windows"
 import "core:fmt"
 import "core:runtime"
 
@@ -21,9 +21,13 @@ main :: proc() {
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
 	)
 	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
-	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
-	dc := gl.GetDC(window.handle)
-	gl.initOpenGL(dc)
+	window = gl.Window {
+		handle = win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT),
+		width  = WINDOW_WIDTH,
+		height = WINDOW_HEIGHT,
+		dc     = gl.GetDC(window.handle),
+	}
+	gl.initOpenGL(window.dc)
 	t := init.time()
 	prev_t := t
 	i := 0
@@ -50,7 +54,7 @@ main :: proc() {
 		prev_t = t
 		t = win.doVsyncBadly() // TODO: vsync via opengl?
 		frame_time_prev_t = init.time()
-		gl.renderImageBufferToWindow(dc)
+		gl.renderImageBufferToWindow(window.dc)
 		free_all(context.temp_allocator)
 	}
 }
