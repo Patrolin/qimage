@@ -1,11 +1,11 @@
 package lib_gl
+import "../events"
 import "../paint"
 import win "core:sys/windows"
 import gl "vendor:OpenGL"
 
 HDC :: win.HDC
 PIXELFORMATDESCRIPTOR :: win.PIXELFORMATDESCRIPTOR
-Window :: paint.Window
 PAINTSTRUCT :: paint.PAINTSTRUCT
 
 PFD_TYPE_RGBA :: win.PFD_TYPE_RGBA
@@ -53,11 +53,11 @@ initOpenGL :: proc(dc: HDC) {
 	// NOTE: gl.wglCreateContextAttrib(...) for gl 3.0+
 	assert(bool(wglMakeCurrent(dc, glRc)))
 }
-resizeImageBuffer :: proc(width, height: u16) {
+resizeImageBuffer :: proc(width, height: i32) {
 	glViewport(0, 0, u32(width), u32(height))
 }
-renderImageBufferToWindow :: proc(dc: HDC) {
-	SwapBuffers(dc)
+renderImageBufferToWindow :: proc(window: events.Window) {
+	SwapBuffers(window.dc)
 }
 /*
 TODO!: compile .odin to gpu shaders

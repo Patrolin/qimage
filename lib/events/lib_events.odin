@@ -1,34 +1,32 @@
 package lib_events
+import "../math"
 
-os_events: [dynamic]OsEvent
+@(private)
+os_events_info: struct {
+	current_window:   ^Window,
+	got_resize_event: bool,
+}
+os_events: [dynamic]OsEvent // NOTE: windows is stupid and breaks if you don't get all events at once
 
 OsEvent :: union {
-	MouseDownEvent,
-	MouseUpEvent,
-	MouseMoveEvent,
-	KeyboardDownEvent,
-	KeyboardUpEvent,
+	MouseEvent,
+	KeyboardEvent,
 	WindowResizeEvent,
 	WindowCloseEvent,
 }
-MouseDownEvent :: struct {
-	pos: [2]int,
+ButtonState :: enum {
+	Unchanged,
+	Down,
+	Up,
 }
-MouseUpEvent :: struct {
-	pos: [2]int,
+MouseEvent :: struct {
+	pos: math.i32x2,
+	LMB: ButtonState,
 }
-MouseMoveEvent :: struct {
-	pos: [2]int,
-}
-KeyboardDownEvent :: struct {
-	using _:      KeyboardUpEvent,
-	repeat_count: int,
-}
-KeyboardUpEvent :: struct {
+KeyboardEvent :: struct {
 	char_code, scan_code: u32,
 	char:                 rune,
+	repeat_count:         int,
 }
-WindowResizeEvent :: struct {
-	rect: [4]int,
-}
+WindowResizeEvent :: struct {}
 WindowCloseEvent :: struct {}

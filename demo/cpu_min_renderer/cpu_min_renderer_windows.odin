@@ -2,109 +2,70 @@
 // odin run demo/cpu_min_renderer -subsystem:windows -o:speed
 package main
 
-import "../../lib/file"
+import "../../lib/events"
 import "../../lib/init"
 import "../../lib/math"
 import "../../lib/paint"
-import win "../../lib/windows"
 import "core:fmt"
-import "core:runtime"
-import "core:sys/windows"
-
-WINDOW_TITLE :: "cpu_min_renderer"
-WINDOW_WIDTH :: 1366
-WINDOW_HEIGHT :: 768
 
 isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
-window: paint.Window
 
 main :: proc() {
 	context = init.init()
-	windowClass := win.registerWindowClass(
-		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler},
-	)
-	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
-	window = {
-		handle = win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT),
-		width  = WINDOW_WIDTH,
-		height = WINDOW_HEIGHT,
-		dc     = paint.GetDC(window.handle),
+	events.setOnPaint(onPaint)
+	events.initWindow()
+	window := events.openWindow("cpu_min_renderer", {-1, -1, 1366, 768})
+	paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+	// TODO: Timer?
+	timing: struct {
+		t, prev_t, max_ddt: f64,
+		frame:              int,
 	}
-	t := init.time()
-	prev_t := t
-	i := 0
-	max_ddt := 0.0
-	frame_time_prev_t := t
+	timing.t = init.time()
+	timing.prev_t = timing.t
 	for isRunning = true; isRunning; {
-		dt := t - prev_t
-		i += 1
-		if (i > 20) {
-			max_ddt = max(max_ddt, abs(math.millis(dt) - 16.6666666666666666666))
+		dt := timing.t - timing.prev_t
+		timing.frame += 1
+		if (timing.frame > 30) {
+			timing.max_ddt = max(timing.max_ddt, abs(math.millis(dt) - 16.6666666666666666666))
 		}
-		win.processMessages() // NOTE: this blocks while sizing
-		frame_time_msg_t := init.time()
+		events.getAllEvents()
+		for os_event in events.os_events {
+			#partial switch event in os_event {
+			case events.WindowResizeEvent:
+				paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+			case events.WindowCloseEvent:
+				isRunning = false
+			}
+		}
+		msg_t := init.time()
 		updateAndRender()
-		frame_time_t := init.time()
+		render_t := init.time()
 		fmt.printf(
 			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			math.millis(dt),
-			max_ddt,
-			math.millis(frame_time_msg_t - frame_time_prev_t),
-			math.millis(frame_time_t - frame_time_msg_t),
+			timing.max_ddt,
+			math.millis(msg_t - timing.t),
+			math.millis(render_t - msg_t),
 		)
-
-		prev_t = t
-		t = win.doVsyncBadly()
-		frame_time_prev_t = init.time()
-		paint.copyFrameBufferToWindow(frame_buffer, window, window.dc)
+		timing.prev_t = timing.t
+		timing.t = events.doVsyncBadly()
+		onPaint(window^)
 		free_all(context.temp_allocator)
 	}
 }
-
-// NOTE: this blocks the main thread
-messageHandler :: proc "stdcall" (
-	windowHandle: win.HWND,
-	message: win.UINT,
-	wParam: win.WPARAM,
-	lParam: win.LPARAM,
-) -> (
-	result: win.LRESULT,
-) {
-	context = init.defaultContext()
-	result = 0
-	switch message {
-	case win.WM_SIZE:
-		fmt.println("WM_SIZE")
-		window.handle = windowHandle
-		window.width = win.LOWORD(u32(lParam))
-		window.height = win.HIWORD(u32(lParam))
-		paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
-	case win.WM_PAINT:
-		fmt.println("WM_PAINT")
-		ps: paint.PAINTSTRUCT
-		dc: win.HDC = paint.BeginPaint(windowHandle, &ps)
-		paint.copyFrameBufferToWindow(frame_buffer, window, dc)
-		paint.EndPaint(windowHandle, &ps)
-	case win.WM_DESTROY:
-		fmt.println("WM_DESTROY")
-		//win.PostQuitMessage(0)
-		isRunning = false
-	case:
-		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
-	}
-	free_all(context.temp_allocator)
-	return
-}
-
 updateAndRender :: proc() {
 	// NOTE: this takes 7 ms (.7 ms with -o:speed)
 	for y in 0 ..< int(frame_buffer.height) {
 		for x in 0 ..< int(frame_buffer.width) {
-			rgba := math.v4{128, 128, 255, 0}
+			rgba := math.f32x4{128, 128, 255, 0}
 			paint.packRGBA(frame_buffer, x, y, rgba)
 		}
 	}
+}
+onPaint :: proc(window: events.Window) {
+	paint.copyFrameBufferToWindow(frame_buffer, window)
 }
 
 // NOTE: WS_EX_LAYERED -> alpha channel (but everything is slower, so destroy and recreate the window later)

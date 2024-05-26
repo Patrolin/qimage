@@ -1,4 +1,5 @@
 package lib_paint
+import "../events"
 import "../file"
 import "../init"
 import "../math"
@@ -57,7 +58,7 @@ copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {
 		}
 	}
 }
-packRGBA_v4 :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.v4) {
+packRGBA_v4 :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.f32x4) {
 	bgra :=
 		((u32(rgba.b) & 0xff << 0) |
 			(u32(rgba.g) & 0xff << 8) |
@@ -66,7 +67,7 @@ packRGBA_v4 :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.v4) {
 	stride := int(frameBuffer.width)
 	frameBuffer.data[y * stride + x] = bgra
 }
-packRGBA_v4i :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.v4i) {
+packRGBA_v4i :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.i32x4) {
 	bgra :=
 		((u32(rgba.b) & 0xff << 0) |
 			(u32(rgba.g) & 0xff << 8) |
@@ -79,23 +80,18 @@ packRGBA :: proc {
 	packRGBA_v4,
 	packRGBA_v4i,
 }
-unpackRGBA :: proc(frameBuffer: FrameBuffer, x, y: int) -> math.v4 {
+unpackRGBA :: proc(frameBuffer: FrameBuffer, x, y: int) -> math.f32x4 {
 	stride := int(frameBuffer.width)
 	bgra := frameBuffer.data[y * stride + x]
-	return (math.v4 {
-				f32((bgra >> 16) & 0xff),
-				f32((bgra >> 8) & 0xff),
-				f32((bgra >> 0) & 0xff),
-				f32((bgra >> 24) & 0xff),
-			})
+	return math.f32x4 {
+		f32((bgra >> 16) & 0xff),
+		f32((bgra >> 8) & 0xff),
+		f32((bgra >> 0) & 0xff),
+		f32((bgra >> 24) & 0xff),
+	}
 }
 
-Window :: struct {
-	handle:        HWND,
-	dc:            HDC,
-	width, height: u16,
-}
-copyFrameBufferToWindow :: proc(frameBuffer: FrameBuffer, window: Window, dc: HDC) {
+copyFrameBufferToWindow :: proc(frameBuffer: FrameBuffer, window: events.Window) {
 	imageInfo := BITMAPINFO{}
 	imageInfo.bmiHeader = {
 		biSize        = size_of(BITMAPINFOHEADER),
@@ -107,7 +103,7 @@ copyFrameBufferToWindow :: proc(frameBuffer: FrameBuffer, window: Window, dc: HD
 		//biHeight = i32(image.height), // NOTE: bottom-up DIB
 	}
 	StretchDIBits(
-		dc,
+		window.dc,
 		0,
 		0,
 		i32(window.width),

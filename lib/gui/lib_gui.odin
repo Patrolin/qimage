@@ -35,14 +35,14 @@ GuiState :: struct {
 GuiPlacement :: struct {
 	// TODO: sizes
 	prev:          ^GuiPlacement,
-	pos:           math.v2i,
-	rect:          math.Rect,
+	pos:           math.i32x2,
+	rect:          math.AbsoluteRect,
 	is_horizontal: bool,
 }
 GuiNode :: struct {
 	prev: ^GuiNode,
 	next: ^GuiNode,
-	rect: math.Rect,
+	rect: math.AbsoluteRect,
 	// TODO: z order
 	node: union {
 		TextNode,
@@ -59,11 +59,11 @@ ButtonNode :: struct {
 ImageNode :: struct {
 	image: ^file.Image, // 8 B
 }
-getTextSize :: proc(str: string) -> math.v2i {
-	return math.v2i{50, 12} // TODO!: fonts?
+getTextSize :: proc(str: string) -> math.i32x2 {
+	return math.i32x2{50, 12} // TODO!: fonts?
 }
 
-placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
+placeRect :: proc(state: ^GuiState, size: math.i32x2) -> (rect: math.AbsoluteRect) {
 	placeAt := state.placeAt
 	pos := placeAt.pos
 	rect = {pos.x, pos.y, pos.x + size.x, pos.y + size.y}
@@ -76,11 +76,11 @@ placeRect :: proc(state: ^GuiState, size: math.v2i) -> (rect: math.Rect) {
 	placeAt.rect.bottom = max(placeAt.rect.bottom, rect.bottom)
 	return
 }
-isHovered :: proc(state: ^GuiState, rect: math.Rect) -> bool {
+isHovered :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
 	lastMousePos := input.lastMousePos(state.inputs)
 	return (state.dragging == nil) && math.inBounds(lastMousePos, rect)
 }
-wasClicked :: proc(state: ^GuiState, rect: math.Rect) -> bool {
+wasClicked :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
 	return(
 		input.wentDown(state.inputs.mouse.LMB) &&
 		math.inBounds(state.inputs.mouse.clickPos, rect) \
@@ -119,10 +119,10 @@ button :: proc(state: ^GuiState, str: string) -> bool {
 	}
 	return was_clicked
 }
-image :: proc(state: ^GuiState, image: ^file.Image, rect: math.Rect) {
+image :: proc(state: ^GuiState, image: ^file.Image, rect: math.AbsoluteRect) {
 	gui_node := new(GuiNode)
 	gui_node^ = {
-		rect = placeRect(state, {image.width, image.height}),
+		rect = placeRect(state, {i32(image.width), i32(image.height)}),
 		node = ImageNode{image = image},
 	}
 	addNode(state, gui_node)

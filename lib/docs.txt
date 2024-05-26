@@ -49,4 +49,5 @@ init/threads
 TODO!: document other libs
 window
   initWindow :: proc()
-  openWindow :: proc(...)
+  setOnPaint :: proc(v: proc())
+  openWindow :: proc(title: string, rect: math.RelativeRect) -> (window: Window)

@@ -1,4 +1,4 @@
-package lib_windows
+package lib_events
 import win "core:sys/windows"
 
 // TODO?: generate from https://wiki.winehq.org/List_Of_Windows_Messages

@@ -20,21 +20,28 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
 		// TODO!: reuse the space used for the file as image space
 		image.data = make([]u8, image.width * image.height * image.channels)
-		assert(image.height >= 0, "Negative height is not supported")
-		assert(bitmapHeader.compression == 0, "Compression is not supported")
+		fmt.assertf(image.height >= 0, "Negative height (%v) is not supported", image.height)
+		fmt.assertf(
+			bitmapHeader.compression == 0,
+			"Compression (%v) is not supported",
+			bitmapHeader.compression,
+		)
 		// NOTE: we ignore bV5XPelsPerMeter, bV5YPelsPerMeter, bV5ClrUsed, bV5ClrImportant
-		assert(
+		fmt.assertf(
 			(bitmapHeader.bV5RedMask > bitmapHeader.bV5GreenMask) &&
 			(bitmapHeader.bV5GreenMask > bitmapHeader.bV5BlueMask) &&
 			(bitmapHeader.bV5BlueMask > bitmapHeader.bV5AlphaMask),
-			"Unsupported format",
+			"Unsupported format {%v, %v, %v}",
+			bitmapHeader.bV5RedMask,
+			bitmapHeader.bV5GreenMask,
+			bitmapHeader.bV5BlueMask,
 		)
 		// NOTE: sRGB has a gamma correction
 		assert(bitmapHeader.bV5CSType == LCS_sRGB, "Unsupported colorspace")
 	// NOTE: we ignore bV5Intent, bV5ProfileData, bV5ProfileSize
 	// con.print(bitmapHeader)
 	case:
-		assert(false, fmt.tprintf("Unsupported bitmapHeader size: %v", bitmapHeaderSize))
+		fmt.assertf(false, "Unsupported bitmapHeader size: %v", bitmapHeaderSize)
 	}
 	data_size := int(image.width) * int(image.height) * int(image.channels)
 	for i in 0 ..< data_size {
