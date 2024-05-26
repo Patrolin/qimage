@@ -149,7 +149,6 @@ toggleFullscreen :: proc(window: HWND) {
 
 processMessages :: proc() {
 	for msg: MSG; PeekMessageW(&msg, nil, 0, 0, PM_REMOVE); {
-		TranslateMessage(&msg)
 		DispatchMessageW(&msg)
 	}
 }
