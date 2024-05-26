@@ -40,7 +40,7 @@ main :: proc() {
 		dt := t - prev_t
 		i += 1
 		if (i > 20) {
-			max_ddt = max(max_ddt, abs(dt * 1000 - 16.6666666666666666666))
+			max_ddt = max(max_ddt, abs(math.millis(dt) - 16.6666666666666666666))
 		}
 		win.processMessages() // NOTE: this blocks while sizing
 		frame_time_msg_t := init.time()
