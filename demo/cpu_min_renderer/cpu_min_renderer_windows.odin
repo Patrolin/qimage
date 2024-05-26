@@ -17,6 +17,7 @@ main :: proc() {
 	events.initWindow()
 	window := events.openWindow("cpu_min_renderer", {-1, -1, 1366, 768})
 	paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+	// TODO: Timer?
 	timing: struct {
 		t, prev_t, max_ddt: f64,
 		frame:              int,
