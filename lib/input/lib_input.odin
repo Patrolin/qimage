@@ -6,24 +6,24 @@ Inputs :: struct {
 	keyboard: Keyboard,
 }
 Mouse :: struct {
-	pos:      [dynamic]math.v2i,
-	clickPos: math.v2i,
+	pos:      [dynamic]math.i32x2,
+	clickPos: math.i32x2,
 	LMB:      Button,
 	RMB:      Button,
 }
 initMouse :: proc(inputs: ^Inputs) {
-	inputs.mouse.pos = make([dynamic]math.v2i, 0, 4)
-	append(&inputs.mouse.pos, math.v2i{max(i16), max(i16)})
+	inputs.mouse.pos = make([dynamic]math.i32x2, 0, 4)
+	append(&inputs.mouse.pos, math.i32x2{max(i32), max(i32)})
 }
-addMousePath :: proc(inputs: ^Inputs, moveTo: math.v2i) {
-	MAX_MOUSE_PATH :: 4
-	if (len(inputs.mouse.pos) < MAX_MOUSE_PATH) { 	// NOTE: we may get an infinite number of mouse events when sizing on windows
+addMousePath :: proc(inputs: ^Inputs, moveTo: math.i32x2) {
+	MAX_MOUSE_PATH :: 4 // NOTE: we may get an infinite number of mouse events when sizing on windows
+	if (len(inputs.mouse.pos) < MAX_MOUSE_PATH) {
 		append(&inputs.mouse.pos, moveTo)
 	} else {
 		inputs.mouse.pos[MAX_MOUSE_PATH - 1] = moveTo
 	}
 }
-lastMousePos :: proc(inputs: ^Inputs) -> math.v2i {
+lastMousePos :: proc(inputs: ^Inputs) -> math.i32x2 {
 	return inputs.mouse.pos[len(inputs.mouse.pos) - 1]
 }
 resetInputs :: proc(inputs: ^Inputs) {

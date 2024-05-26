@@ -1,4 +1,4 @@
-package lib_windows
+package lib_events
 import win "core:sys/windows"
 
 /*

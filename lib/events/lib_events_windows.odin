@@ -1,19 +1,27 @@
 package lib_events
 import "../init"
+import "../os_utils"
 import "core:fmt"
+import "core:intrinsics"
 import win "core:sys/windows"
 
-getCursorPos :: proc() -> [2]int {
-	pos: win.POINT
-	win.GetCursorPos(&pos)
-	return {int(pos.x), int(pos.y)}
+getAllEvents :: proc() {
+	clear(&os_events)
+	reserve(&os_events, 20)
+	os_events_info.got_resize_event = false
+	msg: win.MSG
+	for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
+		win.DispatchMessageW(&msg)
+	}
 }
 
 RIM_FOREGROUND :: 0
 RIM_BACKGROUND :: 1
 
-// TODO: how to specify this?
-onPaint :: proc(dc: win.HDC) {}
+onPaint: proc(window: Window) = proc(window: Window) {assert(false)}
+setOnPaint :: proc(callback: proc(window: Window)) {
+	onPaint = callback
+}
 
 // NOTE: this steals the main thread (and blocks while sizing)
 messageHandler :: proc "stdcall" (
@@ -28,11 +36,20 @@ messageHandler :: proc "stdcall" (
 	result = 0
 	switch message {
 	case win.WM_PAINT:
-		ps: win.PAINTSTRUCT
-		dc: win.HDC = win.BeginPaint(windowHandle, &ps)
-		onPaint(dc)
-		win.EndPaint(windowHandle, &ps)
+		fmt.printfln("WM_PAINT")
+		paintStruct: win.PAINTSTRUCT
+		paintDc: win.HDC = win.BeginPaint(windowHandle, &paintStruct)
+		onPaint(
+			{
+				width = os_events_info.current_window.width,
+				height = os_events_info.current_window.height,
+				handle = windowHandle,
+				dc = paintDc,
+			},
+		)
+		win.EndPaint(windowHandle, &paintStruct)
 	case win.WM_INPUT:
+		fmt.printfln("WM_INPUT")
 		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
 		if wParam == RIM_BACKGROUND {
 			return
@@ -51,50 +68,54 @@ messageHandler :: proc "stdcall" (
 		//monitorRect := monitorInfo.rcMonitor
 		//windowRect := windowPlacement.rcNormalPosition
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
+			event := MouseEvent{}
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
 				// TODO: https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
-				append(&os_events, MouseMoveEvent{pos = getCursorPos()})
+				event.pos = os_utils.getCursorPos()
 			case win.MOUSE_MOVE_ABSOLUTE:
 				fmt.assertf(false, "win.MOUSE_MOVE_ABSOLUTE: %v", raw_input)
 			}
-			switch raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags {
-			case win.RI_MOUSE_LEFT_BUTTON_DOWNS:
-				append(&os_events, MouseDownEvent{})
-			case win.RI_MOUSE_LEFT_BUTTON_UP:
-				append(&os_events, MouseUpEvent{})
+			usButtonFlags := raw_input.data.mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags
+			assert((usButtonFlags & 3) != 3)
+			if (usButtonFlags & win.RI_MOUSE_BUTTON_1_DOWN) != 0 {
+				event.LMB = .Down
 			}
+			if (usButtonFlags & win.RI_MOUSE_BUTTON_1_UP) != 0 {
+				event.LMB = .Up
+			}
+			append(&os_events, event)
 		}
 	// TODO!: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
-	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN:
+	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
+		fmt.printfln("WM_KEYxx")
 		char_code := u32(wParam)
 		scan_code := u32((lParam >> 16) & 0xff)
 		char := rune('a') // TODO!: get char - call ToUnicode()
-		repeat_count := lParam & 0xffff
+		repeat_count := lParam < 0x8000_0000 ? lParam & 0xffff : 0
 		append(
 			&os_events,
-			KeyboardDownEvent {
+			KeyboardEvent {
 				char_code = char_code,
 				scan_code = scan_code,
 				char = char,
 				repeat_count = repeat_count,
 			},
 		)
-	case win.WM_KEYUP, win.WM_SYSKEYUP:
-		char_code := u32(wParam)
-		scan_code := u32((lParam >> 16) & 0xff)
-		char := rune('a') // TODO!: get char - call ToUnicode()
-		append(
-			&os_events,
-			KeyboardUpEvent{char_code = char_code, scan_code = scan_code, char = char},
-		)
 	case win.WM_SIZE:
-		width := int(win.LOWORD(win.DWORD(lParam)))
-		height := int(win.HIWORD(win.DWORD(lParam)))
-		append(&os_events, WindowResizeEvent{rect = {0, 0, width, height}})
+		fmt.printfln("WM_SIZE", lParam)
+		os_events_info.current_window.width = i32(win.LOWORD(win.DWORD(lParam)))
+		os_events_info.current_window.height = i32(win.HIWORD(win.DWORD(lParam)))
+		if !os_events_info.got_resize_event {
+			append(&os_events, WindowResizeEvent{})
+			fmt.printfln("os_events: %v", os_events)
+			os_events_info.got_resize_event = true
+		}
 	case win.WM_DESTROY:
+		fmt.printfln("WM_DESTROY")
 		append(&os_events, WindowCloseEvent{})
 	case win.WM_SETCURSOR:
+		fmt.printfln("WM_SETCURSOR")
 		// NOTE: on move inside window
 		// TODO!: how do set cursor?
 		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
