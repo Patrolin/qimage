@@ -36,6 +36,7 @@ main :: proc() {
 	title_w := win.stringToWstring(WINDOW_TITLE, allocator = context.allocator)
 	win.createWindow(windowClass, title_w, WINDOW_WIDTH, WINDOW_HEIGHT)
 
+	/*
 	raw_devices: []win.RAWINPUTDEVICE = {
 		win.RAWINPUTDEVICE {
 			usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
@@ -53,6 +54,7 @@ main :: proc() {
 			),
 		),
 	)
+	*/
 
 	window.dc = paint.GetDC(window.handle)
 	image = assets.loadImage("test_image.bmp")
@@ -148,7 +150,7 @@ messageHandler :: proc "stdcall" (
 			&raw_input_size,
 			size_of(win.RAWINPUTHEADER),
 		)
-		monitorInfo, windowPlacement := win.getWindowAndMonitorInfo(window.handle)
+		monitorInfo, windowPlacement := win.getWindowAndMonitorInfo(window.handle) // TODO!: add mouse.windowPos
 		monitorRect := monitorInfo.rcMonitor
 		windowRect := windowPlacement.rcNormalPosition
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
@@ -191,6 +193,7 @@ messageHandler :: proc "stdcall" (
 		}
 		fmt.println(inputs)
 	case win.WM_SETCURSOR:
+		//fmt.printfln("WM_SETCURSOR")
 		// NOTE: on move inside window
 		// TODO!: how to tell if can resize?
 		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
