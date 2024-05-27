@@ -131,11 +131,14 @@ messageHandler :: proc "stdcall" (
 		fmt.printfln("WM_DESTROY")
 		append(&os_events, WindowCloseEvent{})
 	case win.WM_SETCURSOR:
-		//fmt.printfln("WM_SETCURSOR")
-		// NOTE: on move inside window
-		// TODO!: how do set cursor?
-		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
-		result = 1
+		//fmt.printfln("WM_SETCURSOR: %v", os.LOWORD(lParam))
+		switch os.LOWORD(lParam) {
+		case win.HTCLIENT:
+			win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
+			result = 1
+		case:
+			result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
+		}
 	case:
 		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
 	}
