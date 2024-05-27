@@ -1,7 +1,6 @@
 package lib_events
-import "../init"
 import "../math"
-import "../os_utils"
+import "../os"
 import "core:fmt"
 import win "core:sys/windows"
 
@@ -9,7 +8,7 @@ import win "core:sys/windows"
 @(private)
 default_window_class_name: win.wstring
 initWindow :: proc() {
-	default_window_class_name = os_utils.stringToWstring(
+	default_window_class_name = os.stringToWstring(
 		"lib_window_default",
 		allocator = context.allocator,
 	)
@@ -48,7 +47,7 @@ Window :: struct {
 }
 openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
 	assert(os_events_info.current_window == nil, "We don't support multiple windows")
-	title: win.wstring = len(title) > 0 ? os_utils.stringToWstring(title) : nil
+	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
 	windowStyle := win.WS_OVERLAPPEDWINDOW
 	adjustRect := win.RECT{0, 0, rect.width, rect.height}
 	win.AdjustWindowRectEx(&adjustRect, windowStyle, win.FALSE, 0)
@@ -129,7 +128,7 @@ toggleFullscreen :: proc(window: win.HWND) {
 // NOTE: sometimes this returns up to 5.832 ms later than it should
 doVsyncBadly :: proc() -> f64 {
 	win.DwmFlush()
-	return init.time()
+	return os.time()
 }
 /* NOTE: doVsyncWell():
 	for isRunning {

@@ -25,7 +25,7 @@ MouseEvent :: struct {
 }
 KeyboardEvent :: struct {
 	key_code, scan_code: u32,
-	char:                string,
+	text:                string,
 	repeat_count:        u32,
 	is_dead_char:        b32,
 }

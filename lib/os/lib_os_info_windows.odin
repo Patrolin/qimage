@@ -1,4 +1,4 @@
-package lib_init
+package lib_os
 import "../math"
 import "core:os"
 import win "core:sys/windows"

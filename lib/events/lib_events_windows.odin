@@ -1,6 +1,5 @@
 package lib_events
-import "../init"
-import "../os_utils"
+import "../os"
 import "core:fmt"
 import "core:intrinsics"
 import win "core:sys/windows"
@@ -35,7 +34,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = init.defaultContext()
+	context = os.defaultContext()
 	result = 0
 	switch message {
 	case win.WM_PAINT:
@@ -75,7 +74,7 @@ messageHandler :: proc "stdcall" (
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
 				// TODO: https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
-				event.pos = os_utils.getCursorPos()
+				event.pos = os.getCursorPos()
 			case win.MOUSE_MOVE_ABSOLUTE:
 				fmt.assertf(false, "win.MOUSE_MOVE_ABSOLUTE: %v", raw_input)
 			}
@@ -93,33 +92,31 @@ messageHandler :: proc "stdcall" (
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		fmt.printfln("WM_KEYxx")
 		// NOTE: https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
-		key_code: u32 = u32(os_utils.LOWORD(wParam))
-		repeat_count: u32 = u32(os_utils.LOWORD(lParam))
-		flags := os_utils.HIWORD(lParam)
-		scan_code: u32 = u32(os_utils.LOBYTE(flags))
+		key_code: u32 = u32(os.LOWORD(wParam))
+		repeat_count: u32 = u32(os.LOWORD(lParam))
+		flags := os.HIWORD(lParam)
+		scan_code: u32 = u32(os.LOBYTE(flags))
 		if (flags & win.KF_EXTENDED) == win.KF_EXTENDED {
-			scan_code = os_utils.MAKEWORD(scan_code, 0xE0) // e.g. Windows key
+			scan_code = os.MAKEWORD(scan_code, 0xE0) // e.g. Windows key
 		}
-		char_buffer: [10]win.WCHAR // NOTE: windows can theoretically return ligatures with up to 255 WCHARs
-		lpwstr: win.LPWSTR = &char_buffer[0]
-		char_len := win.ToUnicode(
+		text_buffer: [10]win.WCHAR // NOTE: windows can theoretically return ligatures with up to 255 WCHARs
+		text_len := win.ToUnicode(
 			key_code,
 			scan_code,
 			&_keyboard_state[0],
-			&char_buffer[0],
-			len(char_buffer),
+			&text_buffer[0],
+			len(text_buffer),
 			4,
 		)
-		char := os_utils.wstringToString(char_buffer[:max(char_len, 0)]) // TODO: this doesn't seem to translate characters correctly
-		test := os_utils.wstringToString(os_utils.stringToWstring("ě"))
+		text := os.wstringToString(text_buffer[:max(text_len, 0)]) // TODO: this doesn't seem to translate characters correctly
 		append(
 			&os_events,
 			KeyboardEvent {
 				key_code     = key_code,
 				scan_code    = scan_code,
-				char         = char,
+				text         = text,
 				repeat_count = repeat_count,
-				is_dead_char = char_len < 0, // TODO: store dead char here?
+				is_dead_char = text_len < 0, // TODO: store dead char here?
 			},
 		)
 	case win.WM_SIZE:

@@ -1,8 +1,8 @@
 package lib_paint
 import "../events"
 import "../file"
-import "../init"
 import "../math"
+import "../os"
 import "core:fmt"
 import win "core:sys/windows"
 
@@ -39,14 +39,14 @@ resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	new_data_size := int(width) * int(height) * 4
 	if new_data_size != 0 {
 		// NOTE: size is 0 when window is minimized
-		new_data_buffer := init.pageAlloc(math.bytes(new_data_size))
+		new_data_buffer := os.pageAlloc(math.bytes(new_data_size))
 		frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)] // NOTE: width and height should never be zero
 	}
 	frameBuffer.width = width
 	frameBuffer.height = height
 	if prev_buffer.data != nil {
 		copyFrameBuffer(prev_buffer, frameBuffer^)
-		init.pageFree(&prev_buffer.data[0])
+		os.pageFree(&prev_buffer.data[0])
 	}
 }
 copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {

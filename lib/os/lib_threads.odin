@@ -1,4 +1,4 @@
-package lib_init
+package lib_os
 import "../math"
 import "core:fmt"
 import "core:intrinsics"

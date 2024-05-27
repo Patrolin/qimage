@@ -3,14 +3,14 @@ package main
 
 import "../../lib/events"
 import "../../lib/gl"
-import "../../lib/init"
 import "../../lib/math"
+import "../../lib/os"
 import "core:fmt"
 
 isRunning := false
 
 main :: proc() {
-	context = init.init()
+	context = os.init()
 	events.setOnPaint(onPaint)
 	events.initWindow()
 	window := events.openWindow("gl_min_renderer", {-1, -1, 1366, 768})
@@ -19,7 +19,7 @@ main :: proc() {
 		t, prev_t, max_ddt: f64,
 		frame:              int,
 	}
-	timing.t = init.time()
+	timing.t = os.time()
 	timing.prev_t = timing.t
 	for isRunning = true; isRunning; {
 		dt := timing.t - timing.prev_t
@@ -36,9 +36,9 @@ main :: proc() {
 				isRunning = false
 			}
 		}
-		msg_t := init.time()
+		msg_t := os.time()
 		updateAndRender()
-		render_t := init.time()
+		render_t := os.time()
 		fmt.printf(
 			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
 			math.millis(dt),

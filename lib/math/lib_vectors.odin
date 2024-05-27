@@ -14,7 +14,10 @@ AbsoluteRect :: struct {
 RelativeRect :: struct {
 	left, top, width, height: i32,
 }
-
+absoluteRect :: #force_inline proc "contextless" (rect: RelativeRect) -> AbsoluteRect {
+	return {rect.left, rect.top, rect.left + rect.width, rect.top + rect.height}
+}
+// TODO: rect utils
 inBounds :: proc(pos: i32x2, rect: AbsoluteRect) -> bool {
 	return(
 		(pos.x >= rect.left) &
@@ -23,15 +26,18 @@ inBounds :: proc(pos: i32x2, rect: AbsoluteRect) -> bool {
 		(pos.y <= rect.top) \
 	)
 }
+
+@(private)
 clamp_int :: proc(x, min, max: $T) -> T where intrinsics.type_is_numeric(T) {
 	x := x + (min - x) * T(x < min)
 	x = x + (max - x) * T(x > max)
 	return x
 }
-clamp_v2i :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2 {
+@(private)
+clamp_i32x2 :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2 {
 	return {clamp(pos.x, rect.left, rect.right), clamp(pos.y, rect.top, rect.bottom)}
 }
 clamp :: proc {// TODO!: simd clamp?
 	clamp_int,
-	clamp_v2i,
+	clamp_i32x2,
 }

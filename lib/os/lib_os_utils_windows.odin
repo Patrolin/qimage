@@ -1,18 +1,7 @@
-// TODO: throw this in lib_init?
-package lib_windows
+package lib_os
 import "../math"
 import win "core:sys/windows"
 
-foreign import user32 "system:user32.lib"
-@(default_calling_convention = "std")
-foreign user32 {
-	MessageBoxA :: proc(window: win.HWND, body: win.LPCSTR, title: win.LPCSTR, type: win.UINT) ---
-}
-getCursorPos :: proc() -> math.i32x2 {
-	pos: win.POINT
-	win.GetCursorPos(&pos)
-	return {pos.x, pos.y}
-}
 // bytes
 LOWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v & 0xffff)}
 HIWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v >> 16)}
@@ -37,4 +26,15 @@ wstringToString_slice :: proc(str: []win.WCHAR, allocator := context.temp_alloca
 wstringToString :: proc {
 	wstringToString_nullTerminated,
 	wstringToString_slice,
+}
+// other
+foreign import user32 "system:user32.lib"
+@(default_calling_convention = "std")
+foreign user32 {
+	MessageBoxA :: proc(window: win.HWND, body: win.LPCSTR, title: win.LPCSTR, type: win.UINT) ---
+}
+getCursorPos :: proc() -> math.i32x2 {
+	pos: win.POINT
+	win.GetCursorPos(&pos)
+	return {pos.x, pos.y}
 }

@@ -1,53 +1,88 @@
-test
+/test
   Case :: struct($K: typeid, $V: typeid)
-math/bits
-  bytes :: distinct int
-  kibiBytes :: proc(v: int) -> bytes
-  mebiBytes :: proc(v: int) -> bytes
-  gibiBytes :: proc(v: int) -> bytes
-  clz :: proc(x: $T) -> T
-  ctz :: proc(x: $T) -> T
-  count_ones :: proc(x: $T) -> T
-  count_zeros :: proc(x: $T) -> T
-  lowMask :: proc(power_of_two: $T) -> T
-  getBit :: proc(x, bit_index: $T) -> T
-  setBit :: proc(x, bit_index, bit_value: $T) -> T
-math/stats
-  cycles :: proc() -> int
-  roundToInt :: proc(x: $T) -> int
-math/vectors
-  TODO!: document math/vectors
-init
+/math
+  /bits
+    bytes :: distinct int
+    kibiBytes :: proc(v: int) -> bytes
+    mebiBytes :: proc(v: int) -> bytes
+    gibiBytes :: proc(v: int) -> bytes
+    clz :: proc(x: $T) -> T
+    ctz :: proc(x: $T) -> T
+    count_ones :: proc(x: $T) -> T
+    count_zeros :: proc(x: $T) -> T
+    lowMask :: proc(power_of_two: $T) -> T
+    getBit :: proc(x, bit_index: $T) -> T
+    setBit :: proc(x, bit_index, bit_value: $T) -> T
+    ilog2Ceil :: proc(x: $T) -> T
+  /stats
+    nanos :: proc(value: $T) -> T
+    micros :: proc(value: $T) -> T
+    millis :: proc(value: $T) -> T
+    seconds :: proc(value: $T) -> T
+    cycles :: proc() -> int
+    roundToInt :: proc(x: $T) -> int
+  /vectors
+    i32x2 :: [2]i32
+    i32x3 :: [3]i32
+    i32x4 :: [4]i32
+    f32x2 :: [2]f32
+    f32x3 :: [3]f32
+    f32x4 :: [4]f32
+    AbsoluteRect :: struct { left, top, right, bottom: i32 }
+    RelativeRect :: struct { left, top, width, height: i32 }
+    absoluteRect :: #force_inline proc "contextless" (rect: RelativeRect) -> AbsoluteRect
+    clamp :: proc(x, min, max: $T) -> T
+    clamp_i32x2 :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2
+/os
   emptyContext :: proc "contextless" ()
   defaultContext :: proc "contextless" ()
   init :: proc "contextless" ()
-init/os_info
-  os_info: struct {
-    page_size:          int,
-    large_page_size:    int,
-    logical_core_count: int,
-  }
-  initOsInfo :: proc "contextless" ()
-  time :: proc() -> f64
-init/alloc
-  pageAlloc :: proc(size: math.bytes) -> []u8
-  pageFree :: proc(ptr: rawptr)
-  partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
-  partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
-  slabAllocator :: proc() -> mem.Allocator
-init/threads
-  initThreads :: proc()
-  addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
-  joinQueue :: proc(queue: ^WorkQueue)
-  TicketMutex :: struct {
-    next, serving: u32
-  }
-  getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
-  getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
-  getMutex :: proc(mutex: ^TicketMutex)
-  releaseMutex :: proc(mutex: ^TicketMutex)
-TODO!: document other libs
-window
-  initWindow :: proc()
-  setOnPaint :: proc(v: proc())
-  openWindow :: proc(title: string, rect: math.RelativeRect) -> (window: Window)
+  /os_info
+    os_info: struct {
+      page_size:          int,
+      large_page_size:    int,
+      logical_core_count: int,
+    }
+    initOsInfo :: proc "contextless" ()
+    time :: proc() -> f64
+  /alloc
+    pageAlloc :: proc(size: math.bytes) -> []u8
+    pageFree :: proc(ptr: rawptr)
+    partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
+    partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
+    slabAllocator :: proc() -> mem.Allocator
+  /threads
+    initThreads :: proc()
+    addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
+    joinQueue :: proc(queue: ^WorkQueue)
+    TicketMutex :: struct {
+      next, serving: u32
+    }
+    getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
+    getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
+    getMutex :: proc(mutex: ^TicketMutex)
+    releaseMutex :: proc(mutex: ^TicketMutex)
+  /os_utils_windows
+    LOWORD :: #force_inline proc "contextless" (v: $T) -> u16
+    HIWORD :: #force_inline proc "contextless" (v: $T) -> u16
+    MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32
+    LOBYTE :: #force_inline proc "contextless" (v: $T) -> u8
+    HIBYTE :: #force_inline proc "contextless" (v: $T) -> u8
+    stringToWstring: proc(s: string, allocator := context.temp_allocator) -> wstring
+    wstringToString :: proc(str: [^]win.WCHAR, allocator := context.temp_allocator) -> string
+    wstringToString :: proc(str: []win.WCHAR, allocator := context.temp_allocator) -> string
+    MessageBoxA :: proc(window: win.HWND, body: win.LPCSTR, title: win.LPCSTR, type: win.UINT) ---
+    getCursorPos :: proc() -> math.i32x2
+TODO: document paint, gl, ...?
+/events
+  OsEvent :: union {...}
+  getAllEvents :: proc()
+  os_events: [dynamic]OsEvent
+  /window
+    Window :: struct {
+      width, height: i32,
+      ...
+    }
+    setOnPaint :: proc(v: proc(window: Window))
+    initWindow :: proc()
+    openWindow :: proc(title: string, rect: math.RelativeRect) -> (window: Window)
