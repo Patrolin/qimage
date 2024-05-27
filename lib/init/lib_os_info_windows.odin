@@ -14,7 +14,7 @@ foreign kernel32 {
 
 initOsInfo :: proc "contextless" () {
 	context = emptyContext()
-	// stdin, stdout, stderr
+	// console
 	ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
 	STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
 	STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
@@ -23,6 +23,7 @@ initOsInfo :: proc "contextless" () {
 	os.stdin = os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
 	os.stdout = os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
 	os.stderr = os.Handle(win.GetStdHandle(STD_ERROR_HANDLE))
+	win.SetConsoleOutputCP(win.CP_UTF8)
 	// _time_divisor
 	query_performance_frequency: win.LARGE_INTEGER
 	assert(bool(win.QueryPerformanceFrequency(&query_performance_frequency)))

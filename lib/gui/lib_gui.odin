@@ -10,7 +10,6 @@ volumeSlider := f32(0.0)
 username := ""
 render :: proc {
 	guiState: gui.GuiState
-  // TODO!: allocate strings in a render arena?
   gui.text(&guiState, fmt.aprintf("counter: %v", counter))
   if gui.button("Click me!") {
     counter += 1

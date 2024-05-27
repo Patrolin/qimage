@@ -13,8 +13,28 @@ getCursorPos :: proc() -> math.i32x2 {
 	win.GetCursorPos(&pos)
 	return {pos.x, pos.y}
 }
+// bytes
+LOWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v & 0xffff)}
+HIWORD :: #force_inline proc "contextless" (v: $T) -> u16 {return u16(v >> 16)}
+MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32 {return (hi << 16) | lo}
+LOBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v & 0xff)}
+HIBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v >> 8)}
+// wstring
 stringToWstring :: win.utf8_to_wstring
-wstringToString :: proc(str: win.wstring, allocator := context.temp_allocator) -> string {
+@(private)
+wstringToString_nullTerminated :: proc(
+	str: [^]win.WCHAR,
+	allocator := context.temp_allocator,
+) -> string {
 	res, err := win.wstring_to_utf8(str, -1, allocator = allocator)
 	return res
+}
+@(private)
+wstringToString_slice :: proc(str: []win.WCHAR, allocator := context.temp_allocator) -> string {
+	res, err := win.wstring_to_utf8(raw_data(str), len(str), allocator = allocator)
+	return res
+}
+wstringToString :: proc {
+	wstringToString_nullTerminated,
+	wstringToString_slice,
 }

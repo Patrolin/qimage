@@ -24,9 +24,10 @@ MouseEvent :: struct {
 	LMB: ButtonState,
 }
 KeyboardEvent :: struct {
-	char_code, scan_code: u32,
-	char:                 rune,
-	repeat_count:         int,
+	key_code, scan_code: u32,
+	char:                string,
+	repeat_count:        u32,
+	is_dead_char:        b32,
 }
 WindowResizeEvent :: struct {}
 WindowCloseEvent :: struct {}

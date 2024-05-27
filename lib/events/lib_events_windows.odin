@@ -5,6 +5,9 @@ import "core:fmt"
 import "core:intrinsics"
 import win "core:sys/windows"
 
+@(private)
+_keyboard_state: [1]win.BYTE // NOTE: we tell windows not to write here
+
 getAllEvents :: proc() {
 	clear(&os_events)
 	reserve(&os_events, 20)
@@ -89,33 +92,49 @@ messageHandler :: proc "stdcall" (
 	// TODO!: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		fmt.printfln("WM_KEYxx")
-		char_code := u32(wParam)
-		scan_code := u32((lParam >> 16) & 0xff)
-		char := rune('a') // TODO!: get char - call ToUnicode()
-		repeat_count := lParam < 0x8000_0000 ? lParam & 0xffff : 0
+		// NOTE: https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
+		key_code: u32 = u32(os_utils.LOWORD(wParam))
+		repeat_count: u32 = u32(os_utils.LOWORD(lParam))
+		flags := os_utils.HIWORD(lParam)
+		scan_code: u32 = u32(os_utils.LOBYTE(flags))
+		if (flags & win.KF_EXTENDED) == win.KF_EXTENDED {
+			scan_code = os_utils.MAKEWORD(scan_code, 0xE0) // e.g. Windows key
+		}
+		char_buffer: [10]win.WCHAR // NOTE: windows can theoretically return ligatures with up to 255 WCHARs
+		lpwstr: win.LPWSTR = &char_buffer[0]
+		char_len := win.ToUnicode(
+			key_code,
+			scan_code,
+			&_keyboard_state[0],
+			&char_buffer[0],
+			len(char_buffer),
+			4,
+		)
+		char := os_utils.wstringToString(char_buffer[:max(char_len, 0)]) // TODO: this doesn't seem to translate characters correctly
+		test := os_utils.wstringToString(os_utils.stringToWstring("ě"))
 		append(
 			&os_events,
 			KeyboardEvent {
-				char_code = char_code,
-				scan_code = scan_code,
-				char = char,
+				key_code     = key_code,
+				scan_code    = scan_code,
+				char         = char,
 				repeat_count = repeat_count,
+				is_dead_char = char_len < 0, // TODO: store dead char here?
 			},
 		)
 	case win.WM_SIZE:
-		fmt.printfln("WM_SIZE", lParam)
+		fmt.printfln("WM_SIZE: %v", lParam)
 		os_events_info.current_window.width = i32(win.LOWORD(win.DWORD(lParam)))
 		os_events_info.current_window.height = i32(win.HIWORD(win.DWORD(lParam)))
 		if !os_events_info.got_resize_event {
 			append(&os_events, WindowResizeEvent{})
-			fmt.printfln("os_events: %v", os_events)
 			os_events_info.got_resize_event = true
 		}
 	case win.WM_DESTROY:
 		fmt.printfln("WM_DESTROY")
 		append(&os_events, WindowCloseEvent{})
 	case win.WM_SETCURSOR:
-		fmt.printfln("WM_SETCURSOR")
+		//fmt.printfln("WM_SETCURSOR")
 		// NOTE: on move inside window
 		// TODO!: how do set cursor?
 		win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))

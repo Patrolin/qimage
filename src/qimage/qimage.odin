@@ -10,7 +10,7 @@ updateAndRender :: proc() {
 	// clear to blue // NOTE: this takes .7+ ms
 	for y in 0 ..< int(frame_buffer.height) {
 		for x in 0 ..< int(frame_buffer.width) {
-			rgba := math.v4{128, 128, 255, 0}
+			rgba := math.f32x4{128, 128, 255, 0}
 			paint.packRGBA(frame_buffer, x, y, rgba)
 		}
 	}
@@ -18,7 +18,6 @@ updateAndRender :: proc() {
 	pitch := 3
 	stride := pitch * int(image.width)
 	last_mouse_pos := input.lastMousePos(&inputs)
-	fmt.println("last_mouse_pos", last_mouse_pos)
 	if last_mouse_pos.x >= 0 && last_mouse_pos.y >= 0 {
 		y_end := min(int(image.height), int(frame_buffer.height) - int(last_mouse_pos.y))
 		x_end := min(int(image.width), int(frame_buffer.width) - int(last_mouse_pos.x))
@@ -31,7 +30,7 @@ updateAndRender :: proc() {
 					frame_buffer,
 					int(last_mouse_pos.x) + x,
 					int(last_mouse_pos.y) + y,
-					math.v4i{i16(R), i16(G), i16(B), 0xff},
+					math.i32x4{i32(R), i32(G), i32(B), 0xff},
 				)
 			}
 		}
