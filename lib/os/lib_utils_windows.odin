@@ -1,5 +1,6 @@
 package lib_os
 import "../math"
+import "core:fmt"
 import win "core:sys/windows"
 
 // bytes
@@ -37,4 +38,33 @@ getCursorPos :: proc() -> math.i32x2 {
 	pos: win.POINT
 	win.GetCursorPos(&pos)
 	return {pos.x, pos.y}
+}
+getCursorMove :: proc(rawMove: math.i32x2) -> math.i32x2 {
+	speed: int // NOTE: 1-20
+	acceleration: [3]win.c_int
+	win.SystemParametersInfoW(win.SPI_GETMOUSESPEED, 0, &speed, 0)
+	win.SystemParametersInfoW(win.SPI_GETMOUSE, 0, &acceleration, 0)
+	x := rawMove.x
+	if acceleration[2] > 0 && acceleration[0] < abs(x) {
+		x *= 2
+	}
+	if acceleration[2] == 2 && acceleration[1] < abs(x) {
+		x *= 2
+	}
+	y := rawMove.y
+	if acceleration[2] > 0 && acceleration[0] < abs(y) {
+		y *= 2
+	}
+	if acceleration[2] == 2 && acceleration[1] < abs(y) {
+		y *= 2
+	}
+	move := math.i32x2{x, y}
+	fmt.printfln(
+		"rawMove: %v, speed: %v, acceleration: %v, move: %v",
+		rawMove,
+		speed,
+		acceleration,
+		move,
+	)
+	return move
 }

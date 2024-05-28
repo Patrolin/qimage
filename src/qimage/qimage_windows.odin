@@ -24,26 +24,6 @@ main :: proc() {
 	events.setOnPaint(onPaint)
 	events.initWindow()
 	window := events.openWindow("qimage", {-1, -1, 1366, 768})
-
-	/* TODO!: rawinput
-	raw_devices: []win.RAWINPUTDEVICE = {
-		win.RAWINPUTDEVICE {
-			usUsagePage = win.RIUP_MOUSE_CONTROLLER_KEYBOARD,
-			usUsage = win.RIU_MOUSE,
-			dwFlags = 0,
-			hwndTarget = window.handle,
-		}, // TODO: don't send WM_MOVE events
-	}
-	assert(
-		bool(
-			win.RegisterRawInputDevices(
-				&raw_devices[0],
-				u32(len(raw_devices)),
-				size_of(win.RAWINPUTDEVICE),
-			),
-		),
-	)
-	*/
 	image = assets.loadImage("test_image.bmp")
 	/*
 	file.printImage(image, 0, 0, 3, 3)

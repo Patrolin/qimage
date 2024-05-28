@@ -77,11 +77,28 @@ openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
 		fmt.assertf(false, "error: %v\n", lastError)
 	}
 	// NOTE: windows animations are bad and may cause flicker, so we hide them behind unminimize animation
-
 	win.ShowWindow(window.handle, win.SW_MINIMIZE)
 	win.ShowWindow(window.handle, win.SW_RESTORE)
 	win.ShowWindow(window.handle, win.SW_SHOWNORMAL)
 	window.dc = win.GetDC(window.handle)
+	// mouse input
+	raw_devices: []win.RAWINPUTDEVICE = {
+		win.RAWINPUTDEVICE {
+			usUsagePage = RIUP_MOUSE_CONTROLLER_KEYBOARD,
+			usUsage     = RIU_MOUSE,
+			dwFlags     = 0, // NOTE: RIDEV_NOLEGACY disables WM_MOUSEMOVE, WM_SIZE and WM_SETCURSOR, making it useless outside fullscreen
+			hwndTarget  = window.handle,
+		},
+	}
+	assert(
+		bool(
+			win.RegisterRawInputDevices(
+				&raw_devices[0],
+				u32(len(raw_devices)),
+				size_of(win.RAWINPUTDEVICE),
+			),
+		),
+	)
 	return window
 }
 

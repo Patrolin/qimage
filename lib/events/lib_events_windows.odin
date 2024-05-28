@@ -11,6 +11,7 @@ getAllEvents :: proc() {
 	clear(&os_events)
 	shrink(&os_events, 20)
 	os_events_info.got_resize_event = false
+	// TODO!: reset mouse pos with GetCursor
 	msg: win.MSG
 	for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
 		win.DispatchMessageW(&msg)
@@ -37,6 +38,16 @@ messageHandler :: proc "stdcall" (
 	context = os.defaultContext()
 	result = 0
 	switch message {
+	// minimum needed messages
+	case win.WM_SIZE:
+		fmt.printfln("WM_SIZE: %v", lParam)
+		os_events_info.current_window.width = i32(win.LOWORD(win.DWORD(lParam)))
+		os_events_info.current_window.height = i32(win.HIWORD(win.DWORD(lParam)))
+		// TODO: hold shift to resize at fixed ratio
+		if !os_events_info.got_resize_event {
+			append(&os_events, WindowResizeEvent{})
+			os_events_info.got_resize_event = true
+		}
 	case win.WM_PAINT:
 		fmt.printfln("WM_PAINT")
 		paintStruct: win.PAINTSTRUCT
@@ -50,6 +61,13 @@ messageHandler :: proc "stdcall" (
 			},
 		)
 		win.EndPaint(windowHandle, &paintStruct)
+	case win.WM_CLOSE:
+		fmt.printfln("WM_CLOSE")
+		append(&os_events, WindowCloseEvent{})
+	// inputs
+	case win.WM_MOVE:
+		x := os.LOWORD(lParam)
+		y := os.HIWORD(lParam) // TODO: store the move
 	case win.WM_INPUT:
 		fmt.printfln("WM_INPUT")
 		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
@@ -74,6 +92,7 @@ messageHandler :: proc "stdcall" (
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
 				// TODO: https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
+				os.getCursorMove({raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY})
 				event.pos = os.getCursorPos()
 			case win.MOUSE_MOVE_ABSOLUTE:
 				fmt.assertf(false, "win.MOUSE_MOVE_ABSOLUTE: %v", raw_input)
@@ -88,7 +107,7 @@ messageHandler :: proc "stdcall" (
 			}
 			append(&os_events, event)
 		}
-	// TODO!: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
+	// TODO: handle WM_POINTER events https://learn.microsoft.com/en-us/windows/win32/tablet/architecture-of-the-stylusinput-apis
 	case win.WM_KEYDOWN, win.WM_SYSKEYDOWN, win.WM_KEYUP, win.WM_SYSKEYUP:
 		fmt.printfln("WM_KEYxx")
 		// NOTE: https://learn.microsoft.com/en-us/windows/win32/inputdev/about-keyboard-input
@@ -106,7 +125,7 @@ messageHandler :: proc "stdcall" (
 			&_keyboard_state[0],
 			&text_buffer[0],
 			len(text_buffer),
-			4,
+			0x4,
 		)
 		text := os.wstringToString(text_buffer[:max(text_len, 0)])
 		append(
@@ -119,17 +138,6 @@ messageHandler :: proc "stdcall" (
 				is_dead_char = text_len < 0, // TODO: store dead char here?
 			},
 		)
-	case win.WM_SIZE:
-		fmt.printfln("WM_SIZE: %v", lParam)
-		os_events_info.current_window.width = i32(win.LOWORD(win.DWORD(lParam)))
-		os_events_info.current_window.height = i32(win.HIWORD(win.DWORD(lParam)))
-		if !os_events_info.got_resize_event {
-			append(&os_events, WindowResizeEvent{})
-			os_events_info.got_resize_event = true
-		}
-	case win.WM_DESTROY:
-		fmt.printfln("WM_DESTROY")
-		append(&os_events, WindowCloseEvent{})
 	case win.WM_SETCURSOR:
 		//fmt.printfln("WM_SETCURSOR: %v", os.LOWORD(lParam))
 		switch os.LOWORD(lParam) {
