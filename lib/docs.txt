@@ -37,7 +37,7 @@
   emptyContext :: proc "contextless" ()
   defaultContext :: proc "contextless" ()
   init :: proc "contextless" ()
-  /os_info
+  /info
     os_info: struct {
       page_size:          int,
       large_page_size:    int,
@@ -62,7 +62,7 @@
     getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
     getMutex :: proc(mutex: ^TicketMutex)
     releaseMutex :: proc(mutex: ^TicketMutex)
-  /os_utils_windows
+  /utils_windows
     LOWORD :: #force_inline proc "contextless" (v: $T) -> u16
     HIWORD :: #force_inline proc "contextless" (v: $T) -> u16
     MAKEWORD :: #force_inline proc "contextless" (hi, lo: u32) -> u32

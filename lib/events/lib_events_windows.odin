@@ -108,7 +108,7 @@ messageHandler :: proc "stdcall" (
 			len(text_buffer),
 			4,
 		)
-		text := os.wstringToString(text_buffer[:max(text_len, 0)]) // TODO: this doesn't seem to translate characters correctly
+		text := os.wstringToString(text_buffer[:max(text_len, 0)])
 		append(
 			&os_events,
 			KeyboardEvent {
