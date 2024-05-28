@@ -39,26 +39,14 @@ getCursorPos :: proc() -> math.i32x2 {
 	win.GetCursorPos(&pos)
 	return {pos.x, pos.y}
 }
-getCursorMove :: proc(rawMove: math.i32x2) -> math.i32x2 {
-	speed: int // NOTE: 1-20
-	acceleration: [3]win.c_int
+getCursorMove :: proc(rawMove: math.i32x2) -> math.f32x2 {
+	speed: i32 // NOTE: 1-20
+	acceleration: [3]i32 // NOTE: [0, 0, 0] or [6, 10, 1]
 	win.SystemParametersInfoW(win.SPI_GETMOUSESPEED, 0, &speed, 0)
 	win.SystemParametersInfoW(win.SPI_GETMOUSE, 0, &acceleration, 0)
-	x := rawMove.x
-	if acceleration[2] > 0 && acceleration[0] < abs(x) {
-		x *= 2
-	}
-	if acceleration[2] == 2 && acceleration[1] < abs(x) {
-		x *= 2
-	}
-	y := rawMove.y
-	if acceleration[2] > 0 && acceleration[0] < abs(y) {
-		y *= 2
-	}
-	if acceleration[2] == 2 && acceleration[1] < abs(y) {
-		y *= 2
-	}
-	move := math.i32x2{x, y}
+	x := doMouseAcceleration(rawMove.x, speed, acceleration)
+	y := doMouseAcceleration(rawMove.y, speed, acceleration)
+	move := math.f32x2{f32(x), f32(y)} / 10
 	fmt.printfln(
 		"rawMove: %v, speed: %v, acceleration: %v, move: %v",
 		rawMove,
@@ -67,4 +55,19 @@ getCursorMove :: proc(rawMove: math.i32x2) -> math.i32x2 {
 		move,
 	)
 	return move
+}
+@(private)
+doMouseAcceleration :: #force_inline proc "contextless" (
+	raw_value: i32,
+	speed: i32,
+	acceleration: [3]win.c_int,
+) -> i32 {
+	value := raw_value * speed
+	if acceleration[2] > 0 && abs(raw_value) >= acceleration[0] {
+		value *= 2
+		if acceleration[2] == 2 && abs(raw_value) >= acceleration[0] {
+			value *= 2
+		}
+	}
+	return value
 }
