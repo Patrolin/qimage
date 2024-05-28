@@ -1,6 +1,6 @@
 package lib_os
 import "../math"
-import "core:os"
+import core_os "core:os"
 import win "core:sys/windows"
 
 foreign import kernel32 "system:kernel32.lib"
@@ -20,9 +20,9 @@ initOsInfo :: proc "contextless" () {
 	STD_OUTPUT_HANDLE :: transmute(win.DWORD)i32(-11)
 	STD_ERROR_HANDLE :: transmute(win.DWORD)i32(-12)
 	AttachConsole(ATTACH_PARENT_PROCESS)
-	os.stdin = os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
-	os.stdout = os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
-	os.stderr = os.Handle(win.GetStdHandle(STD_ERROR_HANDLE))
+	core_os.stdin = core_os.Handle(win.GetStdHandle(STD_INPUT_HANDLE))
+	core_os.stdout = core_os.Handle(win.GetStdHandle(STD_OUTPUT_HANDLE))
+	core_os.stderr = core_os.Handle(win.GetStdHandle(STD_ERROR_HANDLE))
 	win.SetConsoleOutputCP(win.CP_UTF8)
 	// _time_divisor
 	query_performance_frequency: win.LARGE_INTEGER

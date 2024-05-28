@@ -1,11 +1,11 @@
 package lib_file
 import "../math"
 import "core:fmt"
-import "core:os"
+import "core:os" // TODO: remove this
 import "core:strings"
 
 readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
-	// TODO?: write this is win api, and use page_alloc (for big files)
+	// TODO?: write this is win api, and use makeBig()
 	return os.read_entire_file(fileName, allocator = context.temp_allocator)
 }
 

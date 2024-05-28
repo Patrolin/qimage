@@ -1,7 +1,7 @@
 package lib_file
 import "../math"
+import "../os"
 import "core:fmt"
-import "core:os"
 import "core:strings"
 
 loadBmp_fromFileName :: proc(fileName: string) -> Image {
@@ -18,8 +18,7 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		image.width = i16(bitmapHeader.width)
 		image.height = i16(bitmapHeader.height)
 		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
-		// TODO!: reuse the space used for the file as image space
-		image.data = make([]u8, image.width * image.height * image.channels)
+		image.data = os.makeBig([]u8, int(image.width) * int(image.height) * int(image.channels))
 		fmt.assertf(image.height >= 0, "Negative height (%v) is not supported", image.height)
 		fmt.assertf(
 			bitmapHeader.compression == 0,

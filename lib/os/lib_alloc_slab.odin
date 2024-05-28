@@ -95,6 +95,8 @@ slabFreeAll :: proc(slab: ^SlabCache) {
 	slab.used_slots = u32(slab.header_slots)
 }
 
+@(private)
+MAX_SLAB_SIZE :: 4096
 SlabAllocator :: struct {
 	_8_slab:    ^SlabCache,
 	_16_slab:   ^SlabCache,
@@ -141,7 +143,7 @@ slabAllocator :: proc() -> mem.Allocator {
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
-	assert(size <= 4096, "Allocation size too big") // TODO: handle this?
+	assert(size <= MAX_SLAB_SIZE, "Allocation size too big")
 	group := math.ilog2Ceil(uint(size))
 	switch group {
 	case:

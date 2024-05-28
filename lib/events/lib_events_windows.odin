@@ -9,7 +9,7 @@ _keyboard_state: [1]win.BYTE // NOTE: we tell windows not to write here
 
 getAllEvents :: proc() {
 	clear(&os_events)
-	reserve(&os_events, 20)
+	shrink(&os_events, 20)
 	os_events_info.got_resize_event = false
 	msg: win.MSG
 	for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {

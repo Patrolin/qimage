@@ -6,19 +6,25 @@ import bits "core:math/bits"
 import "core:testing"
 
 bytes :: distinct int
-kibiBytes :: proc(v: int) -> bytes {return bytes(1024 * v)}
-mebiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * v)}
-gibiBytes :: proc(v: int) -> bytes {return bytes(1024 * 1024 * 1024 * v)}
+kibiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(1024 * v)}
+mebiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(1024 * 1024 * v)}
+gibiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(
+		1024 * 1024 * 1024 * v,
+	)}
 
 clz :: bits.count_leading_zeros
 ctz :: bits.count_trailing_zeros
 countOnes :: bits.count_ones
 countZeros :: bits.count_zeros
 
-lowMask :: proc(power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+lowMask :: #force_inline proc "contextless" (
+	power_of_two: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return power_of_two - 1
 }
-getBit :: proc(x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
+getBit :: #force_inline proc "contextless" (
+	x, bit_index: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	return (x >> bit_index) & 1
 }
 setBit :: proc(x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsigned(T) {

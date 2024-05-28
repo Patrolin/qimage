@@ -1,6 +1,7 @@
 package lib_input
 import "../math"
 
+// TODO: just make these globals
 Inputs :: struct {
 	mouse:    Mouse,
 	keyboard: Keyboard,
@@ -11,12 +12,13 @@ Mouse :: struct {
 	LMB:      Button,
 	RMB:      Button,
 }
+MAX_MOUSE_PATH :: 4 // NOTE: we may get an infinite number of mouse events when sizing on windows
 initMouse :: proc(inputs: ^Inputs) {
-	inputs.mouse.pos = make([dynamic]math.i32x2, 0, 4)
+	shrink(&inputs.mouse.pos, MAX_MOUSE_PATH)
+	clear(&inputs.mouse.pos)
 	append(&inputs.mouse.pos, math.i32x2{max(i32), max(i32)})
 }
 addMousePath :: proc(inputs: ^Inputs, moveTo: math.i32x2) {
-	MAX_MOUSE_PATH :: 4 // NOTE: we may get an infinite number of mouse events when sizing on windows
 	if (len(inputs.mouse.pos) < MAX_MOUSE_PATH) {
 		append(&inputs.mouse.pos, moveTo)
 	} else {

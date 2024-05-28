@@ -3,15 +3,15 @@
 /math
   /bits
     bytes :: distinct int
-    kibiBytes :: proc(v: int) -> bytes
-    mebiBytes :: proc(v: int) -> bytes
-    gibiBytes :: proc(v: int) -> bytes
+    kibiBytes :: #force_inline proc "contextless" (v: int) -> bytes
+    mebiBytes :: #force_inline proc "contextless" (v: int) -> bytes
+    gibiBytes :: #force_inline proc "contextless" (v: int) -> bytes
     clz :: proc(x: $T) -> T
     ctz :: proc(x: $T) -> T
     count_ones :: proc(x: $T) -> T
     count_zeros :: proc(x: $T) -> T
-    lowMask :: proc(power_of_two: $T) -> T
-    getBit :: proc(x, bit_index: $T) -> T
+    lowMask :: #force_inline proc "contextless" (power_of_two: $T) -> T
+    getBit :: #force_inline proc "contextless" (x, bit_index: $T) -> T
     setBit :: proc(x, bit_index, bit_value: $T) -> T
     ilog2Ceil :: proc(x: $T) -> T
   /stats
@@ -48,6 +48,7 @@
   /alloc
     pageAlloc :: proc(size: math.bytes) -> []u8
     pageFree :: proc(ptr: rawptr)
+    makeBig :: proc($T: typeid/[]$V, count: int) -> T
     partitionAlloc :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
     partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
     slabAllocator :: proc() -> mem.Allocator

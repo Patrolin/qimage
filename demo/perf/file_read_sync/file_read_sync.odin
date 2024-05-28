@@ -1,7 +1,7 @@
 // odin run demo/perf/file_read_sync
 package file_read_sync
 import "core:fmt"
-import "core:os"
+import core_os "core:os"
 import "core:time"
 
 prev_time: time.Time
@@ -16,10 +16,10 @@ endTiming :: proc() {
 
 main :: proc() {
 	startTiming()
-	file, errno := os.open("demo/perf/make_1gb_file/1gb_file.txt", os.O_RDONLY)
+	file, errno := core_os.open("demo/perf/make_1gb_file/1gb_file.txt", core_os.O_RDONLY)
 	endTiming()
 	buffer := make([]u8, 1024 * 1024 * 1024)
 	endTiming()
-	os.read(file, buffer)
+	core_os.read(file, buffer)
 	endTiming()
 }
