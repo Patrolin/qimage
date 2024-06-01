@@ -21,7 +21,7 @@ main :: proc() {
 	context = os.init()
 	events.initEvents({onPaint})
 	input.initInputs()
-	window := events.openWindow("qimage", {-1, -1, 1200, 800})
+	window := events.openWindow("qimage", {1200, 800})
 	image = assets.loadImage("test_image.bmp")
 	/*
 	file.printImage(image, 0, 0, 3, 3)

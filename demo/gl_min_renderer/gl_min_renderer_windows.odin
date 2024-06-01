@@ -11,9 +11,8 @@ isRunning := false
 
 main :: proc() {
 	context = os.init()
-	events.setOnPaint(onPaint)
-	events.initWindow()
-	window := events.openWindow("gl_min_renderer", {-1, -1, 1366, 768})
+	events.initEvents({onPaint})
+	window := events.openWindow("gl_min_renderer", {1366, 768})
 	gl.initOpenGL(window.dc)
 	timing: struct {
 		t, prev_t, max_ddt: f64,
@@ -31,7 +30,7 @@ main :: proc() {
 		for os_event in events.os_events {
 			#partial switch event in os_event {
 			case events.WindowResizeEvent:
-				gl.resizeImageBuffer(window.width, window.height)
+				gl.resizeImageBuffer(window.client_rect.width, window.client_rect.height)
 			case events.WindowCloseEvent:
 				isRunning = false
 			}

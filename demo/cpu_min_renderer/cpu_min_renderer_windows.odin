@@ -13,10 +13,13 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slo
 
 main :: proc() {
 	context = os.init()
-	events.setOnPaint(onPaint)
-	events.initWindow()
-	window := events.openWindow("cpu_min_renderer", {-1, -1, 1366, 768})
-	paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+	events.initEvents({onPaint})
+	window := events.openWindow("cpu_min_renderer", {1200, 800})
+	paint.resizeFrameBuffer(
+		&frame_buffer,
+		i16(window.client_rect.width),
+		i16(window.client_rect.height),
+	)
 	// TODO: Timer?
 	timing: struct {
 		t, prev_t, max_ddt: f64,
@@ -34,7 +37,11 @@ main :: proc() {
 		for os_event in events.os_events {
 			#partial switch event in os_event {
 			case events.WindowResizeEvent:
-				paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+				paint.resizeFrameBuffer(
+					&frame_buffer,
+					i16(window.client_rect.width),
+					i16(window.client_rect.height),
+				)
 			case events.WindowCloseEvent:
 				isRunning = false
 			}

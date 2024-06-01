@@ -42,31 +42,35 @@ registerWindowClass :: proc(class: win.WNDCLASSEXW) {
 
 // open window
 Window :: struct {
-	monitor_rect:  math.RelativeRect,
-	client_rect:   math.RelativeRect,
-	window_rect:   math.RelativeRect,
-	initial_ratio: math.i32x2,
-	handle:        win.HWND,
-	dc:            win.HDC,
+	monitor_rect:         math.RelativeRect,
+	client_rect:          math.RelativeRect,
+	window_rect:          math.RelativeRect,
+	initial_client_ratio: math.i32x2,
+	handle:               win.HWND,
+	dc:                   win.HDC,
 }
-openWindow :: proc(title: string, client_rect: math.RelativeRect) -> ^Window {
+openWindow :: proc(
+	title: string,
+	client_size: math.i32x2,
+	window_pos: math.i32x2 = {-1, -1},
+) -> ^Window {
 	assert(os_events_info.current_window == nil, "We don't support multiple windows")
 	window := new(Window)
-	window.initial_ratio = {client_rect.width, client_rect.height}
+	window.initial_client_ratio = {client_size.x, client_size.y}
 	os_events_info.current_window = window
 	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
 	window_border := os.os_info.window_border
 	window_size := math.i32x2 {
-		client_rect.width + window_border.left + window_border.right,
-		client_rect.height + window_border.top + window_border.bottom,
+		client_size.x + window_border.left + window_border.right,
+		client_size.y + window_border.top + window_border.bottom,
 	}
 	window.handle = win.CreateWindowExW(
 		0,
 		default_window_class_name,
 		title,
 		win.WS_OVERLAPPEDWINDOW,
-		client_rect.left != -1 ? client_rect.left : win.CW_USEDEFAULT,
-		client_rect.top != -1 ? client_rect.top : win.CW_USEDEFAULT,
+		window_pos.x != -1 ? window_pos.x : win.CW_USEDEFAULT,
+		window_pos.y != -1 ? window_pos.y : win.CW_USEDEFAULT,
 		window_size.x,
 		window_size.y,
 		nil,
