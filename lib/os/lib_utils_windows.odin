@@ -34,6 +34,21 @@ foreign import user32 "system:user32.lib"
 foreign user32 {
 	MessageBoxA :: proc(window: win.HWND, body: win.LPCSTR, title: win.LPCSTR, type: win.UINT) ---
 }
+// rects
+getMonitorRect :: proc(window_handle: win.HWND) -> math.RelativeRect {
+	monitor := win.MonitorFromWindow(
+		window_handle,
+		win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST,
+	)
+	info := win.MONITORINFO {
+		cbSize = size_of(win.MONITORINFO),
+	}
+	assert(bool(win.GetMonitorInfoW(monitor, &info)))
+	monitor_rect := info.rcMonitor
+	return math.relativeRect(
+		{monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom},
+	)
+}
 getWindowRect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 	window_rect: win.RECT
 	win.GetWindowRect(window_handle, &window_rect)
@@ -48,6 +63,7 @@ getClientRect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 		{client_rect.left, client_rect.top, client_rect.right, client_rect.bottom},
 	)
 }
+// cursor
 getCursorPos :: proc() -> math.i32x2 {
 	pos: win.POINT
 	win.GetCursorPos(&pos)

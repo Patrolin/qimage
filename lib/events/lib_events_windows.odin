@@ -16,17 +16,21 @@ getAllEvents :: proc() {
 	for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
 		win.DispatchMessageW(&msg)
 	}
-	updateOsEventsInfo() // NOTE: we may have moved to another monitor and/or moved/resized the window
+	updateOsEventsInfo() // NOTE: window may have resized/moved/moved to another monitor
 }
 @(private)
 updateOsEventsInfo :: proc() {
 	// TODO!: get monitor rect
-	window_rect := os.getWindowRect(os_events_info.current_window.handle)
-	os_events_info.current_window.window_rect = window_rect
-	client_rect := os.getClientRect(os_events_info.current_window.handle)
+	current_window := os_events_info.current_window
+	window_handle := current_window.handle
+	monitor_rect := os.getMonitorRect(window_handle)
+	current_window.monitor_rect = monitor_rect
+	window_rect := os.getWindowRect(window_handle)
+	current_window.window_rect = window_rect
+	client_rect := os.getClientRect(window_handle)
 	client_rect_offset_x := (window_rect.width - client_rect.width) / 2
 	client_rect_offset_y := window_rect.height - client_rect.height - client_rect_offset_x
-	os_events_info.current_window.client_rect = {
+	current_window.client_rect = {
 		window_rect.left + client_rect_offset_x,
 		window_rect.top + client_rect_offset_y,
 		client_rect.width,
@@ -50,7 +54,7 @@ onPaint: proc(window: Window) = proc(window: Window) {assert(false)}
 
 // NOTE: this steals the main thread (and blocks while sizing)
 messageHandler :: proc "stdcall" (
-	windowHandle: win.HWND,
+	window_handle: win.HWND,
 	message: win.UINT,
 	wParam: win.WPARAM,
 	lParam: win.LPARAM,
@@ -67,11 +71,11 @@ messageHandler :: proc "stdcall" (
 	case win.WM_PAINT:
 		//fmt.printfln("WM_PAINT")
 		paintStruct: win.PAINTSTRUCT
-		paintDc: win.HDC = win.BeginPaint(windowHandle, &paintStruct)
+		paintDc: win.HDC = win.BeginPaint(window_handle, &paintStruct)
 		mock_window: Window = os_events_info.current_window^
 		mock_window.dc = paintDc
 		onPaint(mock_window)
-		win.EndPaint(windowHandle, &paintStruct)
+		win.EndPaint(window_handle, &paintStruct)
 	case win.WM_CLOSE:
 		//fmt.printfln("WM_CLOSE")
 		append(&os_events, WindowCloseEvent{})
@@ -111,7 +115,17 @@ messageHandler :: proc "stdcall" (
 				move := os.getCursorMove(
 					{raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY},
 				)
-				os_events_info.raw_mouse_pos += move
+				monitor_rect := os_events_info.current_window.monitor_rect
+				raw_monitor_rect := math.RelativeRect {
+					monitor_rect.left * 10,
+					monitor_rect.top * 10,
+					monitor_rect.width * 10,
+					monitor_rect.height * 10,
+				}
+				os_events_info.raw_mouse_pos += math.clamp(
+					move,
+					math.absoluteRect(raw_monitor_rect),
+				)
 				event.pos =
 					math.f32x2 {
 						f32(os_events_info.raw_mouse_pos.x),
@@ -175,10 +189,10 @@ messageHandler :: proc "stdcall" (
 			win.SetCursor(win.LoadCursorA(nil, win.IDC_ARROW))
 			result = 1
 		case:
-			result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
+			result = win.DefWindowProcW(window_handle, message, wParam, lParam)
 		}
 	case:
-		result = win.DefWindowProcW(windowHandle, message, wParam, lParam)
+		result = win.DefWindowProcW(window_handle, message, wParam, lParam)
 	}
 	free_all(context.temp_allocator)
 	return

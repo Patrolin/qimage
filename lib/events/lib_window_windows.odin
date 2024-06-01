@@ -42,6 +42,7 @@ registerWindowClass :: proc(class: win.WNDCLASSEXW) {
 
 // open window
 Window :: struct {
+	monitor_rect:  math.RelativeRect,
 	client_rect:   math.RelativeRect,
 	window_rect:   math.RelativeRect,
 	initial_ratio: math.i32x2,
