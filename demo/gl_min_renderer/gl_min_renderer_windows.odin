@@ -12,7 +12,7 @@ isRunning := false
 main :: proc() {
 	context = os.init()
 	events.initEvents({onPaint})
-	window := events.openWindow("gl_min_renderer", {1366, 768})
+	window := events.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)
 	timing: struct {
 		t, prev_t, max_ddt: f64,
