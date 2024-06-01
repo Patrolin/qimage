@@ -1,3 +1,14 @@
+dependencies
+  test // test utils
+    math // pure math functions
+      os // alloc, create threads, os utils
+        events // create a window, get window/mouse/keyboard events
+          paint // render in software
+          gl // render in hardware
+        file // read/write files
+        gui // create a gui representation
+      input // store input state
+
 /test
   Case :: struct($K: typeid, $V: typeid)
 /math
@@ -19,7 +30,6 @@
     micros :: proc(value: $T) -> T
     millis :: proc(value: $T) -> T
     seconds :: proc(value: $T) -> T
-    cycles :: proc() -> int
     roundToInt :: proc(x: $T) -> int
   /vectors
     i32x2 :: [2]i32
@@ -45,6 +55,7 @@
     }
     initOsInfo :: proc "contextless" ()
     time :: proc() -> f64
+    cycles :: proc() -> int
   /alloc
     pageAlloc :: proc(size: math.bytes) -> []u8
     pageFree :: proc(ptr: rawptr)

@@ -1,4 +1,5 @@
 package lib_events
+import "../math"
 import "../os"
 import "core:fmt"
 import "core:intrinsics"
@@ -10,21 +11,36 @@ _keyboard_state: [1]win.BYTE // NOTE: we tell windows not to write here
 getAllEvents :: proc() {
 	clear(&os_events)
 	shrink(&os_events, 20)
-	os_events_info.got_resize_event = false
-	// TODO!: reset mouse pos with GetCursor
+	resetOsEventsInfo()
 	msg: win.MSG
 	for win.PeekMessageW(&msg, nil, 0, 0, win.PM_REMOVE) {
 		win.DispatchMessageW(&msg)
+	}
+	updateOsEventsInfo() // NOTE: we may have moved to another monitor and/or moved/resized the window
+}
+@(private)
+updateOsEventsInfo :: proc() {
+	// TODO!: get monitor size
+	window_rect: win.RECT
+	win.GetWindowRect(os_events_info.current_window.handle, &window_rect)
+	os_events_info.current_window.rect = {
+		window_rect.left,
+		window_rect.top,
+		window_rect.right - window_rect.left,
+		window_rect.bottom - window_rect.top,
+	}
+	real_mouse_pos := os.getCursorPos() * 10
+	if (abs(real_mouse_pos.x - os_events_info.raw_mouse_pos.x) > 5) {
+		os_events_info.raw_mouse_pos.x = real_mouse_pos.x
+	}
+	if (abs(real_mouse_pos.y - os_events_info.raw_mouse_pos.y) > 5) {
+		os_events_info.raw_mouse_pos.y = real_mouse_pos.y
 	}
 }
 
 RIM_FOREGROUND :: 0
 RIM_BACKGROUND :: 1
-
 onPaint: proc(window: Window) = proc(window: Window) {assert(false)}
-setOnPaint :: proc(callback: proc(window: Window)) {
-	onPaint = callback
-}
 
 // NOTE: this steals the main thread (and blocks while sizing)
 messageHandler :: proc "stdcall" (
@@ -41,35 +57,24 @@ messageHandler :: proc "stdcall" (
 	// minimum needed messages
 	case win.WM_SIZE:
 		fmt.printfln("WM_SIZE: %v", lParam)
-		os_events_info.current_window.width = i32(win.LOWORD(win.DWORD(lParam)))
-		os_events_info.current_window.height = i32(win.HIWORD(win.DWORD(lParam)))
-		// TODO: hold shift to resize at fixed ratio
-		if !os_events_info.got_resize_event {
-			append(&os_events, WindowResizeEvent{})
-			os_events_info.got_resize_event = true
-		}
+		os_events_info.resized_window = true
 	case win.WM_PAINT:
 		fmt.printfln("WM_PAINT")
 		paintStruct: win.PAINTSTRUCT
 		paintDc: win.HDC = win.BeginPaint(windowHandle, &paintStruct)
-		onPaint(
-			{
-				width = os_events_info.current_window.width,
-				height = os_events_info.current_window.height,
-				handle = windowHandle,
-				dc = paintDc,
-			},
-		)
+		onPaint({rect = os_events_info.current_window.rect, handle = windowHandle, dc = paintDc})
 		win.EndPaint(windowHandle, &paintStruct)
 	case win.WM_CLOSE:
 		fmt.printfln("WM_CLOSE")
 		append(&os_events, WindowCloseEvent{})
+	// TODO: WM_SIZNG: hold shift to resize at fixed ratio
 	// inputs
 	case win.WM_MOVE:
-		x := os.LOWORD(lParam)
-		y := os.HIWORD(lParam) // TODO: store the move
+		fmt.printfln("WM_MOVE")
+		os_events_info.moved_window = true
 	case win.WM_INPUT:
 		fmt.printfln("WM_INPUT")
+		if os_events_info.moved_window {return}
 		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
 		if wParam == RIM_BACKGROUND {
 			return
@@ -92,8 +97,16 @@ messageHandler :: proc "stdcall" (
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
 				// TODO: https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
-				os.getCursorMove({raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY})
-				event.pos = os.getCursorPos()
+				move := os.getCursorMove(
+					{raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY},
+				)
+				os_events_info.raw_mouse_pos += move
+				event.pos =
+					math.f32x2 {
+						f32(os_events_info.raw_mouse_pos.x),
+						f32(os_events_info.raw_mouse_pos.y),
+					} /
+					10
 			case win.MOUSE_MOVE_ABSOLUTE:
 				fmt.assertf(false, "win.MOUSE_MOVE_ABSOLUTE: %v", raw_input)
 			}
@@ -104,6 +117,12 @@ messageHandler :: proc "stdcall" (
 			}
 			if (usButtonFlags & win.RI_MOUSE_BUTTON_1_UP) != 0 {
 				event.LMB = .Up
+			}
+			if (usButtonFlags & win.RI_MOUSE_BUTTON_2_DOWN) != 0 {
+				event.RMB = .Down
+			}
+			if (usButtonFlags & win.RI_MOUSE_BUTTON_2_UP) != 0 {
+				event.RMB = .Up
 			}
 			append(&os_events, event)
 		}

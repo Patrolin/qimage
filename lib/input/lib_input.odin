@@ -1,77 +1,42 @@
 package lib_input
-import "../math"
 
-// TODO: just make these globals
-Inputs :: struct {
-	mouse:    Mouse,
-	keyboard: Keyboard,
-}
-Mouse :: struct {
-	pos:      [dynamic]math.i32x2,
-	clickPos: math.i32x2,
-	LMB:      Button,
-	RMB:      Button,
-}
-MAX_MOUSE_PATH :: 4 // NOTE: we may get an infinite number of mouse events when sizing on windows
-initMouse :: proc(inputs: ^Inputs) {
-	shrink(&inputs.mouse.pos, MAX_MOUSE_PATH)
-	clear(&inputs.mouse.pos)
-	append(&inputs.mouse.pos, math.i32x2{max(i32), max(i32)})
-}
-addMousePath :: proc(inputs: ^Inputs, moveTo: math.i32x2) {
-	if (len(inputs.mouse.pos) < MAX_MOUSE_PATH) {
-		append(&inputs.mouse.pos, moveTo)
-	} else {
-		inputs.mouse.pos[MAX_MOUSE_PATH - 1] = moveTo
-	}
-}
-lastMousePos :: proc(inputs: ^Inputs) -> math.i32x2 {
-	return inputs.mouse.pos[len(inputs.mouse.pos) - 1]
-}
-resetInputs :: proc(inputs: ^Inputs) {
-	// mouse
-	last_mouse_pos := lastMousePos(inputs)
-	clear(&inputs.mouse.pos)
-	addMousePath(inputs, last_mouse_pos)
-	resetTransitions(&inputs.mouse.LMB)
-	resetTransitions(&inputs.mouse.RMB)
-	// keyboard
-	resetTransitions(&inputs.keyboard.Ctrl)
-	resetTransitions(&inputs.keyboard.Shift)
-	resetTransitions(&inputs.keyboard.Alt)
-	resetTransitions(&inputs.keyboard.W)
-	resetTransitions(&inputs.keyboard.A)
-	resetTransitions(&inputs.keyboard.S)
-	resetTransitions(&inputs.keyboard.D)
+initInputs :: proc() {
+	shrink(&mouse.pos, MAX_MOUSE_PATH)
+	clear(&mouse.pos)
+	append(&mouse.pos, DEFAULT_MOUSE_POS)
 }
 
-Button :: distinct u8 // transitions: u7, wasDown: u1
-Keyboard :: struct {
-	Ctrl:  Button,
-	Alt:   Button,
-	Shift: Button,
-	W:     Button,
-	A:     Button,
-	S:     Button,
-	D:     Button,
+Button :: distinct u8
+@(private)
+getTransitions :: #force_inline proc "contextless" (button: Button) -> u8 {
+	return u8(button) >> 1
+}
+wasDown :: #force_inline proc "contextless" (button: Button) -> b8 {
+	return b8(button & 1)
+}
+wentUpCount :: proc(button: Button) -> u8 {
+	was_down := wasDown(button)
+	transitions := getTransitions(button)
+	went_up_count := transitions >> 1
+	if was_down && (transitions & 1) != 0 {went_up_count += 1}
+	return went_up_count
+}
+wentDownCount :: proc(button: Button) -> u8 {
+	was_down := wasDown(button)
+	transitions := getTransitions(button)
+	went_down_count := transitions >> 1
+	if !was_down && (transitions & 1) != 0 {went_down_count += 1}
+	return went_down_count
 }
 addTransitions :: proc(button: ^Button, transitions: u8) {
 	button^ = Button(u8(button^) + (transitions << 1))
 }
-wasDown :: proc(button: Button) -> bool {
-	return bool(button & 1)
-}
-wentUp :: proc(button: Button) -> bool {
-	return wasDown(button) && bool(getTransitions(button))
-}
-wentDown :: proc(button: Button) -> bool {
-	return !wasDown(button) && bool(getTransitions(button))
-}
-getTransitions :: proc(button: Button) -> u8 {
-	return u8(button) >> 1
-}
-resetTransitions :: proc(button: ^Button) {
-	transitions := getTransitions(button^)
-	is_down := (u8(button^) & 1) ~ (transitions & 1)
+@(private)
+applyTransitions :: proc(button: ^Button) {
+	is_down := u8(wasDown(button^)) ~ (getTransitions(button^) & 1)
 	button^ = Button(is_down)
+}
+applyInputs :: proc() {
+	applyMouseInputs()
+	applyKeyboardInputs()
 }

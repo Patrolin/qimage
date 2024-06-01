@@ -25,7 +25,6 @@ render :: proc {
 */
 GuiState :: struct {
 	allocator: mem.Allocator,
-	inputs:    ^input.Inputs,
 	placeAt:   ^GuiPlacement,
 	nodes:     ^GuiNode,
 	hovered:   ^GuiNode,
@@ -77,14 +76,11 @@ placeRect :: proc(state: ^GuiState, size: math.i32x2) -> (rect: math.AbsoluteRec
 	return
 }
 isHovered :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
-	lastMousePos := input.lastMousePos(state.inputs)
+	lastMousePos := input.lastMousePos()
 	return (state.dragging == nil) && math.inBounds(lastMousePos, rect)
 }
 wasClicked :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
-	return(
-		input.wentDown(state.inputs.mouse.LMB) &&
-		math.inBounds(state.inputs.mouse.clickPos, rect) \
-	)
+	return input.wentDownCount(input.mouse.LMB) > 0 && math.inBounds(input.mouse.clickPos, rect)
 }
 
 // TODO?: begin(row/column), end()

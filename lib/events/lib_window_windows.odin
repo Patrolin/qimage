@@ -7,6 +7,7 @@ import win "core:sys/windows"
 // init window
 @(private)
 default_window_class_name: win.wstring
+@(private)
 initWindow :: proc() {
 	default_window_class_name = os.stringToWstring(
 		"lib_window_default",
@@ -41,9 +42,9 @@ registerWindowClass :: proc(class: win.WNDCLASSEXW) {
 
 // open window
 Window :: struct {
-	width, height: i32,
-	handle:        win.HWND,
-	dc:            win.HDC,
+	rect:   math.RelativeRect,
+	handle: win.HWND,
+	dc:     win.HDC,
 }
 openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
 	assert(os_events_info.current_window == nil, "We don't support multiple windows")
@@ -55,8 +56,7 @@ openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
 	rect.width = adjustRect.right - adjustRect.left
 	rect.height = adjustRect.bottom - adjustRect.top
 	window := new(Window)
-	window.width = rect.width
-	window.height = rect.height
+	window.rect = {rect.left, rect.top, rect.width, rect.height}
 	os_events_info.current_window = window
 	window.handle = win.CreateWindowExW(
 		0,

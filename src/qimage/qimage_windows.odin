@@ -16,13 +16,11 @@ import win "core:sys/windows"
 isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7+ ms), so we instead we store it in an OS specific format
 image: file.Image
-inputs := input.Inputs{} // NOTE: are global variables always cache aligned?
 
 main :: proc() {
 	context = os.init()
-	input.initMouse(&inputs)
-	events.setOnPaint(onPaint)
-	events.initWindow()
+	events.initEvents({onPaint})
+	input.initInputs()
 	window := events.openWindow("qimage", {-1, -1, 1366, 768})
 	image = assets.loadImage("test_image.bmp")
 	/*
@@ -38,7 +36,7 @@ main :: proc() {
 	fmt.println(tokens)
 	assert(false, "ayaya")
 	*/
-	paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+	paint.resizeFrameBuffer(&frame_buffer, i16(window.rect.width), i16(window.rect.height))
 	// TODO: Timer?
 	timing: struct {
 		t, prev_t, max_ddt: f64,
@@ -63,7 +61,11 @@ main :: proc() {
 				// TODO
 				}
 			case events.WindowResizeEvent:
-				paint.resizeFrameBuffer(&frame_buffer, i16(window.width), i16(window.height))
+				paint.resizeFrameBuffer(
+					&frame_buffer,
+					i16(window.rect.width),
+					i16(window.rect.height),
+				)
 			case events.WindowCloseEvent:
 				isRunning = false
 			}

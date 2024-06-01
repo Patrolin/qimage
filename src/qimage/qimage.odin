@@ -17,7 +17,7 @@ updateAndRender :: proc() {
 	// show an image at the cursor // TODO!: how do we offset to window top left?
 	pitch := 3
 	stride := pitch * int(image.width)
-	last_mouse_pos := input.lastMousePos(&inputs)
+	last_mouse_pos := input.lastMousePos()
 	if last_mouse_pos.x >= 0 && last_mouse_pos.y >= 0 {
 		y_end := min(int(image.height), int(frame_buffer.height) - int(last_mouse_pos.y))
 		x_end := min(int(image.width), int(frame_buffer.width) - int(last_mouse_pos.x))

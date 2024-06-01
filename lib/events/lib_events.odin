@@ -2,11 +2,26 @@ package lib_events
 import "../math"
 
 @(private)
-os_events_info: struct {
-	current_window:   ^Window,
-	got_resize_event: bool,
+InitEventsProps :: struct {
+	onPaint: proc(window: Window),
 }
-os_events: [dynamic]OsEvent // NOTE: windows is stupid and breaks if you don't get all events at once
+initEvents :: proc(props: InitEventsProps) {
+	if props.onPaint != nil {onPaint = props.onPaint}
+	initWindow()
+}
+
+os_events_info: struct {
+	current_window: ^Window,
+	raw_mouse_pos:  math.i32x2,
+	resized_window: bool,
+	moved_window:   bool,
+}
+@(private)
+resetOsEventsInfo :: proc() {
+	os_events_info.resized_window = false
+	os_events_info.moved_window = false
+}
+os_events: [dynamic]OsEvent
 
 OsEvent :: union {
 	MouseEvent,
@@ -20,8 +35,9 @@ ButtonState :: enum {
 	Up,
 }
 MouseEvent :: struct {
-	pos: math.i32x2,
+	pos: math.f32x2,
 	LMB: ButtonState,
+	RMB: ButtonState,
 }
 KeyboardEvent :: struct {
 	key_code, scan_code: u32,
