@@ -28,11 +28,10 @@ updateOsEventsInfo :: proc() {
 	window_rect := os.getWindowRect(window_handle)
 	current_window.window_rect = window_rect
 	client_rect := os.getClientRect(window_handle)
-	client_rect_offset_x := (window_rect.width - client_rect.width) / 2
-	client_rect_offset_y := window_rect.height - client_rect.height - client_rect_offset_x
+	window_border := os.os_info.window_border
 	current_window.client_rect = {
-		window_rect.left + client_rect_offset_x,
-		window_rect.top + client_rect_offset_y,
+		window_rect.left + window_border.left,
+		window_rect.top + window_border.top,
 		client_rect.width,
 		client_rect.height,
 	}

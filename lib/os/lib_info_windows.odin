@@ -38,6 +38,15 @@ initOsInfo :: proc "contextless" () {
 	system_info: win.SYSTEM_INFO
 	win.GetSystemInfo(&system_info)
 	os_info.logical_core_count = int(system_info.dwNumberOfProcessors) // NOTE: this cannot go above 64
+	// window_border
+	window_border: win.RECT
+	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
+	os_info.window_border = {
+		-window_border.left,
+		-window_border.top,
+		window_border.right,
+		window_border.bottom,
+	}
 }
 time :: proc() -> f64 {
 	counter: win.LARGE_INTEGER

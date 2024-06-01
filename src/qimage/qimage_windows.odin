@@ -59,7 +59,6 @@ main :: proc() {
 			switch event in os_event {
 			case events.MouseEvent:
 				fmt.printfln("event: %v", event)
-				fmt.printfln("client_rect: %v", window.client_rect)
 			case events.KeyboardEvent:
 				fmt.printfln("event: %v", event)
 				switch event.key_code {

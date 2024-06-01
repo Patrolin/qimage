@@ -55,18 +55,16 @@ openWindow :: proc(title: string, client_rect: math.RelativeRect) -> ^Window {
 	window.initial_ratio = {client_rect.width, client_rect.height}
 	os_events_info.current_window = window
 	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
-	WINDOW_STYLE := win.WS_OVERLAPPEDWINDOW
-	adjust_rect := win.RECT{0, 0, client_rect.width, client_rect.height}
-	win.AdjustWindowRectEx(&adjust_rect, WINDOW_STYLE, win.FALSE, 0)
+	window_border := os.os_info.window_border
 	window_size := math.i32x2 {
-		adjust_rect.right - adjust_rect.left,
-		adjust_rect.bottom - adjust_rect.top,
+		client_rect.width + window_border.left + window_border.right,
+		client_rect.height + window_border.top + window_border.bottom,
 	}
 	window.handle = win.CreateWindowExW(
 		0,
 		default_window_class_name,
 		title,
-		WINDOW_STYLE,
+		win.WS_OVERLAPPEDWINDOW,
 		client_rect.left != -1 ? client_rect.left : win.CW_USEDEFAULT,
 		client_rect.top != -1 ? client_rect.top : win.CW_USEDEFAULT,
 		window_size.x,
