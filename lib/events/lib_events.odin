@@ -10,6 +10,7 @@ initEvents :: proc(props: InitEventsProps) {
 	initWindow()
 }
 
+@(private)
 os_events_info: struct {
 	current_window: ^Window,
 	raw_mouse_pos:  math.i32x2,

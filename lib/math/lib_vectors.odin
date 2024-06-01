@@ -17,6 +17,9 @@ RelativeRect :: struct {
 absoluteRect :: #force_inline proc "contextless" (rect: RelativeRect) -> AbsoluteRect {
 	return {rect.left, rect.top, rect.left + rect.width, rect.top + rect.height}
 }
+relativeRect :: #force_inline proc "contextless" (rect: AbsoluteRect) -> RelativeRect {
+	return {rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top}
+}
 // TODO: rect utils
 inBounds :: proc(pos: i32x2, rect: AbsoluteRect) -> bool {
 	return(

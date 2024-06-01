@@ -42,31 +42,34 @@ registerWindowClass :: proc(class: win.WNDCLASSEXW) {
 
 // open window
 Window :: struct {
-	rect:   math.RelativeRect,
-	handle: win.HWND,
-	dc:     win.HDC,
+	client_rect:   math.RelativeRect,
+	window_rect:   math.RelativeRect,
+	initial_ratio: math.i32x2,
+	handle:        win.HWND,
+	dc:            win.HDC,
 }
-openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
+openWindow :: proc(title: string, client_rect: math.RelativeRect) -> ^Window {
 	assert(os_events_info.current_window == nil, "We don't support multiple windows")
-	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
-	windowStyle := win.WS_OVERLAPPEDWINDOW
-	adjustRect := win.RECT{0, 0, rect.width, rect.height}
-	win.AdjustWindowRectEx(&adjustRect, windowStyle, win.FALSE, 0)
-	rect := rect
-	rect.width = adjustRect.right - adjustRect.left
-	rect.height = adjustRect.bottom - adjustRect.top
 	window := new(Window)
-	window.rect = {rect.left, rect.top, rect.width, rect.height}
+	window.initial_ratio = {client_rect.width, client_rect.height}
 	os_events_info.current_window = window
+	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
+	WINDOW_STYLE := win.WS_OVERLAPPEDWINDOW
+	adjust_rect := win.RECT{0, 0, client_rect.width, client_rect.height}
+	win.AdjustWindowRectEx(&adjust_rect, WINDOW_STYLE, win.FALSE, 0)
+	window_size := math.i32x2 {
+		adjust_rect.right - adjust_rect.left,
+		adjust_rect.bottom - adjust_rect.top,
+	}
 	window.handle = win.CreateWindowExW(
 		0,
 		default_window_class_name,
 		title,
-		windowStyle,
-		rect.left != -1 ? rect.left : win.CW_USEDEFAULT,
-		rect.top != -1 ? rect.top : win.CW_USEDEFAULT,
-		rect.width,
-		rect.height,
+		WINDOW_STYLE,
+		client_rect.left != -1 ? client_rect.left : win.CW_USEDEFAULT,
+		client_rect.top != -1 ? client_rect.top : win.CW_USEDEFAULT,
+		window_size.x,
+		window_size.y,
 		nil,
 		nil,
 		nil,
@@ -81,6 +84,8 @@ openWindow :: proc(title: string, rect: math.RelativeRect) -> ^Window {
 	win.ShowWindow(window.handle, win.SW_RESTORE)
 	win.ShowWindow(window.handle, win.SW_SHOWNORMAL)
 	window.dc = win.GetDC(window.handle)
+	updateOsEventsInfo() // NOTE: get window_rect, client_rect
+	fmt.printfln("window: %v", window)
 	// mouse input
 	raw_devices: []win.RAWINPUTDEVICE = {
 		win.RAWINPUTDEVICE {

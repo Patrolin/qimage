@@ -36,7 +36,11 @@ main :: proc() {
 	fmt.println(tokens)
 	assert(false, "ayaya")
 	*/
-	paint.resizeFrameBuffer(&frame_buffer, i16(window.rect.width), i16(window.rect.height))
+	paint.resizeFrameBuffer(
+		&frame_buffer,
+		i16(window.client_rect.width),
+		i16(window.client_rect.height),
+	)
 	// TODO: Timer?
 	timing: struct {
 		t, prev_t, max_ddt: f64,
@@ -63,8 +67,8 @@ main :: proc() {
 			case events.WindowResizeEvent:
 				paint.resizeFrameBuffer(
 					&frame_buffer,
-					i16(window.rect.width),
-					i16(window.rect.height),
+					i16(window.client_rect.width),
+					i16(window.client_rect.height),
 				)
 			case events.WindowCloseEvent:
 				isRunning = false

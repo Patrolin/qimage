@@ -20,14 +20,17 @@ getAllEvents :: proc() {
 }
 @(private)
 updateOsEventsInfo :: proc() {
-	// TODO!: get monitor size
-	window_rect: win.RECT
-	win.GetWindowRect(os_events_info.current_window.handle, &window_rect)
-	os_events_info.current_window.rect = {
-		window_rect.left,
-		window_rect.top,
-		window_rect.right - window_rect.left,
-		window_rect.bottom - window_rect.top,
+	// TODO!: get monitor rect
+	window_rect := os.getWindowRect(os_events_info.current_window.handle)
+	os_events_info.current_window.window_rect = window_rect
+	client_rect := os.getClientRect(os_events_info.current_window.handle)
+	client_rect_offset_x := (window_rect.width - client_rect.width) / 2
+	client_rect_offset_y := window_rect.height - client_rect.height - client_rect_offset_x
+	os_events_info.current_window.client_rect = {
+		window_rect.left + client_rect_offset_x,
+		window_rect.top + client_rect_offset_y,
+		client_rect.width,
+		client_rect.height,
 	}
 	real_mouse_pos := os.getCursorPos() * 10
 	if (abs(real_mouse_pos.x - os_events_info.raw_mouse_pos.x) > 5) {
@@ -35,6 +38,9 @@ updateOsEventsInfo :: proc() {
 	}
 	if (abs(real_mouse_pos.y - os_events_info.raw_mouse_pos.y) > 5) {
 		os_events_info.raw_mouse_pos.y = real_mouse_pos.y
+	}
+	if os_events_info.resized_window {
+		append(&os_events, WindowResizeEvent{})
 	}
 }
 
@@ -56,25 +62,30 @@ messageHandler :: proc "stdcall" (
 	switch message {
 	// minimum needed messages
 	case win.WM_SIZE:
-		fmt.printfln("WM_SIZE: %v", lParam)
+		//fmt.printfln("WM_SIZE: %v", lParam)
 		os_events_info.resized_window = true
 	case win.WM_PAINT:
-		fmt.printfln("WM_PAINT")
+		//fmt.printfln("WM_PAINT")
 		paintStruct: win.PAINTSTRUCT
 		paintDc: win.HDC = win.BeginPaint(windowHandle, &paintStruct)
-		onPaint({rect = os_events_info.current_window.rect, handle = windowHandle, dc = paintDc})
+		mock_window: Window = os_events_info.current_window^
+		mock_window.dc = paintDc
+		onPaint(mock_window)
 		win.EndPaint(windowHandle, &paintStruct)
 	case win.WM_CLOSE:
-		fmt.printfln("WM_CLOSE")
+		//fmt.printfln("WM_CLOSE")
 		append(&os_events, WindowCloseEvent{})
-	// TODO: WM_SIZNG: hold shift to resize at fixed ratio
 	// inputs
+	case win.WM_SIZING:
+		fmt.printfln("WM_SIZING")
+		rect: ^win.RECT = (^win.RECT)(rawptr(uintptr(lParam))) // TODO: WM_SIZNG: hold shift to resize at fixed ratio
+		result = 1
 	case win.WM_MOVE:
-		fmt.printfln("WM_MOVE")
+		//fmt.printfln("WM_MOVE")
 		os_events_info.moved_window = true
 	case win.WM_INPUT:
-		fmt.printfln("WM_INPUT")
-		if os_events_info.moved_window {return}
+		//fmt.printfln("WM_INPUT")
+		if os_events_info.moved_window || os_events_info.resized_window {return}
 		// NOTE: WM_LBUTTONUP/WM_MOUSEMOVE does not trigger if you move the mouse outside the window, so we use rawinput
 		if wParam == RIM_BACKGROUND {
 			return
