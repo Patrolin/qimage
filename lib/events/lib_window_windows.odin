@@ -89,7 +89,9 @@ openWindow :: proc(
 	window.dc = win.GetDC(window.handle)
 	updateOsEventsInfo() // NOTE: get window_rect, client_rect
 	fmt.printfln("window: %v", window)
-	// mouse input
+	// mouse input // https://learn.microsoft.com/en-us/windows-hardware/drivers/hid/hid-architecture#hid-clients-supported-in-windows
+	RIUP_MOUSE_CONTROLLER_KEYBOARD :: 0x1
+	RIU_MOUSE :: 0x2
 	raw_devices: []win.RAWINPUTDEVICE = {
 		win.RAWINPUTDEVICE {
 			usUsagePage = RIUP_MOUSE_CONTROLLER_KEYBOARD,
