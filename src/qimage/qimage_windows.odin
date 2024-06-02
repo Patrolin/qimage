@@ -61,12 +61,12 @@ main :: proc() {
 				//fmt.printfln("event: %v", event)
 				#partial switch event.LMB {
 				case .Down, .Up:
-					input.setButton(&input.mouse.LMB, event.LMB == .Down)
+					input.setButton(&input.mouse.LMB, event.LMB == .Up)
 					fmt.printfln("mouse: %v", input.mouse)
 				}
 				#partial switch event.RMB {
 				case .Down, .Up:
-					input.setButton(&input.mouse.RMB, event.RMB == .Down)
+					input.setButton(&input.mouse.RMB, event.RMB == .Up)
 					fmt.printfln("mouse: %v", input.mouse)
 				}
 			case events.MouseMoveEvent:

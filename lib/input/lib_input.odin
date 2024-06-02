@@ -31,9 +31,9 @@ wentDownCount :: proc(button: Button) -> u8 {
 addTransitions :: proc(button: ^Button, transitions: u8) {
 	button^ = Button(u8(button^) + (transitions << 1))
 }
-setButton :: proc(button: ^Button, went_down: b8) {
-	cleared_was_down := u8(button^ &~ 1) | u8(!went_down)
-	button^ = Button(cleared_was_down + 0x2)
+setButton :: proc(button: ^Button, went_up: b8) {
+	set_was_down := u8(button^ &~ 1) | u8(went_up)
+	button^ = Button(set_was_down + 0x2)
 }
 @(private)
 applyTransitions :: proc(button: ^Button) {
