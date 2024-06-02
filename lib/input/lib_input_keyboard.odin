@@ -9,6 +9,7 @@ keyboard: struct {
 	S:     Button,
 	D:     Button,
 }
+@(private)
 applyKeyboardInputs :: proc() {
 	applyTransitions(&keyboard.Ctrl)
 	applyTransitions(&keyboard.Shift)

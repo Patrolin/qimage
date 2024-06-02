@@ -13,7 +13,6 @@ initEvents :: proc(props: InitEventsProps) {
 @(private)
 os_events_info: struct {
 	current_window: ^Window,
-	raw_mouse_pos:  math.i32x2,
 	resized_window: bool,
 	moved_window:   bool,
 }
@@ -25,7 +24,8 @@ resetOsEventsInfo :: proc() {
 os_events: [dynamic]OsEvent
 
 OsEvent :: union {
-	MouseEvent,
+	RawMouseEvent,
+	MouseMoveEvent,
 	KeyboardEvent,
 	WindowResizeEvent,
 	WindowCloseEvent,
@@ -35,14 +35,17 @@ ButtonState :: enum {
 	Down,
 	Up,
 }
-MouseEvent :: struct {
-	pos: math.f32x2,
-	LMB: ButtonState,
-	RMB: ButtonState,
+RawMouseEvent :: struct {
+	dpos: math.i32x2, // NOTE: there is not reliable way to get pos from dpos in windows
+	LMB:  ButtonState,
+	RMB:  ButtonState,
+}
+MouseMoveEvent :: struct {
+	client_pos: math.i32x2,
 }
 KeyboardEvent :: struct {
-	key_code, scan_code: u32,
 	text:                string,
+	key_code, scan_code: u32,
 	repeat_count:        u32,
 	is_dead_char:        b32,
 }

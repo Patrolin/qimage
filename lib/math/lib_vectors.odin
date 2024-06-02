@@ -1,5 +1,6 @@
 package lib_math
 import "core:intrinsics"
+import coreMath "core:math"
 
 // NOTE: Odin vector types (.xyzw, .rgba)
 i32x2 :: [2]i32 // 8 B
@@ -8,6 +9,15 @@ i32x4 :: [4]i32 // 16 B
 f32x2 :: [2]f32 // 8 B
 f32x3 :: [3]f32 // 12 B
 f32x4 :: [4]f32 // 16 B
+sqrt :: coreMath.sqrt
+norm :: proc(vector: [$N]$T) -> f32 {
+	acc := f32(0)
+	for v in vector {
+		acc += f32(v * v)
+	}
+	return sqrt(acc)
+}
+
 AbsoluteRect :: struct {
 	left, top, right, bottom: i32,
 }

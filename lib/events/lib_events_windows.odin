@@ -20,28 +20,13 @@ getAllEvents :: proc() {
 }
 @(private)
 updateOsEventsInfo :: proc() {
-	// TODO!: get monitor rect
 	current_window := os_events_info.current_window
-	window_handle := current_window.handle
-	monitor_rect := os.getMonitorRect(window_handle)
-	current_window.monitor_rect = monitor_rect
-	window_rect := os.getWindowRect(window_handle)
-	current_window.window_rect = window_rect
-	client_rect := os.getClientRect(window_handle)
-	window_border := os.os_info.window_border
-	current_window.client_rect = {
-		window_rect.left + window_border.left,
-		window_rect.top + window_border.top,
-		client_rect.width,
-		client_rect.height,
-	}
-	real_mouse_pos := os.getCursorPos() * 10
-	if (abs(real_mouse_pos.x - os_events_info.raw_mouse_pos.x) > 5) {
-		os_events_info.raw_mouse_pos.x = real_mouse_pos.x
-	}
-	if (abs(real_mouse_pos.y - os_events_info.raw_mouse_pos.y) > 5) {
-		os_events_info.raw_mouse_pos.y = real_mouse_pos.y
-	}
+	current_window.monitor_rect = os.getMonitorRect(current_window.handle)
+	current_window.window_rect = os.getWindowRect(current_window.handle)
+	current_window.client_rect = os.getClientRect(
+		current_window.handle,
+		current_window.window_rect,
+	)
 	if os_events_info.resized_window {
 		append(&os_events, WindowResizeEvent{})
 	}
@@ -84,8 +69,12 @@ messageHandler :: proc "stdcall" (
 		rect: ^win.RECT = (^win.RECT)(rawptr(uintptr(lParam))) // TODO: WM_SIZNG: hold shift to resize at fixed ratio
 		result = 1
 	case win.WM_MOVE:
-		//fmt.printfln("WM_MOVE")
 		os_events_info.moved_window = true
+	case win.WM_MOUSEMOVE:
+		append(
+			&os_events,
+			MouseMoveEvent{client_pos = {i32(os.LOIWORD(lParam)), i32(os.HIIWORD(lParam))}},
+		)
 	case win.WM_INPUT:
 		//fmt.printfln("WM_INPUT")
 		if os_events_info.moved_window || os_events_info.resized_window {return}
@@ -107,30 +96,11 @@ messageHandler :: proc "stdcall" (
 		//monitorRect := monitorInfo.rcMonitor
 		//windowRect := windowPlacement.rcNormalPosition
 		if (raw_input.header.dwType == win.RIM_TYPEMOUSE) {
-			event := MouseEvent{}
+			event := RawMouseEvent{}
 			switch (raw_input.data.mouse.usFlags) {
 			case win.MOUSE_MOVE_RELATIVE:
 				// TODO: https://stackoverflow.com/questions/36862013/raw-input-and-cursor-acceleration#43538322 + https://stackoverflow.com/questions/53020514/windows-mouse-speed-is-non-linear-how-do-i-convert-to-a-linear-scale?rq=1
-				move := os.getCursorMove(
-					{raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY},
-				)
-				monitor_rect := os_events_info.current_window.monitor_rect
-				raw_monitor_rect := math.RelativeRect {
-					monitor_rect.left * 10,
-					monitor_rect.top * 10,
-					monitor_rect.width * 10,
-					monitor_rect.height * 10,
-				}
-				os_events_info.raw_mouse_pos += math.clamp(
-					move,
-					math.absoluteRect(raw_monitor_rect),
-				)
-				event.pos =
-					math.f32x2 {
-						f32(os_events_info.raw_mouse_pos.x),
-						f32(os_events_info.raw_mouse_pos.y),
-					} /
-					10
+				event.dpos = {raw_input.data.mouse.lLastX, raw_input.data.mouse.lLastY}
 			case win.MOUSE_MOVE_ABSOLUTE:
 				fmt.assertf(false, "win.MOUSE_MOVE_ABSOLUTE: %v", raw_input)
 			}

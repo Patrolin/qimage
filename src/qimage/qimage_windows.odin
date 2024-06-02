@@ -57,10 +57,22 @@ main :: proc() {
 		events.getAllEvents()
 		for os_event in events.os_events {
 			switch event in os_event {
-			case events.MouseEvent:
-				fmt.printfln("event: %v", event)
+			case events.RawMouseEvent:
+				//fmt.printfln("event: %v", event)
+				#partial switch event.LMB {
+				case .Down, .Up:
+					input.setButton(&input.mouse.LMB, event.LMB == .Down)
+					fmt.printfln("mouse: %v", input.mouse)
+				}
+				#partial switch event.RMB {
+				case .Down, .Up:
+					input.setButton(&input.mouse.RMB, event.RMB == .Down)
+					fmt.printfln("mouse: %v", input.mouse)
+				}
+			case events.MouseMoveEvent:
+				input.addMousePath(event.client_pos)
 			case events.KeyboardEvent:
-				fmt.printfln("event: %v", event)
+				//fmt.printfln("event: %v", event)
 				switch event.key_code {
 				// TODO
 				}
@@ -90,6 +102,7 @@ main :: proc() {
 		timing.t = events.doVsyncBadly()
 		onPaint(window^)
 		free_all(context.temp_allocator)
+		input.applyInputs()
 	}
 }
 onPaint :: proc(window: events.Window) {
