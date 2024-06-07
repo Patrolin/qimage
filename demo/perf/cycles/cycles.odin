@@ -51,7 +51,7 @@ returnInput :: proc(v: int) -> int {
 addOne :: proc(v: int) -> int {
 	return v + 1
 }
-mulTwo :: proc(v: int) -> int {
+mulByTwo :: proc(v: int) -> int {
 	return v * 2
 }
 square :: proc(v: int) -> int {
@@ -83,15 +83,16 @@ main :: proc() {
 	cold_cases := []TimingCase {
 		timingCase("loadZeroCold", loadZero), // 1856 cy, 266 ns, 50 runs
 	}
-	hot_cases := []TimingCase {
+	hot_cases := []TimingCase { 	// TODO: also do multiple runs?
 		timingCase("loadZero", loadZero), // 5 cy, 1 ns
 		timingCase("returnInput", returnInput), // 5 cy, 1 ns
 		timingCase("addOne", addOne), // 5 cy, 1 ns
-		timingCase("mulTwo", mulTwo), // 5 cy, 1 ns
+		timingCase("mulByTwo", mulByTwo), // 5 cy, 1 ns
 		timingCase("square", square), // 5 cy, 1 ns
 		timingCase("sqrt", sqrt), // 20 cy, 5 ns
 		timingCase("lerpDiv", lerpDiv), // 22 cy, 6 ns
 		timingCase("lerpMul", lerpMul), // 13 cy, 3 ns
+		// TODO!: more math functions
 	}
 	for index := 0; true; index += 1 {
 		sb: strings.Builder
