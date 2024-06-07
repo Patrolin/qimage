@@ -75,20 +75,23 @@ TimingCase :: struct {
 	average_time:   f64,
 	run_count:      int,
 }
+timingCase :: proc(name: string, f: proc(v: int) -> int) -> TimingCase {
+	return TimingCase{name, f, 0, 0, 0}
+}
 main :: proc() {
 	os.initOsInfo()
 	cold_cases := []TimingCase {
-		{"loadZeroCold", loadZero, 0, 0, 0}, // 1856 cy, 266 ns, 50 runs
+		timingCase("loadZeroCold", loadZero), // 1856 cy, 266 ns, 50 runs
 	}
 	hot_cases := []TimingCase {
-		{"loadZero", loadZero, 0, 0, 0}, // 5 cy, 1 ns
-		{"returnInput", returnInput, 0, 0, 0}, // 5 cy, 1 ns
-		{"addOne", addOne, 0, 0, 0}, // 5 cy, 1 ns
-		{"mulTwo", mulTwo, 0, 0, 0}, // 5 cy, 1 ns
-		{"square", square, 0, 0, 0}, // 5 cy, 1 ns
-		{"sqrt", sqrt, 0, 0, 0}, // 20 cy, 5 ns
-		{"lerpDiv", lerpDiv, 0, 0, 0}, // 22 cy, 6 ns
-		{"lerpMul", lerpMul, 0, 0, 0}, // 13 cy, 3 ns
+		timingCase("loadZero", loadZero), // 5 cy, 1 ns
+		timingCase("returnInput", returnInput), // 5 cy, 1 ns
+		timingCase("addOne", addOne), // 5 cy, 1 ns
+		timingCase("mulTwo", mulTwo), // 5 cy, 1 ns
+		timingCase("square", square), // 5 cy, 1 ns
+		timingCase("sqrt", sqrt), // 20 cy, 5 ns
+		timingCase("lerpDiv", lerpDiv), // 22 cy, 6 ns
+		timingCase("lerpMul", lerpMul), // 13 cy, 3 ns
 	}
 	for index := 0; true; index += 1 {
 		sb: strings.Builder
