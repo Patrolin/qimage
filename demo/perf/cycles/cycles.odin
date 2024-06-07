@@ -79,6 +79,7 @@ timingCase :: proc(name: string, f: proc(v: int) -> int) -> TimingCase {
 	return TimingCase{name, f, 0, 0, 0}
 }
 main :: proc() {
+	// TODO?: rewrite everything in test_case: testCase = TestCase()
 	os.initOsInfo()
 	cold_cases := []TimingCase {
 		timingCase("loadZeroCold", loadZero), // 1856 cy, 266 ns, 50 runs

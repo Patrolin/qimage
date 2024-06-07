@@ -3,7 +3,6 @@ package main
 
 import "../../lib/events"
 import "../../lib/gl"
-import "../../lib/math"
 import "../../lib/os"
 import "core:fmt"
 
@@ -24,7 +23,7 @@ main :: proc() {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
 		if (timing.frame > 30) {
-			timing.max_ddt = max(timing.max_ddt, abs(math.millis(dt) - 16.6666666666666666666))
+			timing.max_ddt = max(timing.max_ddt, abs(os.millis(dt) - 16.6666666666666666666))
 		}
 		events.getAllEvents()
 		for os_event in events.os_events {
@@ -40,10 +39,10 @@ main :: proc() {
 		render_t := os.time()
 		fmt.printf(
 			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
-			math.millis(dt),
+			os.millis(dt),
 			timing.max_ddt,
-			math.millis(msg_t - timing.t),
-			math.millis(render_t - msg_t),
+			os.millis(msg_t - timing.t),
+			os.millis(render_t - msg_t),
 		)
 		timing.prev_t = timing.t
 		timing.t = events.doVsyncBadly()
