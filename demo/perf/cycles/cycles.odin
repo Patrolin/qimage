@@ -33,7 +33,7 @@ measure :: proc(
 	f: proc(v: int) -> int,
 	repeat_count: int = 1e8,
 ) {
-	acc: [1]int
+	acc: [1]int // NOTE: make compiler not optimize away our function calls
 	diff_cycles: int
 	diff_time: time.Duration
 	for j in 0 ..= 1 { 	// NOTE: we run twice so the code is in cache
