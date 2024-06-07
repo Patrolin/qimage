@@ -1,33 +1,27 @@
 // odin run demo/perf/cycles -o:speed
 package demo_perf_cycles
+import "../../../lib/math"
+import "../../../lib/os"
 import "core:fmt"
 import "core:intrinsics"
-import "core:math"
 import "core:strings"
-import win "core:sys/windows"
 import "core:time"
 
-mfence :: #force_inline proc "contextless" () {
-	intrinsics.atomic_thread_fence(.Seq_Cst)
+measureCold :: proc(sb: ^strings.Builder, name: string, f: proc(v: int) -> int, index: int) {
+	acc: [1]int // NOTE: make compiler not optimize away our function calls
+	diff_cycles: int
+	diff_time: f64 // NOTE: windows only gives us precision of 100 ns per sample
+	{
+		os.SCOPED_CYCLES(&diff_cycles)
+		os.SCOPED_TIME(&diff_time)
+		{
+			acc[0] += f(index)
+		}
+	}
+	intrinsics.atomic_load(&acc[0])
+	fmt.sbprintfln(sb, "%v: %v cy, %.0f ns", name, diff_cycles, os.nanos(diff_time))
 }
-// NOTE: QueryThreadCycleTime(), GetThreadTimes() and similar are completely broken
-cycles :: proc "contextless" () -> (total_cycles: int) {
-	return int(intrinsics.read_cycle_counter())
-}
-
-@(deferred_in_out = _scoped_cycles_end)
-SCOPED_CYCLES :: proc "contextless" (diff_cycles: ^int) -> (start_cycles: int) {
-	mfence()
-	start_cycles = cycles()
-	mfence()
-	return
-}
-_scoped_cycles_end :: proc "contextless" (diff_cycles: ^int, start_cycles: int) {
-	mfence()
-	diff_cycles^ = int(cycles() - start_cycles)
-	mfence()
-}
-measure :: proc(
+measureHot :: proc(
 	sb: ^strings.Builder,
 	name: string,
 	f: proc(v: int) -> int,
@@ -35,10 +29,10 @@ measure :: proc(
 ) {
 	acc: [1]int // NOTE: make compiler not optimize away our function calls
 	diff_cycles: int
-	diff_time: time.Duration
+	diff_time: f64
 	for j in 0 ..= 1 { 	// NOTE: we run twice so the code is in cache
-		SCOPED_CYCLES(&diff_cycles)
-		time.SCOPED_TICK_DURATION(&diff_time)
+		os.SCOPED_CYCLES(&diff_cycles)
+		os.SCOPED_TIME(&diff_time)
 		for i in 0 ..< repeat_count {
 			acc[0] += f(i)
 		}
@@ -49,7 +43,7 @@ measure :: proc(
 		"%v: %.0f cy, %.0f ns",
 		name,
 		f64(diff_cycles) / f64(repeat_count),
-		f64(diff_time) / f64(repeat_count),
+		f64(os.nanos(diff_time)) / f64(repeat_count),
 	)
 }
 
@@ -84,12 +78,14 @@ TimingCase :: struct {
 	f:    proc(v: int) -> int,
 }
 main :: proc() {
-	if ODIN_OS == .Windows {
-		win.SetConsoleOutputCP(win.CP_UTF8)
-	}
+	os.initOsInfo()
 	for index := 0; true; index += 1 {
 		sb: strings.Builder
-		fmt.sbprintfln(&sb, "")
+		for _case in ([]TimingCase {
+				{"loadZeroCold", loadZero}, // 874 cy, 100 ns
+			}) {
+			measureCold(&sb, _case.name, _case.f, index)
+		}
 		for _case in ([]TimingCase {
 				{"loadZero", loadZero}, // 9 cy, 2 ns
 				{"returnInput", returnInput}, // 9 cy, 2 ns
@@ -100,10 +96,10 @@ main :: proc() {
 				{"lerpDiv", lerpDiv}, // 33 cy, 9 ns
 				{"lerpMul", lerpMul}, // 21 cy, 5 ns
 			}) {
-			measure(&sb, _case.name, _case.f, index)
+			measureHot(&sb, _case.name, _case.f)
 		}
+		fmt.sbprintfln(&sb, "")
 		fmt.print(strings.to_string(sb))
 		strings.builder_destroy(&sb)
-		time.sleep(10 * time.Millisecond)
 	}
 }

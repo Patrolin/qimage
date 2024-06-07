@@ -1,5 +1,6 @@
 package lib_os
 import "../math"
+import "core:fmt"
 import core_os "core:os"
 import win "core:sys/windows"
 
@@ -48,8 +49,26 @@ initOsInfo :: proc "contextless" () {
 		window_border.bottom,
 	}
 }
-time :: proc() -> f64 {
+
+seconds :: proc(value: $T) -> T {return value}
+millis :: proc(value: $T) -> T {return value * 1e3}
+micros :: proc(value: $T) -> T {return value * 1e6}
+nanos :: proc(value: $T) -> T {return value * 1e9}
+time :: proc() -> (seconds: f64) {
 	counter: win.LARGE_INTEGER
 	win.QueryPerformanceCounter(&counter)
 	return f64(counter) / os_info._time_divisor
+}
+@(deferred_in_out = _scoped_time_end)
+SCOPED_TIME :: proc(diff_time: ^f64) -> (start_time: f64) {
+	mfence()
+	start_time = time()
+	mfence()
+	return
+}
+@(private)
+_scoped_time_end :: proc(diff_time: ^f64, start_time: f64) {
+	mfence()
+	diff_time^ = time() - start_time
+	mfence()
 }
