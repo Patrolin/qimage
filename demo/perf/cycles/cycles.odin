@@ -7,7 +7,7 @@ import "core:intrinsics"
 import "core:strings"
 import "core:time"
 
-measureCold :: proc(sb: ^strings.Builder, name: string, f: proc(v: int) -> int, index: int) {
+measureCold :: proc(_case: ^TimingCase) {
 	acc: [1]int // NOTE: make compiler not optimize away our function calls
 	diff_cycles: int
 	diff_time: f64 // NOTE: windows only gives us precision of 100 ns per sample
@@ -15,36 +15,31 @@ measureCold :: proc(sb: ^strings.Builder, name: string, f: proc(v: int) -> int, 
 		os.SCOPED_CYCLES(&diff_cycles)
 		os.SCOPED_TIME(&diff_time)
 		{
-			acc[0] += f(index)
+			acc[0] += _case.f(int(_case.run_count))
 		}
 	}
 	intrinsics.atomic_load(&acc[0])
-	fmt.sbprintfln(sb, "%v: %v cy, %.0f ns", name, diff_cycles, os.nanos(diff_time))
+	run_count := f64(_case.run_count)
+	_case.average_cycles = (_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + 1)
+	_case.average_time = (_case.average_time * run_count + diff_time) / (run_count + 1)
+	_case.run_count += 1
 }
-measureHot :: proc(
-	sb: ^strings.Builder,
-	name: string,
-	f: proc(v: int) -> int,
-	repeat_count: int = 1e8,
-) {
+measureHot :: proc(_case: ^TimingCase) {
 	acc: [1]int // NOTE: make compiler not optimize away our function calls
 	diff_cycles: int
 	diff_time: f64
+	REPEAT_COUNT :: 1e8
 	for j in 0 ..= 1 { 	// NOTE: we run twice so the code is in cache
 		os.SCOPED_CYCLES(&diff_cycles)
 		os.SCOPED_TIME(&diff_time)
-		for i in 0 ..< repeat_count {
-			acc[0] += f(i)
+		for i in 0 ..< REPEAT_COUNT {
+			acc[0] += _case.f(i)
 		}
 	}
 	intrinsics.atomic_load(&acc[0])
-	fmt.sbprintfln(
-		sb,
-		"%v: %.0f cy, %.0f ns",
-		name,
-		f64(diff_cycles) / f64(repeat_count),
-		f64(os.nanos(diff_time)) / f64(repeat_count),
-	)
+	_case.average_cycles = f64(diff_cycles) / REPEAT_COUNT
+	_case.average_time = diff_time / REPEAT_COUNT
+	_case.run_count = REPEAT_COUNT
 }
 
 loadZero :: proc(v: int) -> int {
@@ -74,29 +69,49 @@ lerpMul :: proc(v: int) -> int {
 	return int((1 - t) * 7 + t * 13)
 }
 TimingCase :: struct {
-	name: string,
-	f:    proc(v: int) -> int,
+	name:           string,
+	f:              proc(v: int) -> int,
+	average_cycles: f64,
+	average_time:   f64,
+	run_count:      int,
 }
 main :: proc() {
 	os.initOsInfo()
+	cold_cases := []TimingCase {
+		{"loadZeroCold", loadZero, 0, 0, 0}, // 1856 cy, 266 ns, 50 runs
+	}
+	hot_cases := []TimingCase {
+		{"loadZero", loadZero, 0, 0, 0}, // 5 cy, 1 ns
+		{"returnInput", returnInput, 0, 0, 0}, // 5 cy, 1 ns
+		{"addOne", addOne, 0, 0, 0}, // 5 cy, 1 ns
+		{"mulTwo", mulTwo, 0, 0, 0}, // 5 cy, 1 ns
+		{"square", square, 0, 0, 0}, // 5 cy, 1 ns
+		{"sqrt", sqrt, 0, 0, 0}, // 20 cy, 5 ns
+		{"lerpDiv", lerpDiv, 0, 0, 0}, // 22 cy, 6 ns
+		{"lerpMul", lerpMul, 0, 0, 0}, // 13 cy, 3 ns
+	}
 	for index := 0; true; index += 1 {
 		sb: strings.Builder
-		for _case in ([]TimingCase {
-				{"loadZeroCold", loadZero}, // 874 cy, 100 ns
-			}) {
-			measureCold(&sb, _case.name, _case.f, index)
+		for &_case in cold_cases {
+			measureCold(&_case)
+			fmt.sbprintfln(
+				&sb,
+				"%v: %.0f cy, %.0f ns, %v runs",
+				_case.name,
+				_case.average_cycles,
+				os.nanos(_case.average_time),
+				_case.run_count,
+			)
 		}
-		for _case in ([]TimingCase {
-				{"loadZero", loadZero}, // 9 cy, 2 ns
-				{"returnInput", returnInput}, // 9 cy, 2 ns
-				{"addOne", addOne}, // 12 cy, 3 ns
-				{"mulTwo", mulTwo}, // 12 cy, 3 ns
-				{"square", square}, // 12 cy, 3 ns
-				{"sqrt", sqrt}, // 31 cy, 8 ns
-				{"lerpDiv", lerpDiv}, // 33 cy, 9 ns
-				{"lerpMul", lerpMul}, // 21 cy, 5 ns
-			}) {
-			measureHot(&sb, _case.name, _case.f)
+		for &_case in hot_cases {
+			measureHot(&_case)
+			fmt.sbprintfln(
+				&sb,
+				"%v: %.0f cy, %.0f ns",
+				_case.name,
+				_case.average_cycles,
+				os.nanos(_case.average_time),
+			)
 		}
 		fmt.sbprintfln(&sb, "")
 		fmt.print(strings.to_string(sb))
