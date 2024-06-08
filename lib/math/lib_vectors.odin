@@ -10,6 +10,11 @@ f32x2 :: [2]f32 // 8 B
 f32x3 :: [3]f32 // 12 B
 f32x4 :: [4]f32 // 16 B
 sqrt :: coreMath.sqrt
+exp :: coreMath.exp
+pow :: coreMath.pow
+sin :: coreMath.sin
+cos :: coreMath.sin
+sincos :: coreMath.sincos
 norm :: proc(vector: [$N]$T) -> f32 {
 	acc := f32(0)
 	for v in vector {
