@@ -40,23 +40,51 @@ measureHot :: proc(_case: ^TimingCase) {
 	_case.run_count = REPEAT_COUNT
 }
 
-loadZero :: proc(v: int) -> int {
+loadZero_int :: proc(v: int) -> int {
 	return 0
+}
+loadZero_f64 :: proc(v: int) -> int {
+	f := f64(0.4)
+	return int(f)
 }
 returnInput :: proc(v: int) -> int {
 	return v
 }
-addOne :: proc(v: int) -> int {
-	return v + 1
-}
-double :: proc(v: int) -> int {
-	return v * 2
-}
-square :: proc(v: int) -> int {
-	return v * v
-}
 intToFloatToInt :: proc(v: int) -> int {
 	return int(f64(v) * 0.3)
+}
+
+add_int :: proc(v: int) -> int {
+	return v + 1
+}
+K :: 1.12
+add_f64 :: proc(v: int) -> int {
+	return int(f64(v) + K)
+}
+mul_int :: proc(v: int) -> int {
+	return v * 2
+}
+mul_f64 :: proc(v: int) -> int {
+	return int(f64(v) * K)
+}
+square_int :: proc(v: int) -> int {
+	return v * v
+}
+square_f64 :: proc(v: int) -> int {
+	f := f64(v)
+	return int(f * f)
+}
+div_int :: proc(v: int) -> int {
+	return v / 3
+}
+div_f16 :: proc(v: int) -> int {
+	return int(f16(v) / K)
+}
+div_f32 :: proc(v: int) -> int {
+	return int(f32(v) / K)
+}
+div_f64 :: proc(v: int) -> int {
+	return int(f64(v) / K)
 }
 lerpDiv :: proc(v: int) -> int {
 	t := f64(v) / 1000
@@ -139,18 +167,26 @@ main :: proc() {
 	// TODO?: rewrite everything in test_case: testCase = TestCase()
 	os.initOsInfo()
 	cold_cases := []TimingCase {
-		timingCase("loadZeroCold", loadZero, true), // 587 cy, 336 ns, 11 runs
+		timingCase("loadZero_int_cold", loadZero_int, true), // 587 cy, 336 ns, 11 runs
 	}
 	hot_cases := []TimingCase { 	// TODO: also do multiple runs?
-		timingCase("loadZero", loadZero), // 4 cy, 1 ns
+		timingCase("loadZero_int", loadZero_int, true), // 4 cy, 1 ns // TODO: double check comments
+		timingCase("loadZero_f64", loadZero_f64), // 4 cy, 1 ns
 		timingCase("returnInput", returnInput), // 4 cy, 1 ns
-		timingCase("addOne", addOne), // 4 cy, 1 ns
-		timingCase("double", double), // 4 cy, 1 ns
-		timingCase("square", square), // 4 cy, 1 ns
 		timingCase("intToFloatToInt", intToFloatToInt), // 6 cy, 1 ns
-		timingCase("lerpDiv", lerpDiv), // 21 cy, 6 ns
+		timingCase("add_int", add_int, true), // 4 cy, 1 ns
+		timingCase("add_f64", add_f64), // 5 cy, 1 ns
+		timingCase("mul_int", mul_int), // 4 cy, 1 ns
+		timingCase("mul_f64", mul_f64), // 5 cy, 1 ns
+		timingCase("square_int", square_int), // 4 cy, 1 ns
+		timingCase("square_f64", square_f64), // 5 cy, 1 ns
+		timingCase("div_int", div_int), // 5 cy, 1 ns
+		timingCase("div_f16", div_f16), // 14 cy, 1 ns
+		timingCase("div_f32", div_f32), // 14 cy, 1 ns
+		timingCase("div_f64", div_f64), // 14 cy, 1 ns
+		timingCase("lerpDiv", lerpDiv, true), // 21 cy, 6 ns
 		timingCase("lerpMul", lerpMul), // 13 cy, 3 ns
-		timingCase("sqrt_f16", sqrt_f16, true), // 74 cy, 20 ns
+		timingCase("sqrt_f16", sqrt_f16), // 74 cy, 20 ns
 		timingCase("sqrt_f32", sqrt_f32), // 15 cy, 4 ns
 		timingCase("sqrt_f64", sqrt_f64), // 20 cy, 5 ns
 		timingCase("exp_f16", exp_f16), // 62 cy, 16 ns
