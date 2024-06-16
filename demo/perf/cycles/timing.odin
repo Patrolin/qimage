@@ -27,13 +27,23 @@ printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
 	if _case.break_before {
 		fmt.sbprintln(sb)
 	}
+	run_count_string := ""
+	if _case.run_count > 1000 {
+		run_count_string = fmt.aprintf(
+			"%.0e",
+			f64(_case.run_count),
+			allocator = context.temp_allocator,
+		)
+	} else {
+		run_count_string = fmt.aprintf("%v", _case.run_count, allocator = context.temp_allocator)
+	}
 	fmt.sbprintfln(
 		sb,
 		"%v: %.0f cy, %.0f ns, %v runs",
 		_case.name,
 		_case.average_cycles,
 		os.nanos(_case.average_time),
-		_case.run_count,
+		run_count_string,
 	)
 }
 printCasesEnd :: proc(sb: ^strings.Builder) {
@@ -77,9 +87,12 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 			}
 		}
 		intrinsics.atomic_load(&acc[0])
-		_case.average_cycles = f64(diff_cycles) / REPEAT_COUNT
-		_case.average_time = diff_time / REPEAT_COUNT
-		_case.run_count = REPEAT_COUNT
+		run_count := f64(_case.run_count)
+		_case.average_cycles =
+			(_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + REPEAT_COUNT)
+		_case.average_time =
+			(_case.average_time * run_count + diff_time) / (run_count + REPEAT_COUNT)
+		_case.run_count += REPEAT_COUNT
 		printCase(T, &sb, _case)
 	}
 	printCasesEnd(&sb)
@@ -95,5 +108,6 @@ main :: proc() {
 		measureHot(f32, hot_f32_cases)
 		measureHot(f64, hot_f64_cases)
 		fmt.println(" ------------------------ ")
+		free_all(context.temp_allocator)
 	}
 }

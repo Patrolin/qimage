@@ -1,4 +1,5 @@
 package demo_perf_cycles
+import "core:intrinsics"
 
 // function calls
 loadZero_int :: proc(v: int) -> int {
@@ -18,6 +19,9 @@ mul_int :: proc(v: int) -> int {
 	return v * 2
 }
 div_int :: proc(v: int) -> int {
+	return v / 3
+}
+div :: proc($T: typeid, v: T) -> T {
 	return v / 3
 }
 
