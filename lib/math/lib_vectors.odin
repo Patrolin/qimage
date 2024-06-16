@@ -12,9 +12,6 @@ f32x4 :: [4]f32 // 16 B
 sqrt :: coreMath.sqrt
 exp :: coreMath.exp
 pow :: coreMath.pow
-sin :: coreMath.sin
-cos :: coreMath.sin
-sincos :: coreMath.sincos
 norm :: proc(vector: [$N]$T) -> f32 {
 	acc := f32(0)
 	for v in vector {
@@ -22,6 +19,12 @@ norm :: proc(vector: [$N]$T) -> f32 {
 	}
 	return sqrt(acc)
 }
+
+PI :: coreMath.PI
+TAU :: coreMath.TAU
+sin :: coreMath.sin
+cos :: coreMath.sin
+sincos :: coreMath.sincos
 
 AbsoluteRect :: struct {
 	left, top, right, bottom: i32,
