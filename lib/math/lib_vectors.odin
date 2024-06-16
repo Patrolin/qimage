@@ -9,6 +9,7 @@ i32x4 :: [4]i32 // 16 B
 f32x2 :: [2]f32 // 8 B
 f32x3 :: [3]f32 // 12 B
 f32x4 :: [4]f32 // 16 B
+mod :: coreMath.mod
 sqrt :: coreMath.sqrt
 exp :: coreMath.exp
 pow :: coreMath.pow

@@ -21,19 +21,20 @@ mul_int :: proc(v: int) -> int {
 div_int :: proc(v: int) -> int {
 	return v / 3
 }
-div :: proc($T: typeid, v: T) -> T {
-	return v / 3
+mod_int :: proc(v: int) -> int {
+	return v % 3
 }
 
 cold_int_cases := []TimingCase(int) {
-	timingCase(int, "loadZero_int_cold", loadZero_int), // 587 cy, 336 ns, 11 runs
+	timingCase(int, "loadZero_int_cold", loadZero_int), // 654 cy, 280 ns, 5 runs
 }
 hot_int_cases := []TimingCase(int) {
 	// base
-	timingCase(int, "loadZero_int", loadZero_int), // 4 cy, 1 ns
-	timingCase(int, "returnInput_int", returnInput_int), // 4 cy, 1 ns
-	timingCase(int, "intToF64ToInt", intToF64ToInt), // 6 cy, 1 ns
-	timingCase(int, "add_int", add_int), // 4 cy, 1 ns
-	timingCase(int, "mul_int", mul_int), // 4 cy, 1 ns
-	timingCase(int, "div_int", div_int), // 5 cy, 1 ns
+	timingCase(int, "loadZero_int", loadZero_int), // 5 cy, 1 ns, 5e+08 runs
+	timingCase(int, "returnInput_int", returnInput_int), // 5 cy, 1 ns, 5e+08 runs
+	timingCase(int, "intToF64ToInt", intToF64ToInt), // 5 cy, 1 ns, 5e+08 runs
+	timingCase(int, "add_int", add_int), // 5 cy, 1 ns, 5e+08 runs
+	timingCase(int, "mul_int", mul_int), // 6 cy, 1 ns, 5e+08 runs
+	timingCase(int, "div_int", div_int), // 5 cy, 1 ns, 5e+08 runs
+	timingCase(int, "mod_int", mod_int), // 7 cy, 2 ns, 4e+08 runs
 }

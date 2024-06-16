@@ -39,7 +39,7 @@ printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
 	}
 	fmt.sbprintfln(
 		sb,
-		"%v: %.0f cy, %.0f ns, %v runs",
+		"%v: %.2f cy, %.0f ns, %v runs",
 		_case.name,
 		_case.average_cycles,
 		os.nanos(_case.average_time),

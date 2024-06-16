@@ -34,14 +34,14 @@ sincos_f16 :: proc(v: f16) -> f16 {
 
 hot_f16_cases := []TimingCase(f16) {
 	// base
-	timingCase(f16, "div_f16", div_f16), // 44 cy, 12 ns
+	timingCase(f16, "div_f16", div_f16), // 46 cy, 12 ns, 5e+08 runs
 	// stats
-	timingCase(f16, "sqrt_f16", sqrt_f16, true), // 46 cy, 12 ns
-	timingCase(f16, "exp_f16", exp_f16), // 46 cy, 12 ns
-	timingCase(f16, "pow_f16", pow_f16), // 47 cy, 12 ns
+	timingCase(f16, "sqrt_f16", sqrt_f16, true), // 47 cy, 12 ns, 5e+08 runs
+	timingCase(f16, "exp_f16", exp_f16), // 51 cy, 13 ns, 5e+08 runs
+	timingCase(f16, "pow_f16", pow_f16), // 52 cy, 14 ns, 5e+08 runs
 	// sincos
-	timingCase(f16, "sin_f16", sin_f16, true), // 162 cy, 43 ns
-	timingCase(f16, "cos_f16", cos_f16), // 164 cy, 43 ns
-	timingCase(f16, "cos_f16_fast", cos_f16_fast), // 125 cy, 33 ns
-	timingCase(f16, "sincos_f16", sincos_f16), // 83 cy, 22 ns
+	timingCase(f16, "sin_f16", sin_f16, true), // 165 cy, 44 ns, 5e+08 runs
+	timingCase(f16, "cos_f16", cos_f16), // 167 cy, 44 ns, 5e+08 runs
+	timingCase(f16, "cos_f16_fast", cos_f16_fast), // 130 cy, 34 ns, 5e+08 runs
+	timingCase(f16, "sincos_f16", sincos_f16), // 83 cy, 22 ns, 5e+08 runs
 }
