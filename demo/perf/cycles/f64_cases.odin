@@ -87,6 +87,7 @@ hot_f64_cases := []TimingCase(f64) {
 	timingCase(f64, "mul_f64", mul_f64), // 4 cy, 1 ns
 	timingCase(f64, "square_f64", square_f64), // 4 cy, 1 ns
 	timingCase(f64, "div_f64", div_f64), // 4 cy, 1 ns
+	// TODO: floor, better mod?
 	timingCase(f64, "mod_f64", mod_f64), // 11 cy, 3 ns, 3e+08 runs
 	// stats
 	timingCase(f64, "lerpDiv", lerpDiv_f64, true), // 5 cy, 1 ns

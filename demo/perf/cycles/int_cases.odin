@@ -37,4 +37,5 @@ hot_int_cases := []TimingCase(int) {
 	timingCase(int, "mul_int", mul_int), // 6 cy, 1 ns, 5e+08 runs
 	timingCase(int, "div_int", div_int), // 5 cy, 1 ns, 5e+08 runs
 	timingCase(int, "mod_int", mod_int), // 7 cy, 2 ns, 4e+08 runs
+	// TODO: better mod?
 }
