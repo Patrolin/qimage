@@ -1,7 +1,7 @@
 package lib_file
 
 foreign import ioringapi "system:onecore.lib"
-import "../threads"
+import "../threads/_threads"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"
@@ -55,8 +55,8 @@ readFileAsync :: proc(path: string) {
 	)
 	fmt.assertf(error == 0, "Couldn't submit async read request, error: %v", error)
 	// launch thread to get result
-	intrinsics.atomic_add(&pending_file_requests, 1)
-	threads.launchThread()
+	intrinsics.atomic_add(&_threads.pending_async_files, 1)
+	_threads.launchThread()
 }
 
 IORING_VERSION :: enum i32 {

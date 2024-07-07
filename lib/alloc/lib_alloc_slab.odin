@@ -1,6 +1,6 @@
 package lib_alloc
 import "../math"
-import "../thread_utils"
+import "../threads/_threads"
 import "core:fmt"
 import "core:mem"
 
@@ -117,7 +117,7 @@ SlabAllocator :: struct {
 	_1024_slab: ^SlabCache,
 	_2048_slab: ^SlabCache,
 	_4096_slab: ^SlabCache,
-	mutex:      thread_utils.TicketMutex,
+	mutex:      _threads.TicketMutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
@@ -191,7 +191,7 @@ slabAllocatorProc :: proc(
 ) {
 	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
-	thread_utils.getMutex(&slab_allocator.mutex)
+	_threads.getMutex(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		slab := chooseSlab(slab_allocator, size)
@@ -240,6 +240,6 @@ slabAllocatorProc :: proc(
 	case .Query_Info:
 		data, err = nil, .Mode_Not_Implemented
 	}
-	thread_utils.releaseMutex(&slab_allocator.mutex)
+	_threads.releaseMutex(&slab_allocator.mutex)
 	return
 }

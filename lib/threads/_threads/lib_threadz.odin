@@ -1,6 +1,7 @@
-package lib_thread_utils
+package lib_threadz
 import "base:intrinsics"
 
+// mutex
 TicketMutex :: struct {
 	next, serving: u32,
 }
@@ -22,3 +23,12 @@ getMutex :: proc(mutex: ^TicketMutex) {
 releaseMutex :: proc(mutex: ^TicketMutex) {
 	intrinsics.atomic_add(&mutex.serving, 1)
 }
+// thread info
+_semaphore: OsSemaphore
+running_thread_count := 1 // TODO: remove this?
+pending_async_files := 0
+ThreadInfo :: struct {
+	thread_id: OsThreadId,
+	index:     u32,
+}
+#assert(size_of(ThreadInfo) <= 16)

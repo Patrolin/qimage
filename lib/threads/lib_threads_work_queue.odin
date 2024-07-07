@@ -2,16 +2,10 @@ package lib_threads
 import "../alloc"
 import "../math"
 import "../os"
-import "../thread_utils"
+import "./_threads"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
-
-TicketMutex :: thread_utils.TicketMutex
-getMutexTicket :: thread_utils.getMutexTicket
-getMutexTicketUpTo :: thread_utils.getMutexTicketUpTo
-getMutex :: thread_utils.getMutex
-releaseMutex :: thread_utils.releaseMutex
 
 /* A threading api needs to support:
 	- adding work items
@@ -19,13 +13,43 @@ releaseMutex :: thread_utils.releaseMutex
 	- prioritizing work items that needs to be done immediately (throughput)
 	- giving each async work item a chance to start (I/O latency)
 */
-ThreadInfo :: struct {
-	thread_id: OsThreadId,
-	index:     u32,
+TicketMutex :: _threads.TicketMutex
+getMutexTicket :: _threads.getMutexTicket
+getMutexTicketUpTo :: _threads.getMutexTicketUpTo
+getMutex :: _threads.getMutex
+releaseMutex :: _threads.releaseMutex
+ThreadInfo :: _threads.ThreadInfo
+OsThreadId :: _threads.OsThreadId
+
+// threads
+threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
+	thread_info := cast(^ThreadInfo)thread_info
+	context = alloc.defaultContext(true)
+	context.user_index = int(thread_info.index)
+	for {
+		intrinsics.atomic_add(&_threads.running_thread_count, 1)
+		for doNextWorkItem(&work_queue) {}
+		intrinsics.atomic_add(&_threads.running_thread_count, -1)
+		_threads._waitForSemaphore()
+	}
 }
-#assert(size_of(ThreadInfo) <= 16)
-semaphore: OsSemaphore
-running_thread_count := 1 // TODO: remove this?
+initThreads :: proc() -> []ThreadInfo {
+	thread_count := os.info.logical_core_count - 1
+	_threads._semaphore = _threads._createSemaphore(i32(thread_count))
+	thread_infos := make([]ThreadInfo, thread_count)
+	for i in 1 ..= thread_count {
+		thread_infos[i - 1] = ThreadInfo {
+			thread_id = _threads._createThread(
+				math.kibiBytes(64),
+				threadProc,
+				&thread_infos[i - 1],
+			),
+			index     = u32(i),
+		}
+	}
+	return thread_infos
+}
+
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
@@ -37,35 +61,6 @@ WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
 }
-
-threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
-	thread_info := cast(^ThreadInfo)thread_info
-	context = alloc.defaultContext(true)
-	context.user_index = int(thread_info.index)
-	for {
-		intrinsics.atomic_add(&running_thread_count, 1)
-		for doNextWorkItem(&work_queue) {}
-		intrinsics.atomic_add(&running_thread_count, -1)
-		waitForSemaphore(semaphore)
-	}
-}
-initThreads :: proc() -> []ThreadInfo {
-	thread_count := os.info.logical_core_count - 1
-	semaphore = createSemaphore(i32(thread_count))
-	thread_infos := make([]ThreadInfo, thread_count)
-	for i in 1 ..= thread_count {
-		thread_infos[i - 1] = ThreadInfo {
-			thread_id = createThread(math.kibiBytes(64), threadProc, &thread_infos[i - 1]),
-			index     = u32(i),
-		}
-	}
-	return thread_infos
-}
-
-// queue
-launchThread_withoutWork :: proc() {
-	signalSemaphore(semaphore)
-}
 launchThread_withWork :: proc(queue: ^WorkQueue, work: WorkItem) {
 	ticket := getMutexTicket(&queue.write_mutex)
 	for {
@@ -75,14 +70,14 @@ launchThread_withWork :: proc(queue: ^WorkQueue, work: WorkItem) {
 		if open_slots > 0 && written_count == ticket {
 			queue.items[ticket % len(queue.items)] = work
 			releaseMutex(&queue.write_mutex)
-			signalSemaphore(semaphore)
+			_threads.launchThread()
 			break
 		}
 		doNextWorkItem(queue)
 	}
 }
 launchThread :: proc {
-	launchThread_withoutWork,
+	_threads.launchThread,
 	launchThread_withWork,
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
@@ -93,7 +88,7 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 		work.procedure(work.data)
 		free_all(allocator = context.temp_allocator)
 		intrinsics.atomic_add(&queue.completed_count, 1)
-	}
+	} // TODO!: handle thread_utils.pending_async_files
 	writing_count := queue.write_mutex.next
 	return queue.completed_count != writing_count
 }

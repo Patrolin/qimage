@@ -2,10 +2,10 @@ dependency list
   test (test utils)
   math (pure math functions)
   os (os info, os utils)
-  thread_utils (mutexes)
+  threads/utils (mutexes, global work items)
   alloc (allocations)
   threads (thread_utils + work queues)
-  events (creating a window, getting window/mouse/keyboard events)
+  file (reading/writing files), events (creating a window, getting window/mouse/keyboard events)
   input (store input state), paint (software rendering), gl (hardware rendering)
 
 TODO: out of date:
