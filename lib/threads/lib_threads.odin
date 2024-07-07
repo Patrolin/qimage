@@ -20,11 +20,12 @@ releaseMutex :: thread_utils.releaseMutex
 	- giving each async work item a chance to start (I/O latency)
 */
 ThreadInfo :: struct {
-	thread_id:    OsThreadId,
-	thread_index: int,
+	thread_id: OsThreadId,
+	index:     u32,
 }
+#assert(size_of(ThreadInfo) <= 16)
 semaphore: OsSemaphore
-threads_running_thread_count := 1 // TODO: remove this?
+running_thread_count := 1 // TODO: remove this?
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
@@ -40,11 +41,11 @@ WorkItem :: struct {
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
 	context = alloc.defaultContext(true)
-	context.user_index = thread_info.thread_index
+	context.user_index = int(thread_info.index)
 	for {
-		intrinsics.atomic_add(&threads_running_thread_count, 1)
+		intrinsics.atomic_add(&running_thread_count, 1)
 		for doNextWorkItem(&work_queue) {}
-		intrinsics.atomic_add(&threads_running_thread_count, -1)
+		intrinsics.atomic_add(&running_thread_count, -1)
 		waitForSemaphore(semaphore)
 	}
 }
@@ -54,8 +55,8 @@ initThreads :: proc() -> []ThreadInfo {
 	thread_infos := make([]ThreadInfo, thread_count)
 	for i in 1 ..= thread_count {
 		thread_infos[i - 1] = ThreadInfo {
-			thread_id    = createThread(math.kibiBytes(64), threadProc, &thread_infos[i - 1]),
-			thread_index = i,
+			thread_id = createThread(math.kibiBytes(64), threadProc, &thread_infos[i - 1]),
+			index     = u32(i),
 		}
 	}
 	return thread_infos

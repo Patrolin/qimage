@@ -3,11 +3,11 @@ import "../math"
 import "base:intrinsics"
 import win "core:sys/windows"
 
-OsSemaphore :: distinct win.HANDLE
-OsThreadId :: struct {
-	id:     u32,
+OsThreadId :: struct #packed {
 	handle: win.HANDLE,
+	id:     u32,
 }
+@(private)
 createThread :: proc(
 	stack_size: math.bytes,
 	thread_proc: proc "stdcall" (data: rawptr) -> u32,
@@ -26,15 +26,20 @@ createThread :: proc(
 	return
 }
 
+@(private)
+OsSemaphore :: distinct win.HANDLE
+@(private)
 createSemaphore :: proc(max_count: i32) -> OsSemaphore {
 	//fmt.printfln("createSemaphore: %v", max_count)
 	initial_count: i32 = 0
 	return OsSemaphore(win.CreateSemaphoreW(nil, initial_count, max_count, nil))
 }
+@(private)
 signalSemaphore :: proc(semaphore: OsSemaphore) {
 	//fmt.printfln("incrementSemaphore")
 	win.ReleaseSemaphore(win.HANDLE(semaphore), 1, nil)
 }
+@(private)
 waitForSemaphore :: proc(semaphore: OsSemaphore) {
 	//fmt.printfln("thread %v: sleep", context.user_index)
 	win.WaitForSingleObject(win.HANDLE(semaphore), win.INFINITE)
