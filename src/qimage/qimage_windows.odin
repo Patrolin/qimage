@@ -9,8 +9,8 @@ import "../../lib/math"
 import "../../lib/os"
 import "../../lib/paint"
 import "../assets"
+import "base:runtime"
 import "core:fmt"
-import "core:runtime"
 import win "core:sys/windows"
 
 isRunning := false

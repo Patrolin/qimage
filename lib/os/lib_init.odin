@@ -1,8 +1,8 @@
 package lib_os
 import "../math"
+import "base:intrinsics"
+import "base:runtime"
 import "core:fmt"
-import "core:intrinsics"
-import "core:runtime"
 import "core:testing"
 import "core:time"
 

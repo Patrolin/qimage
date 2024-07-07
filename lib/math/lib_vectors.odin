@@ -1,5 +1,5 @@
 package lib_math
-import "core:intrinsics"
+import "base:intrinsics"
 import coreMath "core:math"
 
 // NOTE: Odin vector types (.xyzw, .rgba)

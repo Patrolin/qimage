@@ -8,18 +8,18 @@ prev_time: time.Time
 startTiming :: proc() {
 	prev_time = time.now()
 }
-endTiming :: proc() {
+endTiming :: proc(str: string) {
 	current_time := time.now()
-	fmt.printf("-- timing: %.3f s\n", f64(time.diff(prev_time, current_time)) / f64(time.Second))
+	fmt.printf("-- %v: %.3f s\n", str, f64(time.diff(prev_time, current_time)) / f64(time.Second))
 	prev_time = current_time
 }
 
 main :: proc() {
 	startTiming()
 	file, errno := core_os.open("demo/perf/make_1gb_file/1gb_file.txt", core_os.O_RDONLY)
-	endTiming()
+	endTiming("open file")
 	buffer := make([]u8, 1024 * 1024 * 1024)
-	endTiming()
+	endTiming("make buffer")
 	core_os.read(file, buffer)
-	endTiming()
+	endTiming("read file")
 }

@@ -1,6 +1,6 @@
 package lib_math
 // NOTE: we assume builtins min(), max() and abs() are fast
-import "core:intrinsics"
+import "base:intrinsics"
 import "core:math"
 
 roundToInt :: proc(x: $T) -> int where intrinsics.type_is_float(T) {

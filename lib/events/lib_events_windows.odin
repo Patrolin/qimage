@@ -1,8 +1,8 @@
 package lib_events
 import "../math"
 import "../os"
+import "base:intrinsics"
 import "core:fmt"
-import "core:intrinsics"
 import win "core:sys/windows"
 
 @(private)

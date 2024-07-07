@@ -2,8 +2,8 @@
 package demo_perf_cycles
 import "../../../lib/math"
 import "../../../lib/os"
+import "base:intrinsics"
 import "core:fmt"
-import "core:intrinsics"
 import "core:strings"
 import "core:time"
 

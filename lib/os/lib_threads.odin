@@ -1,7 +1,14 @@
 package lib_os
 import "../math"
+import "base:intrinsics"
 import "core:fmt"
-import "core:intrinsics"
+
+/* A threading api need to support:
+	- adding work items
+	- waiting until work items are complete
+	- prioritizing work items that needs to be done immediately (throughput)
+	- giving each async work item a chance to start (I/O latency)
+*/
 
 running_thread_count := 1 // TODO: remove this?
 ThreadInfo :: struct {
@@ -41,9 +48,9 @@ TicketMutex :: struct {
 getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
 	return intrinsics.atomic_add(&mutex.next, 1)
 }
-getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool) {
+getMutexTicketUpTo :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool) {
 	value := mutex.next
-	if value != max {
+	if value != end {
 		value_got := intrinsics.atomic_compare_exchange_weak(&mutex.next, value, value + 1)
 		return value, value_got == value
 	}
@@ -74,7 +81,7 @@ addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	for {
 		written_count := intrinsics.atomic_load(&queue.write_mutex.serving)
 		read_count := intrinsics.atomic_load(&queue.read_mutex.serving)
-		open_slots := len(queue.items) + read_count - written_count // NOTE: len: 8, read: 99, written: 100 -> open: 8+99-100 = 7-0 = 7
+		open_slots := read_count - written_count + len(queue.items) // NOTE: this handles overflows
 		if open_slots > 0 && written_count == ticket {
 			queue.items[ticket % len(queue.items)] = work
 			releaseMutex(&queue.write_mutex)
@@ -85,7 +92,7 @@ addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem) {
 	}
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
-	ticket, ok := getMutexTicketUntil(&queue.read_mutex, queue.write_mutex.serving)
+	ticket, ok := getMutexTicketUpTo(&queue.read_mutex, queue.write_mutex.serving)
 	if ok {
 		work := queue.items[ticket % len(queue.items)]
 		releaseMutex(&queue.read_mutex)

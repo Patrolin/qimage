@@ -1,6 +1,6 @@
 package lib_os
 import "../math"
-import "core:intrinsics"
+import "base:intrinsics"
 
 os_info: struct {
 	_time_divisor:      f64,

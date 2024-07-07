@@ -1,5 +1,5 @@
 package demo_perf_cycles
-import "core:intrinsics"
+import "base:intrinsics"
 
 // function calls
 loadZero_int :: proc(v: int) -> int {

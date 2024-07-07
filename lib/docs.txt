@@ -71,7 +71,7 @@ dependencies
       next, serving: u32
     }
     getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
-    getMutexTicketUntil :: proc(mutex: ^TicketMutex, max: u32) -> (ticket: u32, ok: bool)
+    getMutexTicketUpTo :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool)
     getMutex :: proc(mutex: ^TicketMutex)
     releaseMutex :: proc(mutex: ^TicketMutex)
   /utils_windows

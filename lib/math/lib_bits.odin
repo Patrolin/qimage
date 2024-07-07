@@ -1,7 +1,7 @@
 package lib_math
 import "../test"
+import intrinsics "base:intrinsics"
 import "core:fmt"
-import intrinsics "core:intrinsics"
 import bits "core:math/bits"
 import "core:testing"
 

@@ -1,7 +1,7 @@
 package lib_os
 import "../math"
+import "base:intrinsics"
 import "core:fmt"
-import "core:intrinsics"
 import win "core:sys/windows"
 
 OsThreadId :: struct {

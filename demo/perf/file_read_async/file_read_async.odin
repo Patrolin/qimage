@@ -10,9 +10,9 @@ prev_time: time.Time
 startTiming :: proc() {
 	prev_time = time.now()
 }
-endTiming :: proc() {
+endTiming :: proc(str: string) {
 	current_time := time.now()
-	fmt.printf("-- timing: %.3f s\n", f64(time.diff(prev_time, current_time)) / f64(time.Second))
+	fmt.printf("-- %v: %.3f s\n", str, f64(time.diff(prev_time, current_time)) / f64(time.Second))
 	prev_time = current_time
 }
 
@@ -28,8 +28,8 @@ main :: proc() {
 	error := CreateIoRing(.VERSION_3, flags, 0, 0, &ioring)
 	fmt.printf("  CreateIoRing, error = %v, ioring: %v\n", error, ioring)
 	checkIoRingInfo(ioring)
-	endTiming()
-	// start read file
+	endTiming("create ioring")
+	// open file
 	file := win.CreateFileW(
 		win.utf8_to_wstring("demo/perf/make_1gb_file/1gb_file.txt"),
 		win.GENERIC_READ,
@@ -39,8 +39,12 @@ main :: proc() {
 		win.FILE_ATTRIBUTE_NORMAL,
 		nil,
 	)
+	endTiming("open file")
 	assert(file != nil)
+	// make buffer
 	buffer := make([]u8, 1024 * 1024 * 1024)
+	endTiming("create buffer")
+	// async read file
 	error = BuildIoRingReadFile(
 		ioring,
 		IORING_HANDLE_REF{Kind = .IORING_REF_RAW, HandleUnion = win.HANDLE(file)},
@@ -52,13 +56,13 @@ main :: proc() {
 	)
 	fmt.printf("  BuildIoRingReadFile, error = %v\n", error)
 	checkIoRingInfo(ioring)
-	endTiming()
+	endTiming("async read file")
 	// get result
 	submit_buffer := make([]u32, 1)
 	error = SubmitIoRing(ioring, u32(len(submit_buffer)), win.INFINITE, &submit_buffer[0]) // TODO: use PopIoRingCompletion() for waiting
 	fmt.printf("  SubmitIoRing, error = %v\n", error)
 	fmt.printf("  buffer[:4]: %v\n", buffer[:8])
-	endTiming()
+	endTiming("get result")
 }
 checkIoRingInfo :: proc(ioring: HIORING) {
 	info: IORING_INFO
@@ -128,3 +132,5 @@ foreign ioringapi {
 	SubmitIoRing :: proc(ioring: HIORING, buffer_size: u32, timeout_millis: u32, buffer: ^u32) -> win.HRESULT ---
 	PopIoRingCompletion :: proc(ioring: HIORING, cqe: ^IORING_CQE) ---
 }
+
+// TODO!: use this in lib
