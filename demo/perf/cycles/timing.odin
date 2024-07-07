@@ -2,10 +2,10 @@
 package demo_perf_cycles
 import "../../../lib/math"
 import "../../../lib/os"
+import "../../../lib/time"
 import "base:intrinsics"
 import "core:fmt"
 import "core:strings"
-import "core:time"
 
 TimingCase :: struct($T: typeid) {
 	name:           string,
@@ -42,7 +42,7 @@ printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
 		"%v: %.2f cy, %.0f ns, %v runs",
 		_case.name,
 		_case.average_cycles,
-		os.nanos(_case.average_time),
+		time.nanos(_case.average_time),
 		run_count_string,
 	)
 }
@@ -58,8 +58,8 @@ measureCold :: proc($T: typeid, _cases: []TimingCase(T)) {
 		diff_cycles: int
 		diff_time: f64 // NOTE: windows only gives us precision of 100 ns per sample
 		{
-			os.SCOPED_TIME(&diff_time)
-			os.SCOPED_CYCLES(&diff_cycles)
+			time.SCOPED_TIME(&diff_time)
+			time.SCOPED_CYCLES(&diff_cycles)
 			acc[0] += _case.f(int(_case.run_count))
 		}
 		intrinsics.atomic_load(&acc[0])
@@ -80,8 +80,8 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 		diff_time: f64
 		REPEAT_COUNT :: 1e8
 		for j in 0 ..= 1 { 	// NOTE: we run twice so the code is in cache
-			os.SCOPED_TIME(&diff_time)
-			os.SCOPED_CYCLES(&diff_cycles)
+			time.SCOPED_TIME(&diff_time)
+			time.SCOPED_CYCLES(&diff_cycles)
 			for i in 0 ..< REPEAT_COUNT {
 				acc[0] += _case.f(T(i))
 			}
@@ -99,7 +99,7 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 }
 main :: proc() {
 	// TODO?: rewrite everything in test_case: testCase = TestCase()
-	os.initOsInfo()
+	os.initInfo()
 	for {
 		fmt.println()
 		measureCold(int, cold_int_cases)

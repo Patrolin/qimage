@@ -1,5 +1,6 @@
 // odin run src/qimage -subsystem:windows
 package main
+import "../../lib/alloc"
 import "../../lib/ast"
 import "../../lib/events"
 import "../../lib/file"
@@ -8,6 +9,8 @@ import "../../lib/input"
 import "../../lib/math"
 import "../../lib/os"
 import "../../lib/paint"
+import "../../lib/threads"
+import "../../lib/time"
 import "../assets"
 import "base:runtime"
 import "core:fmt"
@@ -18,7 +21,9 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7
 image: file.Image
 
 main :: proc() {
-	context = os.init()
+	os.initInfo()
+	context = alloc.defaultContext()
+	threads.initThreads()
 	events.initEvents({onPaint})
 	input.initInputs()
 	window := events.openWindow("qimage", {1200, 800})
@@ -46,13 +51,13 @@ main :: proc() {
 		t, prev_t, max_ddt: f64,
 		frame:              int,
 	}
-	timing.t = os.time()
+	timing.t = time.time()
 	timing.prev_t = timing.t
 	for isRunning = true; isRunning; {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
 		if (timing.frame > 30) {
-			timing.max_ddt = max(timing.max_ddt, abs(os.millis(dt) - 16.6666666666666666666))
+			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
 		}
 		events.getAllEvents()
 		for os_event in events.os_events {
@@ -86,16 +91,16 @@ main :: proc() {
 				isRunning = false
 			}
 		}
-		msg_t := os.time()
+		msg_t := time.time()
 		updateAndRender()
-		render_t := os.time()
+		render_t := time.time()
 		if false {
 			fmt.printf(
 				"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
-				os.millis(dt),
+				time.millis(dt),
 				timing.max_ddt,
-				os.millis(msg_t - timing.t),
-				os.millis(render_t - msg_t),
+				time.millis(msg_t - timing.t),
+				time.millis(render_t - msg_t),
 			)
 		}
 		timing.prev_t = timing.t

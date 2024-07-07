@@ -1,5 +1,6 @@
-package lib_os
+package lib_alloc
 import "../math"
+import "../thread_utils"
 import "core:fmt"
 import "core:mem"
 
@@ -14,7 +15,7 @@ SlabSlot :: struct {
 	next: ^SlabSlot, // 8 B
 }
 @(private)
-bootstrapSlabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
+slabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabCache), "Must have slot_size >= size_of(SlabCache)")
 	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
 	data := data
@@ -26,24 +27,32 @@ bootstrapSlabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 	return slab
 }
 @(private)
-bootstrapSlabCache_second :: proc(
-	prev_slab: ^SlabCache,
-	data: []u8,
-	slot_size: u16,
-) -> ^SlabCache {
+slabCache_second :: proc(prev_slab: ^SlabCache, data: []u8, slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabSlot), "Must have slot_size >= size_of(SlabSlot)")
 	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
-	prev_slab.header_slots += 1
-	slab := cast(^SlabCache)slabAlloc(prev_slab, size_of(SlabCache))
+	slab := cast(^SlabCache)slab_header(prev_slab, size_of(SlabCache))
 	slab.data = data
 	slab.slot_size = slot_size
 	return slab
 }
-bootstrapSlabCache :: proc {
-	bootstrapSlabCache_first,
-	bootstrapSlabCache_second,
+slabCache :: proc {
+	slabCache_first,
+	slabCache_second,
 }
 
+slab_header :: proc(slab: ^SlabCache, size: int) -> rawptr {
+	assert(size <= int(slab.slot_size), "Must have size <= slab.slot_size")
+	assert(
+		u32(slab.header_slots) == slab.used_slots,
+		"Header slots must be allocated at the beginning",
+	)
+	assert(slab.data != nil)
+	used_bytes := int(slab.used_slots) * int(slab.slot_size)
+	if used_bytes >= len(slab.data) {return nil}
+	slab.used_slots += 1
+	slab.header_slots += 1
+	return &slab.data[used_bytes]
+}
 slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 	assert(size <= int(slab.slot_size), "Must have size <= slab.slot_size")
 	ptr := rawptr(nil)
@@ -108,38 +117,37 @@ SlabAllocator :: struct {
 	_1024_slab: ^SlabCache,
 	_2048_slab: ^SlabCache,
 	_4096_slab: ^SlabCache,
-	mutex:      TicketMutex,
+	mutex:      thread_utils.TicketMutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
 		data = pageAlloc(math.kibiBytes(64)),
 	}
-	_4096_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_2048_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_1024_slab_data := partitionAlloc(&partition, 1.0 / 16)
-	_512_slab_data := partitionAlloc(&partition, 1.0 / 32)
-	_256_slab_data := partitionAlloc(&partition, 1.0 / 32)
-	_128_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_64_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_32_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_16_slab_data := partitionAlloc(&partition, 1.0 / 8)
-	_8_slab_data := partitionAlloc(&partition, 1.0 / 8)
+	_4096_slab_data := partitionBy(&partition, 1.0 / 8)
+	_2048_slab_data := partitionBy(&partition, 1.0 / 8)
+	_1024_slab_data := partitionBy(&partition, 1.0 / 16)
+	_512_slab_data := partitionBy(&partition, 1.0 / 32)
+	_256_slab_data := partitionBy(&partition, 1.0 / 32)
+	_128_slab_data := partitionBy(&partition, 1.0 / 8)
+	_64_slab_data := partitionBy(&partition, 1.0 / 8)
+	_32_slab_data := partitionBy(&partition, 1.0 / 8)
+	_16_slab_data := partitionBy(&partition, 1.0 / 8)
+	_8_slab_data := partitionBy(&partition, 1.0 / 8)
 	assert(partition.used == len(partition.data), "Unused space in partition")
 
-	_32_slab := bootstrapSlabCache(_32_slab_data, 32)
-	_128_slab := bootstrapSlabCache(_32_slab, _128_slab_data, 128)
-	data := cast(^SlabAllocator)slabAlloc(_128_slab, size_of(SlabAllocator))
-	_128_slab.header_slots += 1
-	data._8_slab = bootstrapSlabCache(_32_slab, _8_slab_data, 8)
-	data._16_slab = bootstrapSlabCache(_32_slab, _16_slab_data, 16)
+	_32_slab := slabCache(_32_slab_data, 32)
+	_128_slab := slabCache(_32_slab, _128_slab_data, 128)
+	data := cast(^SlabAllocator)slab_header(_128_slab, size_of(SlabAllocator))
+	data._8_slab = slabCache(_32_slab, _8_slab_data, 8)
+	data._16_slab = slabCache(_32_slab, _16_slab_data, 16)
 	data._32_slab = _32_slab
-	data._64_slab = bootstrapSlabCache(_32_slab, _64_slab_data, 64)
+	data._64_slab = slabCache(_32_slab, _64_slab_data, 64)
 	data._128_slab = _128_slab
-	data._256_slab = bootstrapSlabCache(_32_slab, _256_slab_data, 256)
-	data._512_slab = bootstrapSlabCache(_32_slab, _512_slab_data, 512)
-	data._1024_slab = bootstrapSlabCache(_32_slab, _1024_slab_data, 1024)
-	data._2048_slab = bootstrapSlabCache(_32_slab, _2048_slab_data, 2048)
-	data._4096_slab = bootstrapSlabCache(_32_slab, _4096_slab_data, 4096)
+	data._256_slab = slabCache(_32_slab, _256_slab_data, 256)
+	data._512_slab = slabCache(_32_slab, _512_slab_data, 512)
+	data._1024_slab = slabCache(_32_slab, _1024_slab_data, 1024)
+	data._2048_slab = slabCache(_32_slab, _2048_slab_data, 2048)
+	data._4096_slab = slabCache(_32_slab, _4096_slab_data, 4096)
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
 chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
@@ -169,6 +177,7 @@ chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
 	}
 }
 // TODO: alignment?
+@(private)
 slabAllocatorProc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
@@ -182,7 +191,7 @@ slabAllocatorProc :: proc(
 ) {
 	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
-	getMutex(&slab_allocator.mutex)
+	thread_utils.getMutex(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		slab := chooseSlab(slab_allocator, size)
@@ -231,6 +240,6 @@ slabAllocatorProc :: proc(
 	case .Query_Info:
 		data, err = nil, .Mode_Not_Implemented
 	}
-	releaseMutex(&slab_allocator.mutex)
+	thread_utils.releaseMutex(&slab_allocator.mutex)
 	return
 }

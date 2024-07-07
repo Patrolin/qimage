@@ -1,9 +1,9 @@
-package lib_os
+package lib_threads
 import "../math"
 import "base:intrinsics"
-import "core:fmt"
 import win "core:sys/windows"
 
+OsSemaphore :: distinct win.HANDLE
 OsThreadId :: struct {
 	id:     u32,
 	handle: win.HANDLE,
@@ -26,13 +26,12 @@ createThread :: proc(
 	return
 }
 
-OsSemaphore :: distinct win.HANDLE
 createSemaphore :: proc(max_count: i32) -> OsSemaphore {
 	//fmt.printfln("createSemaphore: %v", max_count)
 	initial_count: i32 = 0
 	return OsSemaphore(win.CreateSemaphoreW(nil, initial_count, max_count, nil))
 }
-incrementSemaphore :: proc(semaphore: OsSemaphore) {
+signalSemaphore :: proc(semaphore: OsSemaphore) {
 	//fmt.printfln("incrementSemaphore")
 	win.ReleaseSemaphore(win.HANDLE(semaphore), 1, nil)
 }

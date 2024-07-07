@@ -1,4 +1,5 @@
 package lib_events
+import "../alloc"
 import "../math"
 import "../os"
 import "base:intrinsics"
@@ -21,9 +22,9 @@ getAllEvents :: proc() {
 @(private)
 updateOsEventsInfo :: proc() {
 	current_window := os_events_info.current_window
-	current_window.monitor_rect = os.getMonitorRect(current_window.handle)
-	current_window.window_rect = os.getWindowRect(current_window.handle)
-	current_window.client_rect = os.getClientRect(
+	current_window.monitor_rect = os.win_getMonitorRect(current_window.handle)
+	current_window.window_rect = os.win_getWindowRect(current_window.handle)
+	current_window.client_rect = os.win_getClientRect(
 		current_window.handle,
 		current_window.window_rect,
 	)
@@ -45,7 +46,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = os.defaultContext()
+	context = alloc.defaultContext()
 	result = 0
 	switch message {
 	// minimum needed messages
@@ -140,7 +141,7 @@ messageHandler :: proc "stdcall" (
 			len(text_buffer),
 			0x4,
 		)
-		text := os.wstringToString(text_buffer[:max(text_len, 0)])
+		text := os.win_wstringToString(text_buffer[:max(text_len, 0)])
 		append(
 			&os_events,
 			KeyboardEvent {

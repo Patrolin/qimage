@@ -1,14 +1,14 @@
-dependencies
-  test // test utils
-    math // pure math functions
-      os // alloc, create threads, os utils
-        events // create a window, get window/mouse/keyboard events
-          paint // render in software
-          gl // render in hardware
-        file // read/write files
-        gui // create a gui representation
-      input // store input state
+dependency list
+  test (test utils)
+  math (pure math functions)
+  os (os info, os utils)
+  thread_utils (mutexes)
+  alloc (allocations)
+  threads (thread_utils + work queues)
+  events (creating a window, getting window/mouse/keyboard events)
+  input (store input state), paint (software rendering), gl (hardware rendering)
 
+TODO: out of date:
 /test
   Case :: struct($K: typeid, $V: typeid)
 /math
@@ -65,7 +65,8 @@ dependencies
     slabAllocator :: proc() -> mem.Allocator
   /threads
     initThreads :: proc()
-    addWorkItem :: proc(queue: ^WorkQueue, work: WorkItem)
+    launchThread :: proc(queue: ^WorkQueue, work: WorkItem)
+    launchThread :: proc()
     joinQueue :: proc(queue: ^WorkQueue)
     TicketMutex :: struct {
       next, serving: u32

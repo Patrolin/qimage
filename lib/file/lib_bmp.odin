@@ -1,4 +1,5 @@
 package lib_file
+import "../alloc"
 import "../math"
 import "../os"
 import "core:fmt"
@@ -18,7 +19,10 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		image.width = i16(bitmapHeader.width)
 		image.height = i16(bitmapHeader.height)
 		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
-		image.data = os.makeBig([]u8, int(image.width) * int(image.height) * int(image.channels))
+		image.data = alloc.makeBig(
+			[]u8,
+			int(image.width) * int(image.height) * int(image.channels),
+		)
 		fmt.assertf(image.height >= 0, "Negative height (%v) is not supported", image.height)
 		fmt.assertf(
 			bitmapHeader.compression == 0,

@@ -1,6 +1,7 @@
 package lib_events
 import "../math"
 import "../os"
+import "../time"
 import "core:fmt"
 import win "core:sys/windows"
 
@@ -9,7 +10,7 @@ import win "core:sys/windows"
 default_window_class_name: win.wstring
 @(private)
 initWindow :: proc() {
-	default_window_class_name = os.stringToWstring(
+	default_window_class_name = os.win_stringToWstring(
 		"lib_window_default",
 		allocator = context.allocator,
 	)
@@ -58,8 +59,8 @@ openWindow :: proc(
 	window := new(Window)
 	window.initial_client_ratio = {client_size.x, client_size.y}
 	os_events_info.current_window = window
-	title: win.wstring = len(title) > 0 ? os.stringToWstring(title) : nil
-	window_border := os.os_info.window_border
+	title: win.wstring = len(title) > 0 ? os.win_stringToWstring(title) : nil
+	window_border := os.info.window_border
 	window_size := math.i32x2 {
 		client_size.x + window_border.left + window_border.right,
 		client_size.y + window_border.top + window_border.bottom,
@@ -155,7 +156,7 @@ toggleFullscreen :: proc(window: win.HWND) {
 // NOTE: sometimes this returns up to 5.832 ms later than it should
 doVsyncBadly :: proc() -> f64 {
 	win.DwmFlush()
-	return os.time()
+	return time.time()
 }
 /* NOTE: doVsyncWell():
 	for isRunning {

@@ -1,15 +1,20 @@
 // odin run demo/gl_min_renderer -subsystem:windows
 package main
 
+import "../../lib/alloc"
 import "../../lib/events"
 import "../../lib/gl"
 import "../../lib/os"
+import "../../lib/threads"
+import "../../lib/time"
 import "core:fmt"
 
 isRunning := false
 
 main :: proc() {
-	context = os.init()
+	os.initInfo()
+	context = alloc.defaultContext()
+	threads.initThreads()
 	events.initEvents({onPaint})
 	window := events.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)
@@ -17,13 +22,13 @@ main :: proc() {
 		t, prev_t, max_ddt: f64,
 		frame:              int,
 	}
-	timing.t = os.time()
+	timing.t = time.time()
 	timing.prev_t = timing.t
 	for isRunning = true; isRunning; {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
 		if (timing.frame > 30) {
-			timing.max_ddt = max(timing.max_ddt, abs(os.millis(dt) - 16.6666666666666666666))
+			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
 		}
 		events.getAllEvents()
 		for os_event in events.os_events {
@@ -34,15 +39,15 @@ main :: proc() {
 				isRunning = false
 			}
 		}
-		msg_t := os.time()
+		msg_t := time.time()
 		updateAndRender()
-		render_t := os.time()
+		render_t := time.time()
 		fmt.printf(
 			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
-			os.millis(dt),
+			time.millis(dt),
 			timing.max_ddt,
-			os.millis(msg_t - timing.t),
-			os.millis(render_t - msg_t),
+			time.millis(msg_t - timing.t),
+			time.millis(render_t - msg_t),
 		)
 		timing.prev_t = timing.t
 		timing.t = events.doVsyncBadly()
