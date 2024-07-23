@@ -2,6 +2,7 @@ package lib_alloc
 import "../math"
 import "../os"
 import "base:intrinsics"
+import "core:fmt"
 import "core:testing"
 
 @(test)
@@ -66,3 +67,45 @@ tests_slabAlloc :: proc(t: ^testing.T) {
 	y = cast(^u8)slabRealloc(slab, x, slab2, 1)
 	testing.expectf(t, (y != x) && (y != z), "Failed to realloc, x: %v, y: %v, z: %v", x, y, z)
 }
+@(test)
+tests_map :: proc(t: ^testing.T) {
+	os.initInfo()
+	context = defaultContext()
+	m: Map(string, int) = {}
+	addKey(&m, "a")^ = 1
+	addKey(&m, "b")^ = 2
+	valueA, okA := getKey(&m, "a")
+	testing.expectf(t, okA && (valueA^ == 1), "m[\"a\"] = %v", valueA^)
+	valueB, okB := getKey(&m, "b")
+	testing.expectf(t, okB && (valueB^ == 2), "m[\"b\"] = %v", valueB^)
+	valueC, okC := getKey(&m, "c")
+	testing.expectf(t, !okC && (valueC^ == {}), "m[\"b\"] = %v", valueC^)
+	removeKey(&m, "a")
+	removeKey(&m, "b")
+	removeKey(&m, "c")
+	valueA, okA = getKey(&m, "a")
+	testing.expectf(t, !okA && (valueA^ == {}), "m[\"a\"] = %v", valueA^)
+	delete_map_like(&m)
+}
+@(test)
+tests_set :: proc(t: ^testing.T) {
+	os.initInfo()
+	context = defaultContext()
+	m: Set(string) = {}
+	addKey(&m, "a")
+	addKey(&m, "b")
+	okA := getKey(&m, "a")
+	testing.expectf(t, okA, "m[\"a\"] = %v", okA)
+	okB := getKey(&m, "b")
+	testing.expectf(t, okB, "m[\"b\"] = %v", okB)
+	okC := getKey(&m, "c")
+	testing.expectf(t, !okC, "m[\"b\"] = %v", okC)
+	removeKey(&m, "a")
+	removeKey(&m, "b")
+	removeKey(&m, "c")
+	okA = getKey(&m, "a")
+	testing.expectf(t, !okA, "m[\"a\"] = %v", okA)
+	fmt.printfln("free(m.slots)")
+	free(m.slots)
+}
+// TODO!: get -no-crt -default-to-nil-allocator to work

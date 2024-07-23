@@ -73,10 +73,17 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 	return ptr
 }
 slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr) {
+	if old_ptr == nil {return}
 	offset := int(uintptr(old_ptr) - uintptr(&slab.data[0]))
 	start_offset := int(slab.header_slots) * int(slab.slot_size)
 	end_offset := int(slab.used_slots) * int(slab.slot_size)
-	assert((offset >= 0) && (offset < end_offset), "Can't free old_ptr outside the slab")
+	fmt.assertf(
+		(offset >= 0) && (offset < end_offset),
+		"Can't free old_ptr: %v outside the slab: (0x%X - 0x%X)",
+		old_ptr,
+		int(uintptr(&slab.data[0])) + start_offset,
+		int(uintptr(&slab.data[0])) + end_offset,
+	)
 	assert(offset >= start_offset, "Can't free a header slot")
 	slot := cast(^SlabSlot)old_ptr
 	slot.next = slab.free_list
@@ -107,17 +114,22 @@ slabFreeAll :: proc(slab: ^SlabCache) {
 @(private)
 MAX_SLAB_SIZE :: 4096
 SlabAllocator :: struct {
-	_8_slab:    ^SlabCache,
-	_16_slab:   ^SlabCache,
-	_32_slab:   ^SlabCache,
-	_64_slab:   ^SlabCache,
-	_128_slab:  ^SlabCache,
-	_256_slab:  ^SlabCache,
-	_512_slab:  ^SlabCache,
-	_1024_slab: ^SlabCache,
-	_2048_slab: ^SlabCache,
-	_4096_slab: ^SlabCache,
-	mutex:      _threads.TicketMutex,
+	using _: struct #raw_union {
+		slabs:   [10]^SlabCache,
+		using _: struct {
+			_8_slab:    ^SlabCache,
+			_16_slab:   ^SlabCache,
+			_32_slab:   ^SlabCache,
+			_64_slab:   ^SlabCache,
+			_128_slab:  ^SlabCache,
+			_256_slab:  ^SlabCache,
+			_512_slab:  ^SlabCache,
+			_1024_slab: ^SlabCache,
+			_2048_slab: ^SlabCache,
+			_4096_slab: ^SlabCache,
+		},
+	},
+	mutex:   _threads.TicketMutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
@@ -150,7 +162,7 @@ slabAllocator :: proc() -> mem.Allocator {
 	data._4096_slab = slabCache(_32_slab, _4096_slab_data, 4096)
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
-chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
+chooseSlabToAlloc :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
 	assert(size <= MAX_SLAB_SIZE, "Allocation size too big")
 	group := math.ilog2Ceil(uint(size))
 	switch group {
@@ -176,6 +188,27 @@ chooseSlab :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
 		return slab_allocator._4096_slab
 	}
 }
+chooseSlabToFree :: proc(
+	slab_allocator: ^SlabAllocator,
+	old_ptr: rawptr,
+	old_size: int,
+) -> ^SlabCache {
+	if (old_size != 0) {
+		return chooseSlabToAlloc(slab_allocator, old_size)
+	} else {
+		for &slab in slab_allocator.slabs { 	// NOTE: odin gives us old_size: 0 for free(int_ptr) for some reason
+			length := len(slab.data)
+			start := int(uintptr(&slab.data[0]))
+			end := start + length - 1
+			old_ptr_int := int(uintptr(old_ptr))
+			if old_ptr_int >= start && old_ptr_int <= end {
+				return slab
+			}
+		}
+		fmt.assertf(false, "Cannot free outside slabs, old_ptr: %v", old_ptr)
+		return nil
+	}
+}
 // TODO: alignment?
 @(private)
 slabAllocatorProc :: proc(
@@ -194,14 +227,14 @@ slabAllocatorProc :: proc(
 	_threads.getMutex(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		slab := chooseSlab(slab_allocator, size)
+		slab := chooseSlabToAlloc(slab_allocator, size)
 		ptr := slabAlloc(slab, size, mode == .Alloc)
 		data = (cast([^]u8)ptr)[:slab.slot_size]
 		if data == nil {
 			err = .Out_Of_Memory
 		}
 	case .Free:
-		old_slab := chooseSlab(slab_allocator, old_size)
+		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
 		slabFree(old_slab, old_ptr)
 		data, err = nil, nil
 	case .Free_All:
@@ -217,8 +250,9 @@ slabAllocatorProc :: proc(
 		slabFreeAll(slab_allocator._4096_slab)
 		data, err = nil, nil
 	case .Resize, .Resize_Non_Zeroed:
-		old_slab := chooseSlab(slab_allocator, old_size)
-		slab := chooseSlab(slab_allocator, size)
+		//assert(old_ptr != nil && old_size != 0, "Cannot free size 0")
+		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
+		slab := chooseSlabToAlloc(slab_allocator, size)
 		data =
 		(cast([^]u8)slabRealloc(old_slab, old_ptr, slab, size, mode == .Resize))[:slab.slot_size]
 		if data == nil {
