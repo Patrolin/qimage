@@ -250,7 +250,6 @@ slabAllocatorProc :: proc(
 		slabFreeAll(slab_allocator._4096_slab)
 		data, err = nil, nil
 	case .Resize, .Resize_Non_Zeroed:
-		//assert(old_ptr != nil && old_size != 0, "Cannot free size 0")
 		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
 		slab := chooseSlabToAlloc(slab_allocator, size)
 		data =
