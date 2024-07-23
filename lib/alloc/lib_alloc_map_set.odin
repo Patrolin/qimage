@@ -74,22 +74,6 @@ shrink_slotArray :: proc(m: ^SlotArray($Key, $Value)) {
 		resize_slotArray(m, new_capacity)
 	}
 }
-delete_map_like :: proc(
-	m: ^Map($Key, $Value),
-	allocator := context.allocator,
-	loc := #caller_location,
-) {
-	runtime.mem_free_with_size(
-		m.slots,
-		int(m.capacity) * size_of(MapLikeSlot(Key, Value)),
-		allocator,
-		loc,
-	)
-	m.slots = nil
-	m.added_slots = 0
-	m.removed_slots = 0
-	m.capacity = MIN_CAPACITY
-}
 
 // Map
 Map :: struct($Key, $Value: typeid) {
@@ -133,6 +117,26 @@ removeKey :: proc {
 	removeKey_map,
 	removeKey_set,
 }
+delete_map_like_map :: proc(
+	m: ^Map($Key, $Value),
+	allocator := context.allocator,
+	loc := #caller_location,
+) {
+	runtime.mem_free_with_size(
+		m.slots,
+		int(m.capacity) * size_of(MapLikeSlot(Key, Value)),
+		allocator,
+		loc,
+	)
+	m.slots = nil
+	m.added_slots = 0
+	m.removed_slots = 0
+	m.capacity = MIN_CAPACITY
+}
+delete_map_like :: proc {
+	delete_map_like_map,
+	delete_map_like_set,
+}
 
 // Set
 void :: struct {}
@@ -164,6 +168,22 @@ removeKey_set :: proc(m: ^$M/Set($Key), key: Key) {
 	if m.removed_slots * 100 > MAX_REMOVED_PERCENT * m.capacity {
 		shrink_slotArray(cast(^SlotArray(Key, void))m)
 	}
+}
+delete_map_like_set :: proc(
+	m: ^Set($Key),
+	allocator := context.allocator,
+	loc := #caller_location,
+) {
+	runtime.mem_free_with_size(
+		m.slots,
+		int(m.capacity) * size_of(MapLikeSlot(Key, void)),
+		allocator,
+		loc,
+	)
+	m.slots = nil
+	m.added_slots = 0
+	m.removed_slots = 0
+	m.capacity = MIN_CAPACITY
 }
 
 // TODO: better hash, custom hash?

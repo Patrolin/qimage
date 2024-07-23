@@ -105,7 +105,6 @@ tests_set :: proc(t: ^testing.T) {
 	removeKey(&m, "c")
 	okA = getKey(&m, "a")
 	testing.expectf(t, !okA, "m[\"a\"] = %v", okA)
-	fmt.printfln("free(m.slots)")
-	free(m.slots)
+	delete_map_like(&m)
 }
 // TODO!: get -no-crt -default-to-nil-allocator to work
