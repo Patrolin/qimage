@@ -117,8 +117,7 @@ SlabAllocator :: struct {
 	using _: struct #raw_union {
 		slabs:   [10]^SlabCache,
 		using _: struct {
-			_8_slab:    ^SlabCache,
-			_16_slab:   ^SlabCache,
+			_16_slab:   ^SlabCache, // NOTE: min SIMD size
 			_32_slab:   ^SlabCache,
 			_64_slab:   ^SlabCache,
 			_128_slab:  ^SlabCache,
@@ -135,7 +134,7 @@ slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
 		data = pageAlloc(math.kibiBytes(64)),
 	}
-	_4096_slab_data := partitionBy(&partition, 1.0 / 8)
+	_4096_slab_data := partitionBy(&partition, 1.0 / 4)
 	_2048_slab_data := partitionBy(&partition, 1.0 / 8)
 	_1024_slab_data := partitionBy(&partition, 1.0 / 16)
 	_512_slab_data := partitionBy(&partition, 1.0 / 32)
@@ -144,13 +143,11 @@ slabAllocator :: proc() -> mem.Allocator {
 	_64_slab_data := partitionBy(&partition, 1.0 / 8)
 	_32_slab_data := partitionBy(&partition, 1.0 / 8)
 	_16_slab_data := partitionBy(&partition, 1.0 / 8)
-	_8_slab_data := partitionBy(&partition, 1.0 / 8)
 	assert(partition.used == len(partition.data), "Unused space in partition")
 
 	_32_slab := slabCache(_32_slab_data, 32)
 	_128_slab := slabCache(_32_slab, _128_slab_data, 128)
 	data := cast(^SlabAllocator)slab_header(_128_slab, size_of(SlabAllocator))
-	data._8_slab = slabCache(_32_slab, _8_slab_data, 8)
 	data._16_slab = slabCache(_32_slab, _16_slab_data, 16)
 	data._32_slab = _32_slab
 	data._64_slab = slabCache(_32_slab, _64_slab_data, 64)
@@ -167,8 +164,6 @@ chooseSlabToAlloc :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCac
 	group := math.ilog2Ceil(uint(size))
 	switch group {
 	case:
-		return slab_allocator._8_slab
-	case 4:
 		return slab_allocator._16_slab
 	case 5:
 		return slab_allocator._32_slab
@@ -238,7 +233,6 @@ slabAllocatorProc :: proc(
 		slabFree(old_slab, old_ptr)
 		data, err = nil, nil
 	case .Free_All:
-		slabFreeAll(slab_allocator._8_slab)
 		slabFreeAll(slab_allocator._16_slab)
 		slabFreeAll(slab_allocator._32_slab)
 		slabFreeAll(slab_allocator._64_slab)
