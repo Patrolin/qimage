@@ -15,8 +15,14 @@ partitionBy_bytes :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8
 	return chunk
 }
 @(private)
-partitionBy_fraction :: proc(partition: ^Partition, fraction: f64) -> []u8 {
-	chunk_size := math.roundToInt(f64(len(partition.data)) * fraction)
+partitionBy_fraction :: proc(partition: ^Partition, fraction: f64, floor_to: int = 0) -> []u8 {
+	chunk_size := len(partition.data) - partition.used
+	if fraction != 0 {
+		chunk_size = math.roundToInt(f64(len(partition.data)) * fraction)
+	}
+	if floor_to != 0 {
+		chunk_size = math.floorTo(chunk_size, floor_to)
+	}
 	return partitionBy_bytes(partition, math.bytes(chunk_size))
 }
 partitionBy :: proc {

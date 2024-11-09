@@ -40,6 +40,11 @@ ilog2Ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	remainder := T((x << (leading_zeros + 1)) > 0)
 	return size_of(T) * 8 - T(x > 0) - leading_zeros + remainder
 }
+floorTo :: #force_inline proc "contextless" (
+	x, floor_to: $T,
+) -> T where intrinsics.type_is_integer(T) {
+	return x / floor_to * floor_to
+}
 // odin test lib/math
 @(test)
 test_clz :: proc(t: ^testing.T) {

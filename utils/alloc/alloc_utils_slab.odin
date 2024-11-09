@@ -40,6 +40,13 @@ slabCache :: proc {
 	slabCache_second,
 }
 
+CACHE_SIZE :: 64
+@(private)
+getUsedBytes :: proc(slab: ^SlabCache, slot_count: int) -> int {
+	bytes_per_slot := int(slab.slot_size)
+	if slab.slot_size > CACHE_SIZE {bytes_per_slot += CACHE_SIZE} 	// NOTE: cache coloring
+	return slot_count * bytes_per_slot
+}
 @(private)
 slabAllocHeader :: proc(slab: ^SlabCache, size: int) -> rawptr {
 	assert(size <= int(slab.slot_size), "Must have size <= slab.slot_size")
@@ -48,7 +55,7 @@ slabAllocHeader :: proc(slab: ^SlabCache, size: int) -> rawptr {
 		"Header slots must be allocated at the beginning",
 	)
 	assert(slab.data != nil)
-	used_bytes := int(slab.used_slots) * int(slab.slot_size)
+	used_bytes := getUsedBytes(slab, int(slab.used_slots))
 	if used_bytes >= len(slab.data) {return nil}
 	slab.used_slots += 1
 	slab.header_slots += 1
@@ -62,7 +69,7 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 		slab.free_list = (cast(^SlabSlot)ptr).next
 	} else {
 		assert(slab.data != nil)
-		used_bytes := int(slab.used_slots) * int(slab.slot_size)
+		used_bytes := getUsedBytes(slab, int(slab.used_slots))
 		if used_bytes >= len(slab.data) {return nil}
 		ptr = &slab.data[used_bytes]
 		slab.used_slots += 1
@@ -76,8 +83,8 @@ slabAlloc :: proc(slab: ^SlabCache, size: int, zero: bool = true) -> rawptr {
 slabFree :: proc(slab: ^SlabCache, old_ptr: rawptr) {
 	if old_ptr == nil {return}
 	offset := int(uintptr(old_ptr) - uintptr(&slab.data[0]))
-	start_offset := int(slab.header_slots) * int(slab.slot_size)
-	end_offset := int(slab.used_slots) * int(slab.slot_size)
+	start_offset := getUsedBytes(slab, int(slab.header_slots))
+	end_offset := getUsedBytes(slab, int(slab.used_slots))
 	fmt.assertf(
 		(offset >= 0) && (offset < end_offset),
 		"Can't free old_ptr: %v outside the slab: (0x%X - 0x%X)",
@@ -118,7 +125,7 @@ SlabAllocator :: struct {
 	using _: struct #raw_union {
 		slabs:   [10]^SlabCache,
 		using _: struct {
-			_16_slab:   ^SlabCache, // NOTE: min SIMD size
+			_16_slab:   ^SlabCache, // NOTE: min SIMD size + C ABI demands 16B alignment
 			_32_slab:   ^SlabCache,
 			_64_slab:   ^SlabCache,
 			_128_slab:  ^SlabCache,
@@ -135,22 +142,21 @@ slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
 		data = pageAlloc(math.kibiBytes(64)),
 	}
-	// TODO: color cache lines (slabs above 64B)
-	_4096_slab_data := partitionBy(&partition, 1.0 / 4)
-	_2048_slab_data := partitionBy(&partition, 1.0 / 8)
-	_1024_slab_data := partitionBy(&partition, 1.0 / 16)
-	_512_slab_data := partitionBy(&partition, 1.0 / 32)
-	_256_slab_data := partitionBy(&partition, 1.0 / 32)
-	_128_slab_data := partitionBy(&partition, 1.0 / 8)
+	_4096_slab_data := partitionBy(&partition, 1.0 / 4, 4096 + CACHE_SIZE) // NOTE: cache coloring
+	_2048_slab_data := partitionBy(&partition, 1.0 / 8, 2048 + CACHE_SIZE)
+	_1024_slab_data := partitionBy(&partition, 1.0 / 16, 1024 + CACHE_SIZE)
+	_512_slab_data := partitionBy(&partition, 1.0 / 32, 512 + CACHE_SIZE)
+	_256_slab_data := partitionBy(&partition, 1.0 / 32, 256 + CACHE_SIZE)
+	_128_slab_data := partitionBy(&partition, 1.0 / 8, 128 + CACHE_SIZE)
 	_64_slab_data := partitionBy(&partition, 1.0 / 8)
 	_32_slab_data := partitionBy(&partition, 1.0 / 8)
-	_16_slab_data := partitionBy(&partition, 1.0 / 8)
-	assert(partition.used == len(partition.data), "Unused space in partition")
+	_16_slab_data := partitionBy(&partition, 0, 16)
+	assert(len(partition.data) - partition.used < 16, "Unused space in partition")
 
 	_32_slab := slabCache(_32_slab_data, 32)
 	_128_slab := slabCache(_32_slab, _128_slab_data, 128)
 	data := cast(^SlabAllocator)slabAllocHeader(_128_slab, size_of(SlabAllocator))
-	data._16_slab = slabCache(_32_slab, _16_slab_data, 16) // NOTE: C ABI demands 16B alignment
+	data._16_slab = slabCache(_32_slab, _16_slab_data, 16)
 	data._32_slab = _32_slab
 	data._64_slab = slabCache(_32_slab, _64_slab_data, 64)
 	data._128_slab = _128_slab
