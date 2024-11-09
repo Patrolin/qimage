@@ -28,9 +28,11 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 }
 ThreadInfo :: thread_utils.ThreadInfo
 initThreads :: proc() -> []ThreadInfo {
+	assert(thread_utils.thread_count == 1)
 	thread_count := os.info.logical_core_count - 1
 	thread_utils._semaphore = thread_utils._createSemaphore(i32(thread_count))
 	thread_infos := make([]ThreadInfo, thread_count)
+	intrinsics.atomic_store(&thread_utils.thread_count, thread_count)
 	for i in 1 ..= thread_count {
 		thread_infos[i - 1] = ThreadInfo {
 			thread_id = thread_utils._createThread(
@@ -47,7 +49,7 @@ initThreads :: proc() -> []ThreadInfo {
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	write_mutex, read_mutex: thread_utils.TicketMutex, // TODO!: split into per-thread locks
+	write_mutex, read_mutex: thread_utils.TicketMutex, // TODO!: use LockGroups instead
 	completed_count:         u32,
 	items:                   [32]WorkItem,
 }
@@ -55,7 +57,7 @@ WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
 }
-launchThread_withWork :: proc(queue: ^WorkQueue, work: WorkItem) {
+launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 	ticket := thread_utils.getMutexTicket(&queue.write_mutex)
 	for {
 		written_count := intrinsics.atomic_load(&queue.write_mutex.serving)
@@ -69,10 +71,6 @@ launchThread_withWork :: proc(queue: ^WorkQueue, work: WorkItem) {
 		}
 		doNextWorkItem(queue)
 	}
-}
-launchThread :: proc {
-	thread_utils.launchThread,
-	launchThread_withWork,
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	ticket, ok := thread_utils.getMutexTicketUpTo(&queue.read_mutex, queue.write_mutex.serving)
@@ -91,7 +89,7 @@ joinQueue :: proc(queue: ^WorkQueue) {
 		//fmt.printfln("wm: %v, rm: %v", work_queue.write_mutex, work_queue.read_mutex)
 	}
 }
-// odin test lib/threads
+// odin test lib/thread
 @(test)
 tests_workQueue :: proc(t: ^testing.T) {
 	checkWorkQueue :: proc(data: rawptr) {

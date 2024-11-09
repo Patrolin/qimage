@@ -1,5 +1,25 @@
 package thread_utils
+import "../math"
 import "base:intrinsics"
+
+// lock group
+LockGroup :: distinct ^u64
+getLock :: proc(lock_group: LockGroup, lock_index: int) {
+	for {
+		old_value := intrinsics.atomic_load(lock_group)
+		new_value := math.setBit(old_value, u64(lock_index), 1)
+		value, ok := intrinsics.atomic_compare_exchange_strong(lock_group, old_value, new_value)
+		if ok {break}
+	}
+}
+releaseLock :: proc(lock_group: LockGroup, lock_index: int) {
+	for {
+		old_value := intrinsics.atomic_load(lock_group)
+		new_value := math.setBit(old_value, u64(lock_index), 0)
+		value, ok := intrinsics.atomic_compare_exchange_strong(lock_group, old_value, new_value)
+		if ok {break}
+	}
+}
 
 // mutex
 TicketMutex :: struct {
@@ -25,7 +45,8 @@ releaseMutex :: proc(mutex: ^TicketMutex) {
 }
 // thread info
 _semaphore: OsSemaphore
-running_thread_count := 1 // TODO: remove this?
+thread_count := 1
+running_thread_count := 1 // TODO: delete this?
 pending_async_files := 0
 ThreadInfo :: struct {
 	thread_id: OsThreadId,

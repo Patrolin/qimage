@@ -30,7 +30,7 @@ slabCache_first :: proc(data: []u8, slot_size: u16) -> ^SlabCache {
 slabCache_second :: proc(prev_slab: ^SlabCache, data: []u8, slot_size: u16) -> ^SlabCache {
 	assert(slot_size >= size_of(SlabSlot), "Must have slot_size >= size_of(SlabSlot)")
 	assert(len(data) >= int(slot_size), "Must have len(data) >= slot_size")
-	slab := cast(^SlabCache)slab_header(prev_slab, size_of(SlabCache))
+	slab := cast(^SlabCache)slabAllocHeader(prev_slab, size_of(SlabCache))
 	slab.data = data
 	slab.slot_size = slot_size
 	return slab
@@ -40,7 +40,8 @@ slabCache :: proc {
 	slabCache_second,
 }
 
-slab_header :: proc(slab: ^SlabCache, size: int) -> rawptr {
+@(private)
+slabAllocHeader :: proc(slab: ^SlabCache, size: int) -> rawptr {
 	assert(size <= int(slab.slot_size), "Must have size <= slab.slot_size")
 	assert(
 		u32(slab.header_slots) == slab.used_slots,
@@ -128,12 +129,13 @@ SlabAllocator :: struct {
 			_4096_slab: ^SlabCache,
 		},
 	},
-	mutex:   thread.TicketMutex, // TODO!: split into per-thread locks
+	mutex:   thread.TicketMutex,
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
 		data = pageAlloc(math.kibiBytes(64)),
 	}
+	// TODO: color cache lines (slabs above 64B)
 	_4096_slab_data := partitionBy(&partition, 1.0 / 4)
 	_2048_slab_data := partitionBy(&partition, 1.0 / 8)
 	_1024_slab_data := partitionBy(&partition, 1.0 / 16)
@@ -147,8 +149,8 @@ slabAllocator :: proc() -> mem.Allocator {
 
 	_32_slab := slabCache(_32_slab_data, 32)
 	_128_slab := slabCache(_32_slab, _128_slab_data, 128)
-	data := cast(^SlabAllocator)slab_header(_128_slab, size_of(SlabAllocator))
-	data._16_slab = slabCache(_32_slab, _16_slab_data, 16)
+	data := cast(^SlabAllocator)slabAllocHeader(_128_slab, size_of(SlabAllocator))
+	data._16_slab = slabCache(_32_slab, _16_slab_data, 16) // NOTE: C ABI demands 16B alignment
 	data._32_slab = _32_slab
 	data._64_slab = slabCache(_32_slab, _64_slab_data, 64)
 	data._128_slab = _128_slab
@@ -204,12 +206,11 @@ chooseSlabToFree :: proc(
 		return nil
 	}
 }
-// TODO: alignment?
 @(private)
 slabAllocatorProc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
-	size, alignment: int,
+	size, _alignment: int,
 	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
@@ -219,20 +220,24 @@ slabAllocatorProc :: proc(
 ) {
 	//fmt.printf("loc = %v\n", loc)
 	slab_allocator := cast(^SlabAllocator)allocator_data
-	thread.getMutex(&slab_allocator.mutex)
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		slab := chooseSlabToAlloc(slab_allocator, size)
+		thread.getMutex(&slab_allocator.mutex)
 		ptr := slabAlloc(slab, size, mode == .Alloc)
+		thread.releaseMutex(&slab_allocator.mutex)
 		data = (cast([^]u8)ptr)[:slab.slot_size]
 		if data == nil {
 			err = .Out_Of_Memory
 		}
 	case .Free:
 		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
+		thread.getMutex(&slab_allocator.mutex)
 		slabFree(old_slab, old_ptr)
+		thread.releaseMutex(&slab_allocator.mutex)
 		data, err = nil, nil
 	case .Free_All:
+		thread.getMutex(&slab_allocator.mutex)
 		slabFreeAll(slab_allocator._16_slab)
 		slabFreeAll(slab_allocator._32_slab)
 		slabFreeAll(slab_allocator._64_slab)
@@ -242,12 +247,15 @@ slabAllocatorProc :: proc(
 		slabFreeAll(slab_allocator._1024_slab)
 		slabFreeAll(slab_allocator._2048_slab)
 		slabFreeAll(slab_allocator._4096_slab)
+		thread.releaseMutex(&slab_allocator.mutex)
 		data, err = nil, nil
 	case .Resize, .Resize_Non_Zeroed:
 		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
 		slab := chooseSlabToAlloc(slab_allocator, size)
+		thread.getMutex(&slab_allocator.mutex)
 		data =
 		(cast([^]u8)slabRealloc(old_slab, old_ptr, slab, size, mode == .Resize))[:slab.slot_size]
+		thread.releaseMutex(&slab_allocator.mutex)
 		if data == nil {
 			err = .Out_Of_Memory
 		}
@@ -267,6 +275,5 @@ slabAllocatorProc :: proc(
 	case .Query_Info:
 		data, err = nil, .Mode_Not_Implemented
 	}
-	thread.releaseMutex(&slab_allocator.mutex)
 	return
 }
