@@ -47,7 +47,7 @@ initThreads :: proc() -> []ThreadInfo {
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	write_mutex, read_mutex: thread_utils.TicketMutex,
+	write_mutex, read_mutex: thread_utils.TicketMutex, // TODO!: split into per-thread locks
 	completed_count:         u32,
 	items:                   [32]WorkItem,
 }

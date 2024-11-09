@@ -128,7 +128,7 @@ SlabAllocator :: struct {
 			_4096_slab: ^SlabCache,
 		},
 	},
-	mutex:   thread.TicketMutex,
+	mutex:   thread.TicketMutex, // TODO!: split into per-thread locks
 }
 slabAllocator :: proc() -> mem.Allocator {
 	partition := Partition {
