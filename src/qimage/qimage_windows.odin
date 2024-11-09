@@ -1,16 +1,16 @@
 // odin run src/qimage -subsystem:windows
 package main
-import "../../lib/alloc"
 import "../../lib/ast"
-import "../../lib/events"
+import "../../lib/event"
 import "../../lib/file"
 import "../../lib/gl"
 import "../../lib/input"
-import "../../lib/math"
-import "../../lib/os"
 import "../../lib/paint"
-import "../../lib/threads"
-import "../../lib/time"
+import "../../lib/thread"
+import "../../utils/alloc"
+import "../../utils/math"
+import "../../utils/os"
+import "../../utils/time"
 import "../assets"
 import "base:runtime"
 import "core:fmt"
@@ -23,10 +23,10 @@ image: file.Image
 main :: proc() {
 	os.initInfo()
 	context = alloc.defaultContext()
-	threads.initThreads()
-	events.initEvents({onPaint})
+	thread.initThreads()
+	event.initEvents({onPaint})
 	input.initInputs()
-	window := events.openWindow("qimage", {1200, 800})
+	window := event.openWindow("qimage", {1200, 800})
 	image = assets.loadImage("test_image.bmp")
 	/*
 	file.printImage(image, 0, 0, 3, 3)
@@ -59,10 +59,10 @@ main :: proc() {
 		if (timing.frame > 30) {
 			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
 		}
-		events.getAllEvents()
-		for os_event in events.os_events {
+		event.getAllEvents()
+		for os_event in event.os_events {
 			switch event in os_event {
-			case events.RawMouseEvent:
+			case event.RawMouseEvent:
 				//fmt.printfln("event: %v", event)
 				#partial switch event.LMB {
 				case .Down, .Up:
@@ -74,20 +74,20 @@ main :: proc() {
 					input.setButton(&input.mouse.RMB, event.RMB == .Up)
 					fmt.printfln("mouse: %v", input.mouse)
 				}
-			case events.MouseMoveEvent:
+			case event.MouseMoveEvent:
 				input.addMousePath(event.client_pos)
-			case events.KeyboardEvent:
+			case event.KeyboardEvent:
 				//fmt.printfln("event: %v", event)
 				switch event.key_code {
 				// TODO
 				}
-			case events.WindowResizeEvent:
+			case event.WindowResizeEvent:
 				paint.resizeFrameBuffer(
 					&frame_buffer,
 					i16(window.client_rect.width),
 					i16(window.client_rect.height),
 				)
-			case events.WindowCloseEvent:
+			case event.WindowCloseEvent:
 				isRunning = false
 			}
 		}
@@ -104,13 +104,13 @@ main :: proc() {
 			)
 		}
 		timing.prev_t = timing.t
-		timing.t = events.doVsyncBadly()
+		timing.t = event.doVsyncBadly()
 		onPaint(window^)
 		free_all(context.temp_allocator)
 		input.applyInputs()
 	}
 }
-onPaint :: proc(window: events.Window) {
+onPaint :: proc(window: event.Window) {
 	paint.copyFrameBufferToWindow(frame_buffer, window)
 }
 

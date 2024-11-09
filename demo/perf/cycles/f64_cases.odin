@@ -1,5 +1,5 @@
 package demo_perf_cycles
-import "../../../lib/math"
+import "../../../utils/math"
 
 C_FLOAT :: 1.0 + 1.0 / 12.0
 D_FLOAT :: 17

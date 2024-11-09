@@ -1,5 +1,5 @@
 package demo_perf_cycles
-import "../../../lib/math"
+import "../../../utils/math"
 
 div_f32 :: proc(v: f32) -> f32 {
 	return v / C_FLOAT

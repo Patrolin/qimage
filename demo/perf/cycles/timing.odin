@@ -1,8 +1,8 @@
 // odin run demo/perf/cycles -o:speed
 package demo_perf_cycles
-import "../../../lib/math"
-import "../../../lib/os"
-import "../../../lib/time"
+import "../../../utils/math"
+import "../../../utils/os"
+import "../../../utils/time"
 import "base:intrinsics"
 import "core:fmt"
 import "core:strings"

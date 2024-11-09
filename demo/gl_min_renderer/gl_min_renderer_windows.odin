@@ -1,12 +1,12 @@
 // odin run demo/gl_min_renderer -subsystem:windows
 package main
 
-import "../../lib/alloc"
-import "../../lib/events"
+import "../../lib/event"
 import "../../lib/gl"
-import "../../lib/os"
-import "../../lib/threads"
-import "../../lib/time"
+import "../../lib/thread"
+import "../../utils/alloc"
+import "../../utils/os"
+import "../../utils/time"
 import "core:fmt"
 
 isRunning := false
@@ -14,9 +14,9 @@ isRunning := false
 main :: proc() {
 	os.initInfo()
 	context = alloc.defaultContext()
-	threads.initThreads()
-	events.initEvents({onPaint})
-	window := events.openWindow("gl_min_renderer", {1200, 800})
+	thread.initThreads()
+	event.initEvents({onPaint})
+	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)
 	timing: struct {
 		t, prev_t, max_ddt: f64,
@@ -30,12 +30,12 @@ main :: proc() {
 		if (timing.frame > 30) {
 			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
 		}
-		events.getAllEvents()
-		for os_event in events.os_events {
+		event.getAllEvents()
+		for os_event in event.os_events {
 			#partial switch event in os_event {
-			case events.WindowResizeEvent:
+			case event.WindowResizeEvent:
 				gl.resizeImageBuffer(window.client_rect.width, window.client_rect.height)
-			case events.WindowCloseEvent:
+			case event.WindowCloseEvent:
 				isRunning = false
 			}
 		}
@@ -50,7 +50,7 @@ main :: proc() {
 			time.millis(render_t - msg_t),
 		)
 		timing.prev_t = timing.t
-		timing.t = events.doVsyncBadly()
+		timing.t = event.doVsyncBadly()
 		onPaint(window^)
 		free_all(context.temp_allocator)
 	}
@@ -61,7 +61,7 @@ updateAndRender :: proc() {
 	gl.glClear(gl.COLOR_BUFFER_BIT)
 	// NOTE: render image here (hmh 237-238)
 }
-onPaint :: proc(window: events.Window) {
+onPaint :: proc(window: event.Window) {
 	gl.renderImageBufferToWindow(window)
 }
 

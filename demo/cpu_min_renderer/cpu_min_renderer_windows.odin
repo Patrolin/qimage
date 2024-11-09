@@ -2,13 +2,13 @@
 // odin run demo/cpu_min_renderer -subsystem:windows -o:speed
 package main
 
-import "../../lib/alloc"
-import "../../lib/events"
-import "../../lib/math"
-import "../../lib/os"
+import "../../lib/event"
 import "../../lib/paint"
-import "../../lib/threads"
-import "../../lib/time"
+import "../../lib/thread"
+import "../../utils/alloc"
+import "../../utils/math"
+import "../../utils/os"
+import "../../utils/time"
 import "core:fmt"
 
 isRunning := false
@@ -17,9 +17,9 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slo
 main :: proc() {
 	os.initInfo()
 	context = alloc.defaultContext()
-	threads.initThreads()
-	events.initEvents({onPaint})
-	window := events.openWindow("cpu_min_renderer", {1200, 800})
+	thread.initThreads()
+	event.initEvents({onPaint})
+	window := event.openWindow("cpu_min_renderer", {1200, 800})
 	paint.resizeFrameBuffer(
 		&frame_buffer,
 		i16(window.client_rect.width),
@@ -38,16 +38,16 @@ main :: proc() {
 		if (timing.frame > 30) {
 			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
 		}
-		events.getAllEvents()
-		for os_event in events.os_events {
+		event.getAllEvents()
+		for os_event in event.os_events {
 			#partial switch event in os_event {
-			case events.WindowResizeEvent:
+			case event.WindowResizeEvent:
 				paint.resizeFrameBuffer(
 					&frame_buffer,
 					i16(window.client_rect.width),
 					i16(window.client_rect.height),
 				)
-			case events.WindowCloseEvent:
+			case event.WindowCloseEvent:
 				isRunning = false
 			}
 		}
@@ -62,7 +62,7 @@ main :: proc() {
 			time.millis(render_t - msg_t),
 		)
 		timing.prev_t = timing.t
-		timing.t = events.doVsyncBadly()
+		timing.t = event.doVsyncBadly()
 		onPaint(window^)
 		free_all(context.temp_allocator)
 	}
@@ -76,7 +76,7 @@ updateAndRender :: proc() {
 		}
 	}
 }
-onPaint :: proc(window: events.Window) {
+onPaint :: proc(window: event.Window) {
 	paint.copyFrameBufferToWindow(frame_buffer, window)
 }
 

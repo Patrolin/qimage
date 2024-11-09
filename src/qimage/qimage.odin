@@ -1,8 +1,8 @@
 package main
 import "../../lib/file"
 import "../../lib/input"
-import "../../lib/math"
 import "../../lib/paint"
+import "../../utils/math"
 import "core:fmt"
 
 updateAndRender :: proc() {

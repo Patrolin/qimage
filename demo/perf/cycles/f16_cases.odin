@@ -1,5 +1,5 @@
 package demo_perf_cycles
-import "../../../lib/math"
+import "../../../utils/math"
 
 // TODO?: use intrinsics.procedure_of(div(f16, f16(0)))
 // TODO: automatically save timings to a file
