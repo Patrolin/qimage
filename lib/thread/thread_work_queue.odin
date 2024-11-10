@@ -49,7 +49,7 @@ initThreads :: proc() -> []ThreadInfo {
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	write_mutex, read_mutex: thread_utils.TicketMutex, // TODO!: use LockGroups instead
+	write_mutex, read_mutex: thread_utils.TicketMutex,
 	completed_count:         u32,
 	items:                   [32]WorkItem,
 }
@@ -58,29 +58,30 @@ WorkItem :: struct {
 	data:      rawptr,
 }
 launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
-	ticket := thread_utils.getMutexTicket(&queue.write_mutex)
 	for {
-		written_count := intrinsics.atomic_load(&queue.write_mutex.serving)
-		read_count := intrinsics.atomic_load(&queue.read_mutex.serving)
-		open_slots := read_count - written_count + len(queue.items) // NOTE: this handles overflows
-		if open_slots > 0 && written_count == ticket {
+		read_count := intrinsics.atomic_load(&queue.read_mutex.finished)
+		ticket, ok := thread_utils.getMutexTicketUntil(
+			&queue.write_mutex,
+			read_count + len(queue.items),
+		)
+		if ok {
 			queue.items[ticket % len(queue.items)] = work
 			thread_utils.releaseMutex(&queue.write_mutex)
 			thread_utils.launchThread()
-			break
+			return
 		}
 		doNextWorkItem(queue)
 	}
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
-	ticket, ok := thread_utils.getMutexTicketUpTo(&queue.read_mutex, queue.write_mutex.serving)
+	ticket, ok := thread_utils.getMutexTicketUntil(&queue.read_mutex, queue.write_mutex.finished)
 	if ok {
 		work := queue.items[ticket % len(queue.items)]
 		thread_utils.releaseMutex(&queue.read_mutex)
 		work.procedure(work.data)
 		free_all(allocator = context.temp_allocator)
 		intrinsics.atomic_add(&queue.completed_count, 1)
-	} // TODO!: handle thread_utils.pending_async_files
+	} // TODO!: handle thread_utils.pending_async_files?
 	writing_count := queue.write_mutex.next
 	return queue.completed_count != writing_count
 }

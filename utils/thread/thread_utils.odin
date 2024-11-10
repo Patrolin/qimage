@@ -2,33 +2,11 @@ package thread_utils
 import "../math"
 import "base:intrinsics"
 
-// lock group
-LockGroup :: distinct ^u64
-getLock :: proc(lock_group: LockGroup, lock_index: int) {
-	for {
-		old_value := intrinsics.atomic_load(lock_group)
-		new_value := math.setBit(old_value, u64(lock_index), 1)
-		value, ok := intrinsics.atomic_compare_exchange_strong(lock_group, old_value, new_value)
-		if ok {break}
-	}
-}
-releaseLock :: proc(lock_group: LockGroup, lock_index: int) {
-	for {
-		old_value := intrinsics.atomic_load(lock_group)
-		new_value := math.setBit(old_value, u64(lock_index), 0)
-		value, ok := intrinsics.atomic_compare_exchange_strong(lock_group, old_value, new_value)
-		if ok {break}
-	}
-}
-
 // mutex
 TicketMutex :: struct {
-	next, serving: u32,
+	next, finished: u32,
 }
-getMutexTicket :: proc(mutex: ^TicketMutex) -> u32 {
-	return intrinsics.atomic_add(&mutex.next, 1)
-}
-getMutexTicketUpTo :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool) {
+getMutexTicketUntil :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool) {
 	value := mutex.next
 	if value != end {
 		value_got := intrinsics.atomic_compare_exchange_weak(&mutex.next, value, value + 1)
@@ -36,12 +14,12 @@ getMutexTicketUpTo :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: b
 	}
 	return value, false
 }
-getMutex :: proc(mutex: ^TicketMutex) {
-	ticket := getMutexTicket(mutex)
-	for intrinsics.atomic_load(&mutex.serving) != ticket {}
+getMutex :: proc(mutex: ^TicketMutex) { 	// TODO: give each thread its own allocator instead
+	ticket := intrinsics.atomic_add(&mutex.next, 1)
+	for intrinsics.atomic_load(&mutex.finished) != ticket {}
 }
 releaseMutex :: proc(mutex: ^TicketMutex) {
-	intrinsics.atomic_add(&mutex.serving, 1)
+	intrinsics.atomic_add(&mutex.finished, 1)
 }
 // thread info
 _semaphore: OsSemaphore
