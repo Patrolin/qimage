@@ -6,6 +6,7 @@ import thread_utils "../../utils/thread"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
+import "core:time"
 
 /* A threading api needs to support:
 	- adding work items
@@ -49,61 +50,93 @@ initThreads :: proc() -> []ThreadInfo {
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	write_mutex, read_mutex: thread_utils.TicketMutex,
-	completed_count:         u32,
-	items:                   [32]WorkItem,
+	items:           [32]WorkItem,
+	pending_count:   int,
+	completed_count: int,
 }
+// 16B
 WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
+	state:     WorkItemState,
+}
+WorkItemState :: enum {
+	Empty,
+	Writing,
+	Written,
+	Reading,
 }
 launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
+	intrinsics.atomic_add(&queue.pending_count, 1)
 	for {
-		ticket, ok := thread_utils.getMutexTicketUntil(
-			&queue.write_mutex,
-			intrinsics.atomic_load(&queue.read_mutex.finished) + len(queue.items),
-		)
-		if ok {
-			queue.items[ticket % len(queue.items)] = work
-			thread_utils.releaseMutex(&queue.write_mutex)
-			thread_utils.launchThread()
-			return
+		start_index := context.user_index // random number
+		slot_step := start_index | 1 // NOTE: len(items) must be a power of two
+		for i := 0; i < len(queue.items); i += 1 {
+			slot_index := start_index + i * slot_step
+			item := &queue.items[slot_index]
+			prev_state := intrinsics.atomic_compare_exchange_weak(
+				&item.state,
+				WorkItemState.Empty,
+				WorkItemState.Writing,
+			)
+			if prev_state == WorkItemState.Empty {
+				item^ = work
+				intrinsics.atomic_store(&item.state, WorkItemState.Written)
+				thread_utils.launchThread()
+				return
+			}
 		}
 		doNextWorkItem(queue)
 	}
 }
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
-	ticket, ok := thread_utils.getMutexTicketUntil(&queue.read_mutex, queue.write_mutex.finished)
-	if ok {
-		work := queue.items[ticket % len(queue.items)]
-		thread_utils.releaseMutex(&queue.read_mutex)
-		work.procedure(work.data)
-		free_all(allocator = context.temp_allocator)
-		intrinsics.atomic_add(&queue.completed_count, 1)
-	} // TODO!: handle thread_utils.pending_async_files?
-	writing_count := queue.write_mutex.next
-	return queue.completed_count != writing_count
+	start_index := context.user_index // random number
+	slot_step := start_index | 1 // NOTE: len(items) must be a power of two
+	for i := 0; i < len(queue.items); i += 1 {
+		slot_index := start_index + i * slot_step
+		item := &queue.items[slot_index]
+		prev_state := intrinsics.atomic_compare_exchange_weak(
+			&item.state,
+			WorkItemState.Written,
+			WorkItemState.Reading,
+		)
+		if prev_state == WorkItemState.Written {
+			work := item^
+			intrinsics.atomic_store(&item.state, WorkItemState.Empty)
+			work.procedure(work.data)
+			intrinsics.atomic_add(&queue.completed_count, 1)
+		}
+	}
+	return queue.completed_count != queue.pending_count
 }
 joinQueue :: proc(queue: ^WorkQueue) {
 	for doNextWorkItem(queue) {
-		//fmt.printfln("wm: %v, rm: %v", work_queue.write_mutex, work_queue.read_mutex)
+		//fmt.printfln("queue: %v", queue)
 	}
 }
 // odin test lib/thread
 @(test)
 tests_workQueue :: proc(t: ^testing.T) {
+	testing.set_fail_timeout(t, 1 * time.Second)
 	checkWorkQueue :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: checkWorkQueue", context.user_index)
 		data := (^int)(data)
 		intrinsics.atomic_add(data, -1)
 	}
+	checkWorkQueue2 :: proc(data: rawptr) {
+		//fmt.printfln("thread %v: checkWorkQueue2", context.user_index)
+		data := (^int)(data)
+		intrinsics.atomic_add(data, -2)
+	}
 	os.initInfo()
 	context = alloc.defaultContext()
-	thread_infos := initThreads()
-	total_count := 200
-	checksum := total_count
-	for i in 0 ..< total_count {
+	//thread_infos := initThreads()
+	N := 200
+	checksum := N * 4
+	for i in 0 ..< N {
 		launchThread(&work_queue, WorkItem{procedure = checkWorkQueue, data = &checksum})
+		launchThread(&work_queue, WorkItem{procedure = checkWorkQueue, data = &checksum})
+		launchThread(&work_queue, WorkItem{procedure = checkWorkQueue2, data = &checksum})
 	}
 	joinQueue(&work_queue)
 	got_checksum := intrinsics.atomic_load(&checksum)
