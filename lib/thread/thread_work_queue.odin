@@ -59,10 +59,9 @@ WorkItem :: struct {
 }
 launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 	for {
-		read_count := intrinsics.atomic_load(&queue.read_mutex.finished)
 		ticket, ok := thread_utils.getMutexTicketUntil(
 			&queue.write_mutex,
-			read_count + len(queue.items),
+			intrinsics.atomic_load(&queue.read_mutex.finished) + len(queue.items),
 		)
 		if ok {
 			queue.items[ticket % len(queue.items)] = work
