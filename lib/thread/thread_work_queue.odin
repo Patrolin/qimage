@@ -9,10 +9,9 @@ import "core:testing"
 import "core:time"
 
 /* A threading api needs to support:
-	- adding work items
-	- waiting until work items are complete
-	- prioritizing work items that needs to be done immediately (throughput)
-	- giving each async work item a chance to start (I/O latency)
+	- adding tasks
+	- waiting until tasks are complete
+	- prioritizing tasks that needs to be done immediately (throughput)
 */
 
 // threads
@@ -54,12 +53,13 @@ WorkQueue :: struct {
 	pending_count:   int,
 	completed_count: int,
 }
-// 16B
+// 24B
 WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
 	state:     WorkItemState,
 }
+#assert(size_of(WorkItem) == 24)
 WorkItemState :: enum {
 	Empty,
 	Writing,
