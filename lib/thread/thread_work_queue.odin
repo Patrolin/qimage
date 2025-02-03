@@ -94,7 +94,7 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	slot_step := start_index | 1 // NOTE: len(items) must be a power of two
 	for i := 0; i < len(queue.items); i += 1 {
 		slot_index := start_index + i * slot_step
-		item := &queue.items[slot_index]
+		item := &queue.items[slot_index & (len(queue.items) - 1)]
 		prev_state := intrinsics.atomic_compare_exchange_weak(
 			&item.state,
 			WorkItemState.Written,

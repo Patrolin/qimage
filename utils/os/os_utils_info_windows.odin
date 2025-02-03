@@ -33,7 +33,7 @@ initInfo :: proc "contextless" () {
 	// _time_divisor
 	query_performance_frequency: win.LARGE_INTEGER
 	assert(bool(win.QueryPerformanceFrequency(&query_performance_frequency)))
-	info._time_divisor = f64(query_performance_frequency)
+	info._time_divisor = int(query_performance_frequency)
 	assert(win.timeBeginPeriod(1) == win.TIMERR_NOERROR) // set min sleep timeout (from 15ms) to 1ms
 	// page_size, large_page_size
 	systemInfo: win.SYSTEM_INFO
