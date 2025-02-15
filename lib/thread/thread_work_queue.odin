@@ -53,7 +53,6 @@ WorkQueue :: struct {
 	pending_count:   int,
 	completed_count: int,
 }
-// 24B
 WorkItem :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
