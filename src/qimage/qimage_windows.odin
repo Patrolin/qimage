@@ -22,7 +22,7 @@ image: file.Image
 
 main :: proc() {
 	os.initInfo()
-	context = alloc.defaultContext()
+	context = alloc.defaultContext(0)
 	thread.initThreads()
 	event.initEvents({onPaint})
 	input.initInputs()

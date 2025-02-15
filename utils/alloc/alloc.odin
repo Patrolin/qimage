@@ -2,22 +2,24 @@ package lib_alloc
 import "../math"
 import "../os"
 import "base:runtime"
+import "core:fmt"
+
+shared_allocator: runtime.Allocator
+thread_id_to_context := map[int]runtime.Context{}
 
 emptyContext :: os.emptyContext
-defaultContext :: proc "contextless" (usePrivateTempAllocator: bool = false) -> runtime.Context {
-	DefaultAllocators :: struct {
-		allocator:      runtime.Allocator,
-		temp_allocator: runtime.Allocator,
+defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
+	if !(user_index in thread_id_to_context) {
+		thread_id_to_context[user_index] = new_defaultContext() // NOTE: Odin doesn't like setting context inside of an if
 	}
-	@(static) default_allocators := DefaultAllocators{}
+	return thread_id_to_context[user_index]
+}
+@(private)
+new_defaultContext :: proc "contextless" () -> runtime.Context {
 	context = emptyContext()
-	if default_allocators.allocator.procedure == nil {
-		default_allocators.allocator = slabAllocator()
-		default_allocators.temp_allocator = slabAllocator()
-	}
-	context.allocator = default_allocators.allocator
-	context.temp_allocator =
-		usePrivateTempAllocator ? slabAllocator() : default_allocators.temp_allocator
+	context.allocator =
+		0 in thread_id_to_context ? thread_id_to_context[0].allocator : slabAllocator()
+	context.temp_allocator = slabAllocator()
 	return context
 }
 
@@ -38,4 +40,11 @@ freeBig :: proc($T: typeid/[]$V, ptr: T) {
 	} else {
 		pageFree(ptr)
 	}
+}
+@(private)
+_make_fake_dynamic_array :: proc($V: typeid, array: ^[dynamic]V, buffer: []V) {
+	raw_array: ^runtime.Raw_Dynamic_Array = (^runtime.Raw_Dynamic_Array)(array)
+	raw_array.data = &buffer[0]
+	raw_array.len = 0
+	raw_array.cap = len(buffer)
 }

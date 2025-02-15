@@ -17,8 +17,7 @@ import "core:time"
 // threads
 threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
-	context = alloc.defaultContext(true)
-	context.user_index = int(thread_info.index)
+	context = alloc.defaultContext(int(thread_info.index))
 	for {
 		intrinsics.atomic_add(&thread_utils.running_thread_count, 1)
 		for doNextWorkItem(&work_queue) {}
@@ -128,7 +127,7 @@ tests_workQueue :: proc(t: ^testing.T) {
 		intrinsics.atomic_add(data, -2)
 	}
 	os.initInfo()
-	context = alloc.defaultContext()
+	context = alloc.defaultContext(0)
 	//thread_infos := initThreads()
 	N := 200
 	checksum := N * 4

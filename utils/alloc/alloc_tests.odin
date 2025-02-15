@@ -8,7 +8,7 @@ import "core:testing"
 @(test)
 tests_defaultContext :: proc(t: ^testing.T) {
 	os.initInfo()
-	context = defaultContext()
+	context = defaultContext(0)
 	x := new(int)
 	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
 	x^ = 13
@@ -70,7 +70,7 @@ tests_slabAlloc :: proc(t: ^testing.T) {
 @(test)
 tests_map :: proc(t: ^testing.T) {
 	os.initInfo()
-	context = defaultContext()
+	context = defaultContext(0)
 	m: Map(string, int) = {}
 	addKey(&m, "a")^ = 1
 	addKey(&m, "b")^ = 2
@@ -90,7 +90,7 @@ tests_map :: proc(t: ^testing.T) {
 @(test)
 tests_set :: proc(t: ^testing.T) {
 	os.initInfo()
-	context = defaultContext()
+	context = defaultContext(0)
 	m: Set(string) = {}
 	addKey(&m, "a")
 	addKey(&m, "b")

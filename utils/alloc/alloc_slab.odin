@@ -3,6 +3,7 @@ import "../math"
 import "../thread"
 import "core:fmt"
 import "core:mem"
+import "core:strings"
 
 SlabCache :: struct {
 	data:         []u8 `fmt:"p"`, // 16 B
@@ -167,8 +168,20 @@ slabAllocator :: proc() -> mem.Allocator {
 	data._4096_slab = slabCache(_32_slab, _4096_slab_data, 4096)
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(data)}
 }
-chooseSlabToAlloc :: proc(slab_allocator: ^SlabAllocator, size: int) -> ^SlabCache {
-	assert(size <= MAX_SLAB_SIZE, "Allocation size too big")
+chooseSlabToAlloc :: proc(
+	slab_allocator: ^SlabAllocator,
+	size: int,
+	loc := #caller_location,
+) -> ^SlabCache {
+	if size > MAX_SLAB_SIZE {
+		buffer: [64]u8
+		fake_dynamic_array: [dynamic]u8
+		_make_fake_dynamic_array(u8, &fake_dynamic_array, buffer[:])
+		sb := strings.Builder{([dynamic]u8)(fake_dynamic_array)}
+		strings.write_bytes(&sb, transmute([]u8)string("Allocation size too big, size: "))
+		strings.write_int(&sb, size)
+		assert(false, strings.to_string(sb), loc = loc)
+	}
 	group := math.ilog2Ceil(uint(size))
 	switch group {
 	case:
@@ -195,9 +208,10 @@ chooseSlabToFree :: proc(
 	slab_allocator: ^SlabAllocator,
 	old_ptr: rawptr,
 	old_size: int,
+	loc := #caller_location,
 ) -> ^SlabCache {
 	if (old_size != 0) {
-		return chooseSlabToAlloc(slab_allocator, old_size)
+		return chooseSlabToAlloc(slab_allocator, old_size, loc = loc)
 	} else {
 		for &slab in slab_allocator.slabs { 	// NOTE: odin gives us old_size: 0 for free(int_ptr) for some reason
 			length := len(slab.data)
@@ -228,7 +242,7 @@ slabAllocatorProc :: proc(
 	slab_allocator := cast(^SlabAllocator)allocator_data
 	switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		slab := chooseSlabToAlloc(slab_allocator, size)
+		slab := chooseSlabToAlloc(slab_allocator, size, loc = loc)
 		thread.getMutex(&slab_allocator.mutex)
 		ptr := slabAlloc(slab, size, mode == .Alloc)
 		thread.releaseMutex(&slab_allocator.mutex)
@@ -237,7 +251,7 @@ slabAllocatorProc :: proc(
 			err = .Out_Of_Memory
 		}
 	case .Free:
-		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
+		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size, loc = loc)
 		thread.getMutex(&slab_allocator.mutex)
 		slabFree(old_slab, old_ptr)
 		thread.releaseMutex(&slab_allocator.mutex)
@@ -256,8 +270,8 @@ slabAllocatorProc :: proc(
 		thread.releaseMutex(&slab_allocator.mutex)
 		data, err = nil, nil
 	case .Resize, .Resize_Non_Zeroed:
-		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size)
-		slab := chooseSlabToAlloc(slab_allocator, size)
+		old_slab := chooseSlabToFree(slab_allocator, old_ptr, old_size, loc = loc)
+		slab := chooseSlabToAlloc(slab_allocator, size, loc = loc)
 		thread.getMutex(&slab_allocator.mutex)
 		data =
 		(cast([^]u8)slabRealloc(old_slab, old_ptr, slab, size, mode == .Resize))[:slab.slot_size]
