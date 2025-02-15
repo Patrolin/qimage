@@ -13,7 +13,7 @@ SlotUsed :: enum u8 {
 MapLikeSlot :: struct($Key, $Value: typeid) {
 	key:   Key,
 	value: Value,
-	hash:  int,
+	hash:  int, // NOTE: hash is checked before string key
 	used:  SlotUsed,
 }
 @(private)
@@ -62,7 +62,7 @@ resize_slotArray :: proc(m: ^SlotArray($Key, $Value), new_capacity: u32) {
 	free(slots)
 }
 reserve_slotArray :: proc(m: ^SlotArray($Key, $Value)) {
-	if m.added_slots + 1 * 100 >= MAX_ADDED_PERCENT * m.capacity { 	// NOTE: handle zero capacity
+	if (m.added_slots + 1) * 100 >= MAX_ADDED_PERCENT * m.capacity { 	// NOTE: handle zero capacity
 		new_capacity := m.capacity * 2
 		if new_capacity == 0 {new_capacity = MIN_CAPACITY}
 		resize_slotArray(m, new_capacity)
@@ -70,9 +70,8 @@ reserve_slotArray :: proc(m: ^SlotArray($Key, $Value)) {
 }
 shrink_slotArray :: proc(m: ^SlotArray($Key, $Value)) {
 	capacity := m.capacity
-	if m.removed_slots * 100 >= MAX_REMOVED_PERCENT * capacity {
-		new_capacity := max(MIN_CAPACITY, capacity / 2)
-		resize_slotArray(m, new_capacity)
+	if m.removed_slots * 100 >= MAX_REMOVED_PERCENT * capacity && capacity > MIN_CAPACITY {
+		resize_slotArray(m, capacity / 2)
 	}
 }
 
