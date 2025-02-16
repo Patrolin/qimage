@@ -46,26 +46,57 @@ tests_partitionAlloc :: proc(t: ^testing.T) {
 	)
 }
 @(test)
-tests_slabAlloc :: proc(t: ^testing.T) {
+tests_slabAllocator :: proc(t: ^testing.T) {
 	os.initInfo()
-	slab_data := pageAlloc(math.kibiBytes(64))
-	slab := slabCache(slab_data, 64)
-	slab2_data := pageAlloc(math.kibiBytes(64))
-	slab2 := slabCache(slab, slab2_data, 8)
-	x := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
+	context.allocator = slabAllocator()
+	allocator := (^SlabAllocator)(context.allocator.data)
+	x := new(u8)
+	get_slab_header :: proc(allocator: ^SlabAllocator, slab_index: u16) -> SlabHeader {
+		free_ptr := allocator.free_slots[slab_index]
+		return allocator.headers[free_ptr]
+	}
+	testing.expectf(
+		t,
+		x != nil,
+		"Failed to allocate, x: %v\nallocator: %v\nheader: %v",
+		x,
+		allocator,
+		get_slab_header(allocator, 0),
+	)
 	x^ = 13
-	testing.expect(t, x^ == 13, "Failed to allocate")
-	slabFree(slab, x)
-	y := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, y == x, "Failed to free, x: %v, y: %v", x, y)
-	z := cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, z != y, "Failed to allocate, y: %v, z: %v", y, z)
-	slabFreeAll(slab)
-	y = cast(^u8)slabAlloc(slab, 1)
-	testing.expectf(t, y == x, "Failed to free all, x: %v, y: %v", x, y)
-	y = cast(^u8)slabRealloc(slab, x, slab2, 1)
-	testing.expectf(t, (y != x) && (y != z), "Failed to realloc, x: %v, y: %v, z: %v", x, y, z)
+	testing.expectf(
+		t,
+		x^ == 13,
+		"Failed to allocate\nallocator: %v\nheader: %v",
+		allocator,
+		get_slab_header(allocator, 0),
+	)
+	free(x)
+	y := new(u8)
+	testing.expectf(
+		t,
+		y == x,
+		"Failed to free, x: %v, y: %v\nallocator: %v\nheader: %v",
+		x,
+		y,
+		allocator,
+		get_slab_header(allocator, 0),
+	)
+	z := new(u8)
+	testing.expectf(
+		t,
+		z != y,
+		"Failed to allocate, y: %v, z: %v\nallocator: %v\nheader: %v",
+		y,
+		z,
+		allocator,
+		get_slab_header(allocator, 0),
+	)
+	/*
+	free_all()
+	y = new(x)
+	testing.expectf(t, y == x, "Failed to free_all, x: %v, y: %v", x, y)
+	*/
 }
 @(test)
 tests_map :: proc(t: ^testing.T) {

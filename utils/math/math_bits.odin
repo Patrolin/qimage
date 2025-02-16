@@ -23,8 +23,13 @@ countZeros :: bits.count_zeros
 
 lowMask :: #force_inline proc "contextless" (
 	power_of_two: $T,
-) -> T where intrinsics.type_is_unsigned(T) {
+) -> T where intrinsics.type_is_integer(T) {
 	return power_of_two - 1
+}
+highMask :: #force_inline proc "contextless" (
+	power_of_two: $T,
+) -> T where intrinsics.type_is_integer(T) {
+	return ~(power_of_two - 1)
 }
 getBit :: #force_inline proc "contextless" (
 	x, bit_index: $T,
