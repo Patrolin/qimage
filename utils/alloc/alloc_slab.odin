@@ -5,12 +5,14 @@ import "core:fmt"
 import "core:mem"
 import "core:strings"
 
+MAX_SLAB_SIZE :: PAGE_SIZE
+N_CACHES :: HUGE_PAGE_SIZE / MAX_SLAB_SIZE
 SlabAllocatorV2 :: struct {
-	headers:    [512]SlabHeader, // 512*6 = 3072 B
-	free_slots: [8]uintptr, // 64 B
-	mutex:      thread.TicketMutex, // 8 B
+	mutex:      thread.TicketMutex, // 8 B // TODO: prefetch this cache line?
+	free_slots: [7]uintptr, // 56 B
+	headers:    [N_CACHES]SlabHeader, // 512*6 = 3072 B
 }
-#assert(size_of(SlabAllocatorV2) <= PAGE_SIZE)
+#assert(size_of(SlabAllocatorV2) <= MAX_SLAB_SIZE)
 
 SlabHeader :: struct {
 	n_initialized: u16,
@@ -85,35 +87,31 @@ slab_free :: proc(allocator: ^SlabAllocator, slot_index: u16, old_ptr: rawptr) {
 	slot.next = (^SlabSlot)(allocator.free_slots[slot_index])
 	allocator.free_slots[slot_index] = uintptr(old_ptr)
 }
-MAX_SLAB_SIZE :: 2048
 @(private)
 chooseSlabToAlloc :: proc(size: int, loc := #caller_location) -> (slab_index, slot_size: u16) {
 	group := math.ilog2Ceil(uint(size))
 	switch group {
 	case:
 		slab_index = 0
-		slot_size = 16
-	case 5:
-		slab_index = 1
-		slot_size = 32
-	case 6:
-		slab_index = 2
 		slot_size = 64
 	case 7:
-		slab_index = 3
+		slab_index = 1
 		slot_size = 128
 	case 8:
-		slab_index = 4
+		slab_index = 2
 		slot_size = 256
 	case 9:
-		slab_index = 5
+		slab_index = 3
 		slot_size = 512
 	case 10:
-		slab_index = 6
+		slab_index = 4
 		slot_size = 1024
 	case 11:
-		slab_index = 7
+		slab_index = 5
 		slot_size = 2048
+	case 12:
+		slab_index = 6
+		slot_size = 4096
 	}
 	if size > int(slot_size) {
 		buffer: [64]u8

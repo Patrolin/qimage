@@ -4,6 +4,7 @@ import "../os"
 import "core:mem"
 import win "core:sys/windows"
 
+// TODO: VirtualAlloc2?
 when ODIN_OS == .Windows {
 	pageAlloc :: proc(size: math.Size) -> []u8 {
 		size := int(size)
