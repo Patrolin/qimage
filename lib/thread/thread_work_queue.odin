@@ -35,7 +35,7 @@ initThreads :: proc() -> []ThreadInfo {
 	for i in 1 ..= thread_count {
 		thread_infos[i - 1] = ThreadInfo {
 			thread_id = thread_utils._createThread(
-				math.kibiBytes(64),
+				64 * math.KIBI_BYTES,
 				threadProc,
 				&thread_infos[i - 1],
 			),

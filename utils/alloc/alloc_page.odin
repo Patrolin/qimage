@@ -5,7 +5,7 @@ import "core:mem"
 import win "core:sys/windows"
 
 when ODIN_OS == .Windows {
-	pageAlloc :: proc(size: math.bytes) -> []u8 {
+	pageAlloc :: proc(size: math.Size) -> []u8 {
 		size := int(size)
 		page_mask := os.info.page_size - 1
 		size = (size + page_mask) & ~page_mask
@@ -22,6 +22,7 @@ when ODIN_OS == .Windows {
 		return b32(win.VirtualFree(ptr, 0, win.MEM_RELEASE))
 	}
 }
+
 @(private)
 pageAllocatorProc :: proc(
 	allocator_data: rawptr,
@@ -36,7 +37,7 @@ pageAllocatorProc :: proc(
 ) {
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		data, err = pageAlloc(math.bytes(size)), nil
+		data, err = pageAlloc(math.Size(size)), nil
 	case .Free:
 		error := pageFree(old_ptr)
 		data, err = nil, error ? .Invalid_Argument : .None

@@ -5,12 +5,12 @@ import "core:fmt"
 import bits "core:math/bits"
 import "core:testing"
 
-bytes :: distinct int
-kibiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(1024 * v)}
-mebiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(1024 * 1024 * v)}
-gibiBytes :: #force_inline proc "contextless" (v: int) -> bytes {return bytes(
-		1024 * 1024 * 1024 * v,
-	)}
+Size :: distinct int
+BYTES :: Size(1)
+KIBI_BYTES :: 1024 * BYTES
+MEBI_BYTES :: 1024 * KIBI_BYTES
+GIBI_BYTES :: 1024 * MEBI_BYTES
+
 // return hash step for a power_of_two size hash table
 hashStep :: #force_inline proc "contextless" (hash: $T) -> T {
 	return hash | 1

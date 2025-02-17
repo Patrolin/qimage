@@ -5,21 +5,28 @@ import "core:fmt"
 import "core:mem"
 import "core:strings"
 
-SlabHeader :: struct {
-	used_slots: u16,
-	slot_size:  u16,
+SlabAllocatorV2 :: struct {
+	headers:    [512]SlabHeader, // 512*6 = 3072 B
+	free_slots: [8]uintptr, // 64 B
+	mutex:      thread.TicketMutex, // 8 B
 }
+#assert(size_of(SlabAllocatorV2) <= PAGE_SIZE)
+
+SlabHeader :: struct {
+	n_initialized: u16,
+	n_used:        u16,
+	slot_size:     u16,
+}
+#assert(size_of(SlabHeader) == 6)
 SlabSlot :: struct {
 	next: ^SlabSlot, // 8 B
 }
-@(private)
-SLAB_COUNT :: 10
 SlabAllocator :: struct {
 	headers:    map[uintptr]SlabHeader, // 32 B
 	mutex:      thread.TicketMutex, // 8 B
-	free_slots: [10]uintptr, // 80 B
+	free_slots: [8]uintptr, // 64 B // NOTE: this is partially in the first cache line
 }
-#assert(size_of(SlabAllocator) == 120)
+#assert(size_of(SlabAllocator) == 104)
 slabAllocator :: proc() -> mem.Allocator {
 	header_allocator := pageAllocator()
 	_slab_allocator := SlabAllocator {
@@ -40,8 +47,8 @@ slab_alloc :: proc(allocator: ^SlabAllocator, slot_index: u16, slot_size: u16) -
 		ptr = uintptr(&pageAlloc(PAGE_SIZE)[0])
 		assert(ptr & uintptr(math.lowMask(PAGE_SIZE)) == 0)
 		allocator.headers[ptr] = SlabHeader {
-			used_slots = 1,
-			slot_size  = slot_size,
+			n_initialized = 1,
+			slot_size     = slot_size,
 		}
 		allocator.free_slots[slot_index] = ptr + 1
 	} else {
@@ -50,11 +57,11 @@ slab_alloc :: proc(allocator: ^SlabAllocator, slot_index: u16, slot_size: u16) -
 		offset := uintptr(ptr) & uintptr(math.lowMask(PAGE_SIZE))
 		if offset == 1 {
 			// fill unused slots
-			wanted_offset := uint(header.used_slots) * uint(header.slot_size)
+			wanted_offset := uint(header.n_initialized) * uint(slot_size)
 			ptr = ptr - 1 + uintptr(wanted_offset)
 			next_offset := ptr - data
-			header.used_slots += 1
-			if wanted_offset + uint(header.slot_size) > uint(PAGE_SIZE) {
+			header.n_initialized += 1
+			if wanted_offset + uint(slot_size) > uint(PAGE_SIZE) {
 				allocator.free_slots[slot_index] = 0
 			}
 		} else {
@@ -78,6 +85,7 @@ slab_free :: proc(allocator: ^SlabAllocator, slot_index: u16, old_ptr: rawptr) {
 	slot.next = (^SlabSlot)(allocator.free_slots[slot_index])
 	allocator.free_slots[slot_index] = uintptr(old_ptr)
 }
+MAX_SLAB_SIZE :: 2048
 @(private)
 chooseSlabToAlloc :: proc(size: int, loc := #caller_location) -> (slab_index, slot_size: u16) {
 	group := math.ilog2Ceil(uint(size))

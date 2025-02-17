@@ -7,7 +7,7 @@ OsThreadId :: struct #packed {
 	id:     u32,
 }
 _createThread :: proc(
-	stack_size: math.bytes,
+	stack_size: math.Size,
 	thread_proc: proc "stdcall" (data: rawptr) -> u32,
 	param: rawptr,
 ) -> (

@@ -7,7 +7,7 @@ Partition :: struct {
 	used: int,
 }
 @(private)
-partitionBy_bytes :: proc(partition: ^Partition, chunk_size: math.bytes) -> []u8 {
+partitionBy_bytes :: proc(partition: ^Partition, chunk_size: math.Size) -> []u8 {
 	start := partition.used
 	end := start + int(chunk_size)
 	chunk := partition.data[start:end]
@@ -23,7 +23,7 @@ partitionBy_fraction :: proc(partition: ^Partition, fraction: f64, floor_to: int
 	if floor_to != 0 {
 		chunk_size = math.floorTo(chunk_size, floor_to)
 	}
-	return partitionBy_bytes(partition, math.bytes(chunk_size))
+	return partitionBy_bytes(partition, math.Size(chunk_size))
 }
 partitionBy :: proc {
 	partitionBy_bytes,

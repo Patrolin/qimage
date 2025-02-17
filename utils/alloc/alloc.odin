@@ -5,7 +5,8 @@ import "base:runtime"
 import "core:fmt"
 
 CACHE_SIZE :: 64
-PAGE_SIZE :: 4096
+PAGE_SIZE :: 4 * math.KIBI_BYTES
+HUGE_PAGE_SIZE :: 2 * math.MEBI_BYTES
 thread_id_to_context := map[int]runtime.Context{}
 
 emptyContext :: os.emptyContext
@@ -30,7 +31,7 @@ makeBig :: proc($T: typeid/[]$V, count: int) -> T {
 	if (total_size <= MAX_SLAB_SIZE) {
 		return make(T, count)
 	} else {
-		data := pageAlloc(math.bytes(total_size))
+		data := pageAlloc(math.Size(total_size))
 		t_data: [^]V = raw_data(data)
 		return t_data[:count]
 	}
