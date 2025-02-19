@@ -1,6 +1,6 @@
 package file_lib
 
-foreign import ioringapi "system:onecore.lib"
+foreign import onecorelib "system:onecore.lib"
 import "../../utils/thread"
 import "base:intrinsics"
 import "core:fmt"
@@ -9,7 +9,7 @@ import "core:time"
 
 HIORING :: distinct win.HANDLE
 @(default_calling_convention = "std")
-foreign ioringapi {
+foreign onecorelib {
 	CreateIoRing :: proc(version: IORING_VERSION, flags: IORING_CREATE_FLAGS, submission_queue_size: u32, completion_queue_size: u32, ioring: ^HIORING) -> win.HRESULT ---
 	GetIoRingInfo :: proc(ioring: HIORING, info: ^IORING_INFO) -> win.HRESULT ---
 	BuildIoRingReadFile :: proc(ioring: HIORING, file: IORING_HANDLE_REF, data: IORING_BUFFER_REF, bytes_to_read: u64, file_offset: u64, user_data: ^u32, flags: IORING_SQE_FLAGS) -> win.HRESULT ---

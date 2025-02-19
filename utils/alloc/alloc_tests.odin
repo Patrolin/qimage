@@ -18,16 +18,24 @@ tests_defaultContext :: proc(t: ^testing.T) {
 @(test)
 tests_pageAlloc :: proc(t: ^testing.T) {
 	os.initInfo()
-	data := pageAlloc(1 * math.BYTES)
-	testing.expectf(t, data != nil, "Failed to pageAlloc 1 byte, data: %v", data)
-	data = pageAlloc(64 * math.KIBI_BYTES)
-	testing.expectf(t, data != nil, "Failed to pageAlloc 64 kiB, data: %v", data)
+	data := page_alloc(1 * math.BYTES)
+	testing.expectf(t, data != nil, "Failed to page_alloc 1 byte, data: %v", data)
+	data = page_alloc_aligned(64 * math.KIBI_BYTES)
+	testing.expectf(t, data != nil, "Failed to page_alloc_aligned 64 kiB, data: %v", data)
+	data_ptr := &data[0]
+	low_bits := uintptr(data_ptr) & uintptr(math.lowMask(64 * math.KIBI_BYTES))
+	testing.expectf(
+		t,
+		low_bits == 0,
+		"Failed to page_alloc_aligned 64 kiB, low_bits: %v",
+		low_bits,
+	)
 }
 @(test)
 tests_partitionAlloc :: proc(t: ^testing.T) {
 	os.initInfo()
 	partition := Partition {
-		data = pageAlloc(64 * math.KIBI_BYTES),
+		data = page_alloc_aligned(64 * math.KIBI_BYTES),
 	}
 	testing.expectf(
 		t,

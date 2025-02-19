@@ -1,6 +1,7 @@
 package lib_os
 import "../math"
 import "core:fmt"
+import "core:strings"
 import win "core:sys/windows"
 
 // bytes
@@ -32,6 +33,29 @@ win_wstringToString_slice :: proc(
 win_wstringToString :: proc {
 	win_wstringToString_nullTerminated,
 	win_wstringToString_slice,
+}
+win_getLastErrorMessage :: proc() -> (error: u32, error_message: string) {
+	error = win.GetLastError()
+	error_message = ""
+	buffer: [64]win.WCHAR
+	format_result := win.FormatMessageW(
+		win.FORMAT_MESSAGE_FROM_SYSTEM | win.FORMAT_MESSAGE_IGNORE_INSERTS,
+		nil,
+		error,
+		0,
+		&buffer[0],
+		len(buffer),
+		nil,
+	)
+	if format_result != 0 {
+		error_message = win_wstringToString(&buffer[0])
+		if strings.ends_with(error_message, "\r\n") {
+			error_message = error_message[:len(error_message) - 2]
+		}
+	} else {
+		error_message = "BUFFER_TOO_SMALL_FOR_ERROR_MESSAGE"
+	}
+	return
 }
 // other
 foreign import user32 "system:user32.lib"

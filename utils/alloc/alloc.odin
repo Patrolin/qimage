@@ -31,7 +31,7 @@ makeBig :: proc($T: typeid/[]$V, count: int) -> T {
 	if (total_size <= MAX_SLAB_SIZE) {
 		return make(T, count)
 	} else {
-		data := pageAlloc(math.Size(total_size))
+		data := page_alloc_aligned(math.Size(total_size))
 		t_data: [^]V = raw_data(data)
 		return t_data[:count]
 	}
@@ -41,7 +41,7 @@ freeBig :: proc($T: typeid/[]$V, ptr: T) {
 	if (total_size <= MAX_SLAB_SIZE) {
 		return free(ptr)
 	} else {
-		pageFree(ptr)
+		page_free(ptr)
 	}
 }
 @(private)

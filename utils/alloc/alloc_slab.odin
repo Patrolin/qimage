@@ -7,13 +7,13 @@ import "core:strings"
 
 MAX_SLAB_SIZE :: PAGE_SIZE
 N_CACHES :: HUGE_PAGE_SIZE / MAX_SLAB_SIZE
-SlabAllocatorV2 :: struct {
+MIN_SLAB_SLOT_SIZE :: 16
+SlabAllocator :: struct {
 	mutex:      thread.TicketMutex, // 8 B // TODO: prefetch this cache line?
 	free_slots: [7]uintptr, // 56 B
 	headers:    [N_CACHES]SlabHeader, // 512*6 = 3072 B
 }
-#assert(size_of(SlabAllocatorV2) <= MAX_SLAB_SIZE)
-
+#assert(size_of(SlabAllocator) <= MAX_SLAB_SIZE)
 SlabHeader :: struct {
 	n_initialized: u16,
 	n_used:        u16,
@@ -23,21 +23,10 @@ SlabHeader :: struct {
 SlabSlot :: struct {
 	next: ^SlabSlot, // 8 B
 }
-SlabAllocator :: struct {
-	headers:    map[uintptr]SlabHeader, // 32 B
-	mutex:      thread.TicketMutex, // 8 B
-	free_slots: [8]uintptr, // 64 B // NOTE: this is partially in the first cache line
-}
-#assert(size_of(SlabAllocator) == 104)
+#assert(size_of(SlabHeader) <= MIN_SLAB_SLOT_SIZE)
 slabAllocator :: proc() -> mem.Allocator {
-	header_allocator := pageAllocator()
-	_slab_allocator := SlabAllocator {
-		headers = make_map(map[uintptr]SlabHeader, allocator = header_allocator),
-	}
-	slab_index, slot_size := chooseSlabToAlloc(size_of(SlabAllocator))
-	slab_allocator_ptr := slab_alloc(&_slab_allocator, slab_index, slot_size)
-	slab_allocator := (^SlabAllocator)(slab_allocator_ptr)
-	slab_allocator^ = _slab_allocator
+	block := page_alloc_aligned(2 * math.MEBI_BYTES)
+	slab_allocator := (^SlabAllocator)(&block[0])
 	return mem.Allocator{procedure = slabAllocatorProc, data = rawptr(slab_allocator)}
 }
 
@@ -46,7 +35,7 @@ slab_alloc :: proc(allocator: ^SlabAllocator, slot_index: u16, slot_size: u16) -
 	ptr = allocator.free_slots[slot_index]
 	if ptr == 0 {
 		// no free slots
-		ptr = uintptr(&pageAlloc(PAGE_SIZE)[0])
+		ptr = uintptr(&page_alloc_aligned(PAGE_SIZE)[0])
 		assert(ptr & uintptr(math.lowMask(PAGE_SIZE)) == 0)
 		allocator.headers[ptr] = SlabHeader {
 			n_initialized = 1,
@@ -78,11 +67,6 @@ slab_alloc :: proc(allocator: ^SlabAllocator, slot_index: u16, slot_size: u16) -
 slab_free :: proc(allocator: ^SlabAllocator, slot_index: u16, old_ptr: rawptr) {
 	data := uintptr(old_ptr) & uintptr(math.highMask(PAGE_SIZE))
 	header := &allocator.headers[data]
-	fmt.assertf(
-		data in allocator.headers,
-		"Cannot free ptr outside of any slab: %v",
-		uintptr(old_ptr),
-	)
 	slot := (^SlabSlot)(old_ptr)
 	slot.next = (^SlabSlot)(allocator.free_slots[slot_index])
 	allocator.free_slots[slot_index] = uintptr(old_ptr)
@@ -136,13 +120,14 @@ chooseSlabToFree :: proc(
 ) {
 	data := uintptr(old_ptr) & uintptr(math.highMask(PAGE_SIZE))
 	header := &allocator.headers[data]
-	fmt.assertf(
+	assert(false, "Not implemented")
+	/*fmt.assertf(
 		data in allocator.headers,
 		"Cannot free ptr outside of any slab: %v, old_ptr: %v, allocator: %v",
 		uintptr(data),
 		uintptr(old_ptr),
 		allocator,
-	)
+	)*/
 	return chooseSlabToAlloc(int(header.slot_size), loc = loc)
 }
 @(private)
