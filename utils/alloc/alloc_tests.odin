@@ -10,15 +10,20 @@ tests_defaultContext :: proc(t: ^testing.T) {
 	os.initInfo()
 	debug_temp_allocator := context.temp_allocator
 	context = defaultContext(0)
+	real_temp_allocator := context.temp_allocator
 	context.temp_allocator = debug_temp_allocator
-	// debug
+	// allocator
 	x := new(int)
-	fmt.printfln("x: %v", x)
 	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
 	x^ = 13
-	fmt.printfln("x^: %v", x^)
 	testing.expect(t, x^ == 13, "Failed to allocate")
 	free(x)
+	// temp_allocator
+	y := new(int, allocator = real_temp_allocator)
+	testing.expectf(t, x != nil, "Failed to allocate, y: %v", y)
+	y^ = 13
+	testing.expect(t, x^ == 13, "Failed to allocate")
+	free(x, allocator = real_temp_allocator)
 }
 @(test)
 tests_pageAlloc :: proc(t: ^testing.T) {
