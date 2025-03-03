@@ -1,4 +1,4 @@
-// odin test lib -all-packages
+// odin test lib -all-packages -define:ODIN_TEST_THREADS=1
 package lib
 import "../utils"
 import "ast"

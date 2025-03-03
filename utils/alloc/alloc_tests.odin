@@ -8,10 +8,15 @@ import "core:testing"
 @(test)
 tests_defaultContext :: proc(t: ^testing.T) {
 	os.initInfo()
+	debug_temp_allocator := context.temp_allocator
 	context = defaultContext(0)
+	context.temp_allocator = debug_temp_allocator
+	// debug
 	x := new(int)
+	fmt.printfln("x: %v", x)
 	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
 	x^ = 13
+	fmt.printfln("x^: %v", x^)
 	testing.expect(t, x^ == 13, "Failed to allocate")
 	free(x)
 }

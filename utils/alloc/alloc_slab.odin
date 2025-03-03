@@ -33,9 +33,11 @@ slabAllocator :: proc() -> mem.Allocator {
 @(private)
 slab_alloc :: proc(allocator: ^SlabAllocator, slot_index: u16, slot_size: u16) -> (ptr: uintptr) {
 	ptr = allocator.free_slots[slot_index]
+	fmt.printfln("slab_alloc: %v, %v, %v", ptr, slot_index, slot_size)
 	if ptr == 0 {
 		// no free slots
-		ptr = uintptr(&page_alloc_aligned(PAGE_SIZE)[0])
+		ptr = uintptr(&page_alloc_aligned(PAGE_SIZE)[0]) // TODO: this crashes, implement actual slab squared
+		fmt.printfln("slab_alloc.2: %v", ptr)
 		assert(ptr & uintptr(math.lowMask(PAGE_SIZE)) == 0)
 		allocator.headers[ptr] = SlabHeader {
 			n_initialized = 1,

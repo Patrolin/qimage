@@ -1,6 +1,7 @@
 package lib_alloc
 import "../math"
 import "../os"
+import "core:fmt"
 import "core:mem"
 import win "core:sys/windows"
 
@@ -51,7 +52,7 @@ page_alloc :: proc(size: math.Size) -> []u8 {
 	)
 	return (cast([^]u8)ptr)[:size]
 }
-page_alloc_aligned :: proc(size: math.Size) -> []u8 {
+page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []u8 {
 	address_requirement := MEM_ADDRESS_REQUIREMENTS {
 		Alignment = win.SIZE_T(size),
 	}
@@ -70,6 +71,7 @@ page_alloc_aligned :: proc(size: math.Size) -> []u8 {
 		&alloc_params[0],
 		u32(len(alloc_params)),
 	)
+	assert(ptr != nil, "Failed to allocate", loc = loc)
 	return (cast([^]u8)ptr)[:size]
 }
 page_free :: proc(ptr: rawptr) -> b32 {

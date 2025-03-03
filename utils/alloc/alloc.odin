@@ -4,7 +4,7 @@ import "../os"
 import "base:runtime"
 import "core:fmt"
 
-CACHE_SIZE :: 64
+CACHE_SIZE :: 64 * math.BYTES
 PAGE_SIZE :: 4 * math.KIBI_BYTES
 HUGE_PAGE_SIZE :: 2 * math.MEBI_BYTES
 thread_id_to_context := map[int]runtime.Context{}
@@ -28,7 +28,7 @@ new_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 
 makeBig :: proc($T: typeid/[]$V, count: int) -> T {
 	total_size := size_of(T) * count
-	if (total_size <= MAX_SLAB_SIZE) {
+	if (total_size <= int(MAX_SLAB_SIZE)) {
 		return make(T, count)
 	} else {
 		data := page_alloc_aligned(math.Size(total_size))

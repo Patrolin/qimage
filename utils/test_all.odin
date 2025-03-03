@@ -1,4 +1,4 @@
-// odin test utils -all-packages
+// odin test utils -all-packages -define:ODIN_TEST_THREADS=1
 package utils
 import "alloc"
 import "math"
