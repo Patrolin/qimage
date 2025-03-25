@@ -34,20 +34,20 @@ main :: proc() {
 		required = .NONE,
 		advisory = .NONE,
 	}
-	error := ioringapi.CreateIoRing(.VERSION_3, flags, 64, 64, &ioring)
+	error := ioringapi.CreateIoRing(.VERSION_3, flags, 2048, 2048, &ioring)
 	assert(error == 0)
 	utils.log_time(&log, "CreateIoRing()")
 	logIoRingInfo(&log, ioring)
 	// open files
-	files: [9]FileInfo
+	files: [1 + utils.SMALL_TEST_FILE_COUNT]FileInfo
 	files[0].handle = open_file_for_reading(
-		win.utf8_to_wstring("demo/perf/make_test_files/1gb_file.txt"),
+		win.utf8_to_wstring(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH)),
 	)
 	files[0].size = 1024 * 1024 * 1024
-	for i in 1 ..< 9 {
-		sb := strings.builder_make()
-		fmt.sbprintf(&sb, "demo/perf/make_test_files/small_file_%v.txt", i - 1)
-		file_path := win.utf8_to_wstring(strings.to_string(sb))
+	for i in 1 ..< 1 + utils.SMALL_TEST_FILE_COUNT {
+		file_path := win.utf8_to_wstring(
+			utils.sbprint_file_path("%v/small_file_%v.txt", utils.TEST_FILE_PATH, i - 1),
+		)
 		files[i].handle = open_file_for_reading(file_path)
 		files[i].size = 4096
 	}
@@ -118,6 +118,7 @@ read_files_asynchronously :: proc(
 				"%v",
 				buffers[read_count][:8],
 			)
+			fmt.assertf(int(result.user_data) == read_count, "Out of order reads!")
 			utils.logf(log, "result: %v", result)
 			read_count += 1
 		}

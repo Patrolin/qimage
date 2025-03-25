@@ -11,7 +11,8 @@ main :: proc() {
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	log := utils.make_log()
 	// read file
-	file, errno := core_os.open("demo/perf/make_test_files/1gb_file.txt", core_os.O_RDONLY)
+	file_path := utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH)
+	file, errno := core_os.open(file_path, core_os.O_RDONLY)
 	utils.log_time(&log, "open file")
 	buffer := make([]u8, 1024 * 1024 * 1024)
 	utils.log_time(&log, "buffer := make([]u8, 1GB)")
