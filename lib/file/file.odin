@@ -14,8 +14,7 @@ Image :: struct {
 	width, height, channels: i16,
 }
 printImage :: proc(image: Image, x_start, y_start, width, height: int) {
-	sb: strings.Builder
-	strings.builder_init(&sb, context.temp_allocator)
+	sb := strings.builder_make(allocator = context.temp_allocator)
 	fmt.sbprintfln(&sb, "%v at (%v, %v, %v, %v)", image, x_start, y_start, width, height)
 	x_end := x_start + int(width)
 	y_end := y_start + int(height)

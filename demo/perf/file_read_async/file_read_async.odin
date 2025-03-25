@@ -27,11 +27,10 @@ main :: proc() {
 	ensure(arena_err == nil)
 	context.allocator = vmem.arena_allocator(&arena)
 	context.temp_allocator = context.allocator
-	timings: utils.Timings
-	utils.start_timing(&timings)
+	log := utils.make_log()
 	// get file_path
 	file_path := win.utf8_to_wstring("demo/perf/make_1gb_file/1gb_file.txt")
-	utils.end_timing(&timings, "utf8_to_wstring()")
+	utils.log_time(&log, "utf8_to_wstring()")
 	// create ioring
 	ioring: HIORING
 	flags := IORING_CREATE_FLAGS {
@@ -40,9 +39,10 @@ main :: proc() {
 	}
 	error := CreateIoRing(.VERSION_3, flags, 0, 0, &ioring)
 	assert(error == 0)
-	utils.end_timing(&timings, "CreateIoRing()")
+	utils.log_time(&log, "CreateIoRing()")
 	info1, error1 := getIoRingInfo(ioring)
-	utils.end_timing(&timings, "GetIoRingInfo()")
+	utils.logf(&log, "GetIoRingInfo, error = %v, info = %v", error1, info1)
+	utils.log_time(&log, "GetIoRingInfo()")
 	// open file
 	file := win.CreateFileW(
 		file_path,
@@ -53,11 +53,11 @@ main :: proc() {
 		win.FILE_ATTRIBUTE_NORMAL,
 		nil,
 	)
-	utils.end_timing(&timings, "CreateFileW()")
+	utils.log_time(&log, "CreateFileW()")
 	assert(file != nil)
 	// make buffer
 	buffer := make([]u8, 1024 * 1024 * 1024)
-	utils.end_timing(&timings, "buffer := make([]u8, 1GB)")
+	utils.log_time(&log, "buffer := make([]u8, 1GB)")
 	// async read file
 	error = BuildIoRingReadFile(
 		ioring,
@@ -68,26 +68,25 @@ main :: proc() {
 		nil,
 		IORING_SQE_FLAGS.NONE,
 	)
-	utils.end_timing(&timings, "BuildIoRingReadFile()")
+	utils.log_time(&log, "BuildIoRingReadFile()")
 	assert(error == 0)
 	info2, error2 := getIoRingInfo(ioring)
-	utils.end_timing(&timings, "GetIoRingInfo()")
+	utils.logf(&log, "GetIoRingInfo, error = %v, info = %v", error2, info2)
+	utils.log_time(&log, "GetIoRingInfo()")
 	// submit operations
 	error = SubmitIoRing(ioring, 0, 0, nil)
-	utils.end_timing(&timings, "SubmitIoRing()")
+	utils.logf(&log, "SubmitIoRing, error = %v", error)
+	utils.log_time(&log, "SubmitIoRing()")
 	// wait for result
 	did_read := false
 	results: [1]IORING_CQE
 	for !did_read {
 		did_read = PopIoRingCompletion(ioring, &results[0]) == win.S_OK
 	}
-	utils.end_timing(&timings, "wait for result via PopIoRingCompletion()")
-
-	fmt.printf("  GetIoRingInfo, error = %v, info = %v\n", error1, info1)
-	fmt.printf("  GetIoRingInfo, error = %v, info = %v\n", error2, info2)
-	fmt.printf("  SubmitIoRing, error = %v\n", error)
-	fmt.printf("  buffer[:8]: %v\n", buffer[:8])
-	utils.print_timings(timings)
+	utils.logf(&log, "buffer[:8]: %v", buffer[:8])
+	utils.log_time(&log, "wait for result via PopIoRingCompletion()")
+	// print log
+	utils.print_timing_log(log)
 }
 getIoRingInfo :: proc(ioring: HIORING) -> (info: IORING_INFO, error: i32) {
 	error = i32(GetIoRingInfo(ioring, &info))

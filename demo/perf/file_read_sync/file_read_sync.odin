@@ -9,15 +9,14 @@ import "core:time"
 main :: proc() {
 	// setup
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
-	timings: utils.Timings
-	utils.start_timing(&timings)
+	log := utils.make_log()
 	// read file
 	file, errno := core_os.open("demo/perf/make_1gb_file/1gb_file.txt", core_os.O_RDONLY)
-	utils.end_timing(&timings, "open file")
+	utils.log_time(&log, "open file")
 	buffer := make([]u8, 1024 * 1024 * 1024)
-	utils.end_timing(&timings, "buffer := make([]u8, 1GB)")
+	utils.log_time(&log, "buffer := make([]u8, 1GB)")
 	core_os.read(file, buffer)
-	utils.end_timing(&timings, "read file")
-
-	utils.print_timings(timings)
+	utils.log_time(&log, "read file")
+	// print log
+	utils.print_timing_log(log)
 }
