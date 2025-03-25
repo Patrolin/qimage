@@ -1,14 +1,14 @@
 // odin run demo/perf/file_read_async
 package main
 
-foreign import ioringapi "system:onecore.lib"
 import "../utils"
+import "../utils/ioringapi"
 import "core:fmt"
 import vmem "core:mem/virtual"
+import "core:strings"
 import win "core:sys/windows"
 import "core:time"
 
-HIORING :: distinct win.HANDLE
 main :: proc() {
 	// setup
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
@@ -28,23 +28,44 @@ main :: proc() {
 	context.allocator = vmem.arena_allocator(&arena)
 	context.temp_allocator = context.allocator
 	log := utils.make_log()
-	// get file_path
-	file_path := win.utf8_to_wstring("demo/perf/make_1gb_file/1gb_file.txt")
-	utils.log_time(&log, "utf8_to_wstring()")
 	// create ioring
-	ioring: HIORING
-	flags := IORING_CREATE_FLAGS {
+	ioring: ioringapi.HIORING
+	flags := ioringapi.IORING_CREATE_FLAGS {
 		required = .NONE,
 		advisory = .NONE,
 	}
-	error := CreateIoRing(.VERSION_3, flags, 0, 0, &ioring)
+	error := ioringapi.CreateIoRing(.VERSION_3, flags, 64, 64, &ioring)
 	assert(error == 0)
 	utils.log_time(&log, "CreateIoRing()")
-	info1, error1 := getIoRingInfo(ioring)
-	utils.logf(&log, "GetIoRingInfo, error = %v, info = %v", error1, info1)
-	utils.log_time(&log, "GetIoRingInfo()")
-	// open file
-	file := win.CreateFileW(
+	logIoRingInfo(&log, ioring)
+	// open files
+	files: [9]FileInfo
+	files[0].handle = open_file_for_reading(
+		win.utf8_to_wstring("demo/perf/make_test_files/1gb_file.txt"),
+	)
+	files[0].size = 1024 * 1024 * 1024
+	for i in 1 ..< 9 {
+		sb := strings.builder_make()
+		fmt.sbprintf(&sb, "demo/perf/make_test_files/small_file_%v.txt", i - 1)
+		file_path := win.utf8_to_wstring(strings.to_string(sb))
+		files[i].handle = open_file_for_reading(file_path)
+		files[i].size = 4096
+	}
+	utils.log_time(&log, "open a 1GB file and 8 4KB files")
+	// read files asynchronously
+	utils.log_group(&log, "-- READ 8 4KB files --")
+	read_files_asynchronously(&log, ioring, files[1:])
+	utils.log_group(&log, "-- READ a 1GB file and 8 4KB files --")
+	read_files_asynchronously(&log, ioring, files[:])
+	// print log
+	utils.print_timing_log(log)
+}
+FileInfo :: struct {
+	handle: win.HANDLE,
+	size:   i64,
+}
+open_file_for_reading :: proc(file_path: [^]u16) -> (handle: win.HANDLE) {
+	handle = win.CreateFileW(
 		file_path,
 		win.GENERIC_READ,
 		win.FILE_SHARE_READ,
@@ -53,107 +74,61 @@ main :: proc() {
 		win.FILE_ATTRIBUTE_NORMAL,
 		nil,
 	)
-	utils.log_time(&log, "CreateFileW()")
-	assert(file != nil)
-	// make buffer
-	buffer := make([]u8, 1024 * 1024 * 1024)
-	utils.log_time(&log, "buffer := make([]u8, 1GB)")
-	// async read file
-	error = BuildIoRingReadFile(
-		ioring,
-		IORING_HANDLE_REF{Kind = .IORING_REF_RAW, HandleUnion = win.HANDLE(file)},
-		IORING_BUFFER_REF{Kind = .IORING_REF_RAW, BufferUnion = win.LPVOID(&buffer[0])},
-		u64(len(buffer)),
-		0,
-		nil,
-		IORING_SQE_FLAGS.NONE,
-	)
-	utils.log_time(&log, "BuildIoRingReadFile()")
-	assert(error == 0)
-	info2, error2 := getIoRingInfo(ioring)
-	utils.logf(&log, "GetIoRingInfo, error = %v, info = %v", error2, info2)
-	utils.log_time(&log, "GetIoRingInfo()")
-	// submit operations
-	error = SubmitIoRing(ioring, 0, 0, nil)
-	utils.logf(&log, "SubmitIoRing, error = %v", error)
-	utils.log_time(&log, "SubmitIoRing()")
-	// wait for result
-	did_read := false
-	results: [1]IORING_CQE
-	for !did_read {
-		did_read = PopIoRingCompletion(ioring, &results[0]) == win.S_OK
-	}
-	utils.logf(&log, "buffer[:8]: %v", buffer[:8])
-	utils.log_time(&log, "wait for result via PopIoRingCompletion()")
-	// print log
-	utils.print_timing_log(log)
-}
-getIoRingInfo :: proc(ioring: HIORING) -> (info: IORING_INFO, error: i32) {
-	error = i32(GetIoRingInfo(ioring, &info))
+	fmt.assertf(win.GetLastError() == 0, "Failed to open file: %v", file_path)
 	return
 }
-
-IORING_VERSION :: enum i32 {
-	INVALID,
-	VERSION_1,
-	VERSION_2,
-	VERSION_3 = 300,
+read_files_asynchronously :: proc(
+	log: ^utils.TimingLog,
+	ioring: ioringapi.HIORING,
+	files: []FileInfo,
+) {
+	buffers := make([][]u8, len(files))
+	for file, i in files {
+		buffers[i] = make([]u8, file.size)
+	}
+	utils.log_time(log, "buffers[i] = make([]u8, files[i].size)")
+	for file, i in files {
+		buffer := buffers[i]
+		error := ioringapi.BuildIoRingReadFile(
+			ioring,
+			ioringapi.IORING_HANDLE_REF {
+				Kind = .IORING_REF_RAW,
+				HandleUnion = win.HANDLE(file.handle),
+			},
+			ioringapi.IORING_BUFFER_REF {
+				Kind = .IORING_REF_RAW,
+				BufferUnion = win.LPVOID(&buffer[0]),
+			},
+			u64(len(buffer)),
+			0,
+			(^u32)(uintptr(i)),
+			ioringapi.IORING_SQE_FLAGS.NONE,
+		)
+		fmt.assertf(error == 0, "error: %v", error)
+	}
+	utils.log_time(log, "BuildIoRingReadFile(..file[i], ..buffers[i])")
+	ioringapi.SubmitIoRing(ioring, 0, 0, nil)
+	utils.log_time(log, "SubmitIoRing(ioring, 0, 0, nil)")
+	read_count := 0
+	for read_count < len(files) {
+		result := new(ioringapi.IORING_CQE)
+		if ioringapi.PopIoRingCompletion(ioring, result) == win.S_OK {
+			fmt.assertf(
+				string(buffers[read_count][:8]) == "aaaabbb\n",
+				"%v",
+				buffers[read_count][:8],
+			)
+			utils.logf(log, "result: %v", result)
+			read_count += 1
+		}
+	}
+	utils.log_time(log, "wait for results via PopIoRingCompletion()")
 }
-IORING_CREATE_REQUIRED_FLAGS :: enum i32 {
-	NONE,
-}
-IORING_CREATE_ADVISORY_FLAGS :: enum i32 {
-	NONE,
-}
-IORING_CREATE_FLAGS :: struct {
-	required: IORING_CREATE_REQUIRED_FLAGS,
-	advisory: IORING_CREATE_ADVISORY_FLAGS,
-}
-IORING_INFO :: struct {
-	version:               IORING_VERSION,
-	flags:                 IORING_CREATE_FLAGS,
-	submission_queue_size: u32,
-	completion_queue_size: u32,
-}
-IORING_REF_KIND :: enum i32 {
-	IORING_REF_RAW,
-	IORING_REF_REGISTERED,
-}
-IORING_HANDLE_REF :: struct {
-	Kind:        IORING_REF_KIND,
-	HandleUnion: union {
-		win.HANDLE, // handle if Kind == IORING_REF_RAW
-		u32, // index if Kind == IORING_REF_REGISTERED
-	},
-}
-IORING_REGISTERED_BUFFER :: struct {
-	BufferIndex: u32,
-	Offset:      u32,
-}
-IORING_BUFFER_REF :: struct {
-	Kind:        IORING_REF_KIND,
-	BufferUnion: union {
-		win.LPVOID, // buffer address if Kind == IORING_REF_RAW
-		IORING_REGISTERED_BUFFER, // registered buffer if Kind == IORING_REF_REGISTERED
-	},
-}
-IORING_SQE_FLAGS :: enum i32 {
-	NONE,
-}
-IORING_CQE :: struct {
-	user_data:   uintptr,
-	result_code: win.HRESULT,
-	information: win.ULONG_PTR,
-}
-
-@(default_calling_convention = "std")
-foreign ioringapi {
-	CreateIoRing :: proc(version: IORING_VERSION, flags: IORING_CREATE_FLAGS, submission_queue_size: u32, completion_queue_size: u32, ioring: ^HIORING) -> win.HRESULT ---
-	GetIoRingInfo :: proc(ioring: HIORING, info: ^IORING_INFO) -> win.HRESULT ---
-	BuildIoRingReadFile :: proc(ioring: HIORING, file: IORING_HANDLE_REF, data: IORING_BUFFER_REF, bytes_to_read: u64, file_offset: u64, user_data: ^u32, flags: IORING_SQE_FLAGS) -> win.HRESULT ---
-	BuildIoRingCancelRequest :: proc(ioring: HIORING, file: IORING_HANDLE_REF, op_to_cancel: win.PVOID, user_data: win.PVOID) -> win.HRESULT ---
-	SubmitIoRing :: proc(ioring: HIORING, buffer_size: u32, timeout_millis: u32, buffer: ^u32) -> win.HRESULT ---
-	PopIoRingCompletion :: proc(ioring: HIORING, cqe: ^IORING_CQE) -> win.HRESULT ---
+logIoRingInfo :: proc(log: ^utils.TimingLog, ioring: ioringapi.HIORING) {
+	info: ioringapi.IORING_INFO
+	error := i32(ioringapi.GetIoRingInfo(ioring, &info))
+	fmt.assertf(error == 0, "error = %v, info = %v", error, info)
+	utils.log_time(log, "GetIoRingInfo()")
 }
 
 // TODO!: check performance for many small files

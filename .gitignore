@@ -1,7 +1,7 @@
 *.exe
 *.obj
 .vs/*
-1gb_file.txt
+**/make_test_files/*.txt
 demo/**/*.pdb
 demo/test
 .vscode
