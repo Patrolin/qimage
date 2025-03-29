@@ -8,7 +8,10 @@ import vmem "core:mem/virtual"
 import "core:strings"
 import win "core:sys/windows"
 import "core:time"
+import "core:thread"
+import "base:runtime"
 
+FILE_COUNT :: 1 + utils.SMALL_TEST_FILE_COUNT
 main :: proc() {
 	// setup
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
@@ -34,35 +37,48 @@ main :: proc() {
 		required = .NONE,
 		advisory = .NONE,
 	}
-	error := ioringapi.CreateIoRing(.VERSION_3, flags, 2048, 2048, &ioring)
+	error := ioringapi.CreateIoRing(.VERSION_3, flags, 64, 64, &ioring)
 	assert(error == 0)
 	utils.log_time(&log, "CreateIoRing()")
 	logIoRingInfo(&log, ioring)
 	// open files
-	files: [1 + utils.SMALL_TEST_FILE_COUNT]FileInfo
-	files[0].handle = open_file_for_reading(
+	file_handles: [FILE_COUNT]win.HANDLE
+	file_infos: [FILE_COUNT]FileInfo
+	file_handles[0] = open_file_for_reading(
 		win.utf8_to_wstring(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH)),
 	)
-	files[0].size = 1024 * 1024 * 1024
-	for i in 1 ..< 1 + utils.SMALL_TEST_FILE_COUNT {
+	file_infos[0] = FileInfo{0, 1024 * 1024 * 1024}
+	for i in 1 ..< FILE_COUNT {
 		file_path := win.utf8_to_wstring(
 			utils.sbprint_file_path("%v/small_file_%v.txt", utils.TEST_FILE_PATH, i - 1),
 		)
-		files[i].handle = open_file_for_reading(file_path)
-		files[i].size = 4096
+		file_handles[i] = open_file_for_reading(file_path)
+		file_infos[i] = FileInfo{u32(i), 4096}
 	}
+	//utils.logf(&log, "file_infos: %v", file_infos)
 	utils.log_time(&log, "open a 1GB file and 8 4KB files")
+	ioringapi.BuildIoRingRegisterFileHandles(ioring, u32(len(file_handles)), &file_handles[0], win.UINT_PTR(0xc0ffee))
+	utils.log_time(&log, "BuildIoRingRegisterFileHandles(.., 0xc0ffee)")
+	// make buffers
+	buffer_infos: [FILE_COUNT]ioringapi.IORING_BUFFER_INFO
+	for file, i in file_infos {
+		buffer := make([]u8, file.size)
+		buffer_infos[i] = ioringapi.IORING_BUFFER_INFO{&buffer[0], u32(len(buffer))}
+	}
+	utils.log_time(&log, "buffers[i] = make([]u8, files[i].size)")
+	ioringapi.BuildIoRingRegisterBuffers(ioring, len(buffer_infos), &buffer_infos[0], 0xf00dbabe)
+	utils.log_time(&log, "BuildIoRingRegisterBuffers(.., 0xf00dbabe)")
 	// read files asynchronously
 	utils.log_group(&log, "-- READ 8 4KB files --")
-	read_files_asynchronously(&log, ioring, files[1:])
+	read_files_asynchronously(&log, ioring, file_infos[1:], buffer_infos[1:])
 	utils.log_group(&log, "-- READ a 1GB file and 8 4KB files --")
-	read_files_asynchronously(&log, ioring, files[:])
+	read_files_asynchronously(&log, ioring, file_infos[:], buffer_infos[:])
 	// print log
 	utils.print_timing_log(log)
 }
 FileInfo :: struct {
-	handle: win.HANDLE,
-	size:   i64,
+	id:   u32,
+	size: i64,
 }
 open_file_for_reading :: proc(file_path: [^]u16) -> (handle: win.HANDLE) {
 	handle = win.CreateFileW(
@@ -80,50 +96,66 @@ open_file_for_reading :: proc(file_path: [^]u16) -> (handle: win.HANDLE) {
 read_files_asynchronously :: proc(
 	log: ^utils.TimingLog,
 	ioring: ioringapi.HIORING,
-	files: []FileInfo,
+	file_infos: []FileInfo,
+	buffer_infos: []ioringapi.IORING_BUFFER_INFO,
 ) {
-	buffers := make([][]u8, len(files))
-	for file, i in files {
-		buffers[i] = make([]u8, file.size)
+	ThreadData :: struct {
+		allocator: runtime.Allocator,
+		log: ^utils.TimingLog,
+		ioring: ioringapi.HIORING,
+		file_infos: []FileInfo,
 	}
-	utils.log_time(log, "buffers[i] = make([]u8, files[i].size)")
-	for file, i in files {
-		buffer := buffers[i]
-		error := ioringapi.BuildIoRingReadFile(
-			ioring,
-			ioringapi.IORING_HANDLE_REF {
-				Kind = .IORING_REF_RAW,
-				HandleUnion = win.HANDLE(file.handle),
-			},
-			ioringapi.IORING_BUFFER_REF {
-				Kind = .IORING_REF_RAW,
-				BufferUnion = win.LPVOID(&buffer[0]),
-			},
-			u64(len(buffer)),
-			0,
-			(^u32)(uintptr(i)),
-			ioringapi.IORING_SQE_FLAGS.NONE,
-		)
-		fmt.assertf(error == 0, "error: %v", error)
-	}
-	utils.log_time(log, "BuildIoRingReadFile(..file[i], ..buffers[i])")
-	ioringapi.SubmitIoRing(ioring, 0, 0, nil)
-	utils.log_time(log, "SubmitIoRing(ioring, 0, 0, nil)")
-	read_count := 0
-	for read_count < len(files) {
-		result := new(ioringapi.IORING_CQE)
-		if ioringapi.PopIoRingCompletion(ioring, result) == win.S_OK {
-			fmt.assertf(
-				string(buffers[read_count][:8]) == "aaaabbb\n",
-				"%v",
-				buffers[read_count][:8],
+	thread_data := ThreadData{context.allocator, log, ioring, file_infos}
+	thread_proc :: proc (raw_data: rawptr) {
+		thread_data := (^ThreadData)(raw_data)
+		context.allocator = thread_data.allocator
+		context.temp_allocator = thread_data.allocator
+		for file, i in thread_data.file_infos {
+			user_data := (^u32)(uintptr(file.id))
+			error := ioringapi.BuildIoRingReadFile(
+				thread_data.ioring,
+				ioringapi.IORING_HANDLE_REF {
+					Kind = .IORING_REF_REGISTERED,
+					HandleUnion = file.id,
+				},
+				ioringapi.IORING_BUFFER_REF {
+					Kind = .IORING_REF_REGISTERED,
+					BufferUnion = ioringapi.IORING_REGISTERED_BUFFER{file.id, 0},
+				},
+				u64(file.size),
+				0,
+				user_data,
+				ioringapi.IORING_SQE_FLAGS.NONE,
 			)
-			fmt.assertf(int(result.user_data) == read_count, "Out of order reads!")
-			utils.logf(log, "result: %v", result)
-			read_count += 1
+			fmt.assertf(error == 0, "error: %v")
 		}
+		utils.log_time(thread_data.log, "thread 1: BuildIoRingReadFile(IORING_REF_REGISTERED(i), IORING_REF_REGISTERED(i))")
+		ioringapi.SubmitIoRing(thread_data.ioring, 0, 0, nil)
+		utils.log_time(thread_data.log, "thread 1: SubmitIoRing(ioring, 0, 0, nil)")
 	}
-	utils.log_time(log, "wait for results via PopIoRingCompletion()")
+	thread2 := thread.create_and_start_with_data(&thread_data, thread_proc)
+	completions := 0
+	for completions < len(file_infos) {
+		result: ioringapi.IORING_CQE
+		for {
+			if ioringapi.PopIoRingCompletion(ioring, &result) == win.S_OK {
+				if result.user_data < FILE_COUNT {
+					break
+				} else {
+					// previously issued operations get completed only when we issue a read..
+					utils.log_timef(log, "thread 0: misc_result: %v", result)
+				}
+			}
+		}
+		buffer := ([^]u8)(buffer_infos[completions].address)
+		fmt.assertf(string(buffer[:8]) == "aaaabbb\n", "%v", buffer[:8])
+		start_file_id := file_infos[0].id
+		fmt.assertf(int(result.user_data) == int(start_file_id) + completions, "Out of order reads!")
+		utils.log_timef(log, "thread 0: result: %v", result)
+		completions += 1
+	}
+	utils.log_time(log, "thread 0: wait for results via PopIoRingCompletion()")
+	thread.join(thread2)
 }
 logIoRingInfo :: proc(log: ^utils.TimingLog, ioring: ioringapi.HIORING) {
 	info: ioringapi.IORING_INFO
