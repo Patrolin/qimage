@@ -6,16 +6,16 @@ import "core:fmt"
 import "core:testing"
 
 @(test)
-test_clz :: proc(t: ^testing.T) {
+test_count_leading_zeros :: proc(t: ^testing.T) {
 	for test_case in ([]test.Case(u64, u64){{0, 64}, {1, 63}, {2, 62}, {3, 62}}) {
 		using test_case
-		got := clz(key)
-		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
+		got := count_leading_zeros(key)
+		testing.expectf(t, got == expected, "count_leading_zeros(%v): %v", key, got)
 	}
 	for test_case in ([]test.Case(u8, u8){{0, 8}, {1, 7}, {2, 6}, {3, 6}}) {
 		using test_case
-		got := clz(key)
-		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
+		got := count_leading_zeros(key)
+		testing.expectf(t, got == expected, "count_leading_zeros(%v): %v", key, got)
 	}
 }
 

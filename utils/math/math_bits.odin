@@ -11,15 +11,19 @@ KIBI_BYTES :: 1024 * BYTES
 MEBI_BYTES :: 1024 * KIBI_BYTES
 GIBI_BYTES :: 1024 * MEBI_BYTES
 
+ptr_add :: proc(ptr: rawptr, offset: int) -> [^]u8 {
+	return &([^]u8)(ptr)[offset]
+}
+
 // return hash step for a power_of_two size hash table
 hashStep :: #force_inline proc "contextless" (hash: $T) -> T {
 	return hash | 1
 }
 
-clz :: bits.count_leading_zeros
-ctz :: bits.count_trailing_zeros
-countOnes :: bits.count_ones
-countZeros :: bits.count_zeros
+count_leading_zeros :: bits.count_leading_zeros
+count_trailing_zeros :: bits.count_trailing_zeros
+count_ones :: bits.count_ones
+count_zeros :: bits.count_zeros
 
 lowMask :: #force_inline proc "contextless" (
 	power_of_two: $T,
@@ -43,10 +47,10 @@ setBit :: #force_inline proc "contextless" (
 	return x ~ (toggle_bit << bit_index)
 }
 log2_floor :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return x > 0 ? size_of(T) * 8 - 1 - clz(x) : 0
+	return x > 0 ? size_of(T) * 8 - 1 - count_leading_zeros(x) : 0
 }
 log2_ceil :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return x > 1 ? size_of(T) * 8 - 1 - clz((x - 1) << 1) : 0
+	return x > 1 ? size_of(T) * 8 - 1 - count_leading_zeros((x - 1) << 1) : 0
 }
 floorTo :: #force_inline proc "contextless" (
 	x, floor_to: $T,
