@@ -41,13 +41,10 @@ setBit :: proc(x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsign
 	return x ~ (toggle_bit << bit_index)
 }
 log2_floor :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
-	leading_zeros := clz(x)
-	return size_of(T) * 8 - T(x > 0) - leading_zeros
+	return x > 0 ? size_of(T) * 8 - 1 - clz(x) : 0
 }
 log2_ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
-	leading_zeros := clz(x)
-	remainder := T((x << (leading_zeros + 1)) > 0)
-	return size_of(T) * 8 - T(x > 0) - leading_zeros + remainder
+	return x > 1 ? size_of(T) * 8 - 1 - clz((x - 1) << 1) : 0
 }
 floorTo :: #force_inline proc "contextless" (
 	x, floor_to: $T,

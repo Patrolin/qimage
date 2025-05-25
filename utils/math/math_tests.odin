@@ -21,6 +21,7 @@ test_clz :: proc(t: ^testing.T) {
 
 @(test)
 math_log2_floor :: proc(t: ^testing.T) {
+	context = test.get_context(t)
 	test_cases := []test.Case(uint, uint) {
 		{0, 0},
 		{1, 0},
@@ -32,18 +33,19 @@ math_log2_floor :: proc(t: ^testing.T) {
 	}
 	for test_case in test_cases {
 		using test_case
-		testing.expectf(
-			t,
+		test.expect(
 			log2_floor(key) == expected,
-			"log2_ceil(%v): %v, expected: %v",
+			"log2_floor(%v): %v, expected: %v",
 			key,
 			log2_floor(key),
 			expected,
 		)
 	}
+	test.free_context()
 }
 @(test)
 test_log2_ceil :: proc(t: ^testing.T) {
+	context = test.get_context(t)
 	for test_case in ([]test.Case(u64, u64) {
 			{0, 0},
 			{1, 0},
@@ -54,8 +56,7 @@ test_log2_ceil :: proc(t: ^testing.T) {
 			{4096, 12},
 		}) {
 		using test_case
-		testing.expectf(
-			t,
+		test.expect(
 			log2_ceil(key) == expected,
 			"log2_ceil(%v): %v, expected: %v",
 			key,
@@ -63,4 +64,5 @@ test_log2_ceil :: proc(t: ^testing.T) {
 			expected,
 		)
 	}
+	test.free_context()
 }
