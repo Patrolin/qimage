@@ -36,14 +36,16 @@ getBit :: #force_inline proc "contextless" (
 ) -> T where intrinsics.type_is_unsigned(T) {
 	return (x >> bit_index) & 1
 }
-setBit :: proc(x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsigned(T) {
+setBit :: #force_inline proc "contextless" (
+	x, bit_index, bit_value: $T,
+) -> T where intrinsics.type_is_unsigned(T) {
 	toggle_bit := ((x >> bit_index) ~ bit_value) & 1
 	return x ~ (toggle_bit << bit_index)
 }
-log2_floor :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
+log2_floor :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return x > 0 ? size_of(T) * 8 - 1 - clz(x) : 0
 }
-log2_ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
+log2_ceil :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return x > 1 ? size_of(T) * 8 - 1 - clz((x - 1) << 1) : 0
 }
 floorTo :: #force_inline proc "contextless" (
