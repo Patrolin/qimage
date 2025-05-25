@@ -5,25 +5,27 @@ import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
 
+check_allocation :: proc(t: ^testing.T, ptr: ^int, name: string, value: int) {
+	testing.expectf(t, ptr != nil, "Failed to allocate, %v: %v", name, ptr)
+	ptr^ = value
+	testing.expect(t, ptr^ == value, "Failed to allocate")
+}
+
 @(test)
 tests_defaultContext :: proc(t: ^testing.T) {
 	os.initInfo()
 	debug_temp_allocator := context.temp_allocator
 	context = defaultContext(0)
-	real_temp_allocator := context.temp_allocator
+	temp_allocator_to_check := context.temp_allocator
 	context.temp_allocator = debug_temp_allocator
 	// allocator
 	x := new(int)
-	testing.expectf(t, x != nil, "Failed to allocate, x: %v", x)
-	x^ = 13
-	testing.expect(t, x^ == 13, "Failed to allocate")
+	check_allocation(t, x, "x", 13)
 	free(x)
 	// temp_allocator
-	y := new(int, allocator = real_temp_allocator)
-	testing.expectf(t, x != nil, "Failed to allocate, y: %v", y)
-	y^ = 13
-	testing.expect(t, x^ == 13, "Failed to allocate")
-	free(x, allocator = real_temp_allocator)
+	y := new(int, allocator = temp_allocator_to_check)
+	check_allocation(t, y, "y", 7)
+	free(y, allocator = temp_allocator_to_check)
 }
 @(test)
 tests_pageAlloc :: proc(t: ^testing.T) {
@@ -63,8 +65,21 @@ tests_partitionAlloc :: proc(t: ^testing.T) {
 		part2,
 	)
 }
+
 @(test)
-tests_slabAllocator :: proc(t: ^testing.T) {
+tests_pool_allocator :: proc(t: ^testing.T) {
+	pool_64b := pool_allocator(8)
+	x := (^int)(pool_alloc(&pool_64b))
+	check_allocation(t, x, "x", 13)
+	y := (^int)(pool_alloc(&pool_64b))
+	check_allocation(t, x, "y", 7)
+	check_allocation(t, x, "x", 13)
+	pool_free(&pool_64b, x)
+	pool_free(&pool_64b, y)
+}
+/*
+@(test)
+tests_anyAllocator :: proc(t: ^testing.T) {
 	os.initInfo()
 	context.allocator = slabAllocator()
 	allocator := (^SlabAllocator)(context.allocator.data)
@@ -116,6 +131,7 @@ tests_slabAllocator :: proc(t: ^testing.T) {
 	testing.expectf(t, y == x, "Failed to free_all, x: %v, y: %v", x, y)
 	*/
 }
+*/
 @(test)
 tests_map :: proc(t: ^testing.T) {
 	os.initInfo()

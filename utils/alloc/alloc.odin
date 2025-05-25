@@ -12,16 +12,16 @@ thread_id_to_context := map[int]runtime.Context{}
 emptyContext :: os.emptyContext
 defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	if !(user_index in thread_id_to_context) {
-		new_defaultContext(user_index) // NOTE: Odin doesn't like setting context inside of an if
+		make_defaultContext(user_index) // NOTE: Odin doesn't like setting context inside of an if
 	}
 	return thread_id_to_context[user_index]
 }
 @(private)
-new_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
+make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	context = emptyContext()
-	context.allocator =
-		0 in thread_id_to_context ? thread_id_to_context[0].allocator : slabAllocator()
-	context.temp_allocator = slabAllocator()
+	// TODO: reimplement when anyAllocator() is implemented
+	//context.allocator = 0 in thread_id_to_context ? thread_id_to_context[0].allocator : slabAllocator()
+	//context.temp_allocator = slabAllocator()
 	thread_id_to_context[user_index] = context
 	return context
 }

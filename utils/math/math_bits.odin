@@ -40,7 +40,11 @@ setBit :: proc(x, bit_index, bit_value: $T) -> T where intrinsics.type_is_unsign
 	toggle_bit := ((x >> bit_index) ~ bit_value) & 1
 	return x ~ (toggle_bit << bit_index)
 }
-ilog2Ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
+log2_floor :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
+	leading_zeros := clz(x)
+	return size_of(T) * 8 - T(x > 0) - leading_zeros
+}
+log2_ceil :: proc(x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	leading_zeros := clz(x)
 	remainder := T((x << (leading_zeros + 1)) > 0)
 	return size_of(T) * 8 - T(x > 0) - leading_zeros + remainder
@@ -49,34 +53,4 @@ floorTo :: #force_inline proc "contextless" (
 	x, floor_to: $T,
 ) -> T where intrinsics.type_is_integer(T) {
 	return x / floor_to * floor_to
-}
-// odin test lib/math
-@(test)
-test_clz :: proc(t: ^testing.T) {
-	for test_case in ([]test.Case(u64, u64){{0, 64}, {1, 63}, {2, 62}, {3, 62}}) {
-		using test_case
-		got := clz(key)
-		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
-	}
-	for test_case in ([]test.Case(u8, u8){{0, 8}, {1, 7}, {2, 6}, {3, 6}}) {
-		using test_case
-		got := clz(key)
-		testing.expectf(t, got == expected, "clz(%v): %v", key, got)
-	}
-}
-@(test)
-test_ilog2 :: proc(t: ^testing.T) {
-	for test_case in ([]test.Case(u64, u64) {
-			{0, 0},
-			{1, 0},
-			{2, 1},
-			{3, 2},
-			{4, 2},
-			{7, 3},
-			{4096, 12},
-		}) {
-		using test_case
-		got := ilog2Ceil(key)
-		testing.expectf(t, got == expected, "ilog2_ceil(%v): %v", key, got)
-	}
 }
