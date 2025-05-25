@@ -1,14 +1,14 @@
 package perf_utils
+import "../../../utils/thread"
 import "base:intrinsics"
 import "core:fmt"
 import "core:strings"
 import "core:time"
-import "../../../utils/thread"
 
 TimingLog :: struct {
 	start_time: i64,
 	items:      [dynamic]TimingLogItem,
-	mutex:      thread.TicketMutex
+	mutex:      thread.Mutex,
 }
 TimingLogItem :: struct {
 	msg:  string,

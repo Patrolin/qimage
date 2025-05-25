@@ -3,23 +3,15 @@ import "../math"
 import "base:intrinsics"
 
 // mutex
-TicketMutex :: struct {
-	next, finished: u32,
-}
-getMutexTicketUntil :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool) {
-	value := mutex.next
-	if value != end {
-		value_got := intrinsics.atomic_compare_exchange_weak(&mutex.next, value, value + 1)
-		return value, value_got == value
+Mutex :: distinct bool
+getMutex :: proc(mutex: ^Mutex) {
+	for {
+		old_value := intrinsics.atomic_exchange(mutex, true)
+		if intrinsics.expect(old_value == false, true) {return}
 	}
-	return value, false
 }
-getMutex :: proc(mutex: ^TicketMutex) { 	// TODO: give each thread its own allocator instead
-	ticket := intrinsics.atomic_add(&mutex.next, 1)
-	for intrinsics.atomic_load(&mutex.finished) != ticket {}
-}
-releaseMutex :: proc(mutex: ^TicketMutex) {
-	intrinsics.atomic_add(&mutex.finished, 1)
+releaseMutex :: proc(mutex: ^Mutex) {
+	intrinsics.atomic_store(mutex, false)
 }
 // thread info
 _semaphore: OsSemaphore

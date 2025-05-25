@@ -68,13 +68,8 @@ TODO: out of date:
     launchThread :: proc(queue: ^WorkQueue, work: WorkItem)
     launchThread :: proc()
     joinQueue :: proc(queue: ^WorkQueue)
-    TicketMutex :: struct {
-      next, serving: u32
-    }
-    getMutexTicket :: proc(mutex: ^TicketMutex) -> u32
-    getMutexTicketUpTo :: proc(mutex: ^TicketMutex, end: u32) -> (ticket: u32, ok: bool)
-    getMutex :: proc(mutex: ^TicketMutex)
-    releaseMutex :: proc(mutex: ^TicketMutex)
+    getMutex :: proc(mutex: ^Mutex)
+    releaseMutex :: proc(mutex: ^Mutex)
   /utils_windows
     LOWORD :: #force_inline proc "contextless" (v: $T) -> u16
     HIWORD :: #force_inline proc "contextless" (v: $T) -> u16
