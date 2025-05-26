@@ -116,30 +116,22 @@ toggleFullscreen :: proc(window: win.HWND) {
 		win.SetWindowPos(window, nil, 0, 0, 0, 0, win.SWP_NOOWNERZORDER | win.SWP_FRAMECHANGED)
 	}
 }
-// vsync us to 60fps (or whatever the monitor refresh rate is?)
-// NOTE: sometimes this returns up to 5.832 ms later than it should
+// vsync us to 60fps (or whatever the monitor refresh rate is)
+// NOTE: this sometimes returns 0-125 ms later than it should..
 doVsyncBadly :: proc() -> time.Duration {
 	win.DwmFlush()
 	return time.time()
 }
 /* NOTE: doVsyncWell():
-	for isRunning {
-		processInputs() // NOTE: this blocks while sizing
-		updateAndRender()
-		doVsyncBadly() // NOTE: we don't care about dropped frames
-		flipLastFrame()
-	}
-*/
-/* NOTE: doVsyncWell2():
 	thread0:
-		for isRunning {
+		disableVsync()
+		for {
+			flushPreviousFrame()
+			processInputs()
 			wakeRenderThread()
-			doVsyncBadly() // NOTE: sync with DWM, so we don't mistime a frame
-			flipLastFrame()
+			sleep(time_until_next_frame) // can we get the monitor refresh rate somehow?
 		}
-	thread1
-		while hasWork {
-			processInputs() // NOTE: this blocks while sizing, but eh
-			updateAndRender()
-		}
+	thread1:
+		updateGameState()
+		renderToOffscreenRenderTarget()
 */

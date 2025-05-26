@@ -1,4 +1,5 @@
 // odin run demo/gl_min_renderer -subsystem:windows
+// odin run demo/gl_min_renderer -subsystem:windows -o:speed
 package main
 
 import "../../lib/event"
@@ -41,7 +42,7 @@ main :: proc() {
 		updateAndRender()
 		render_t := time.time()
 		fmt.printf(
-			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+			"dt: %.3v ms, max_dt: %.3v ms, frame_msg_time: %.3v ms, frame_render_time: %.3v ms\n",
 			time.as(dt, time.MILLISECOND),
 			time.as(timing.max_dt, time.MILLISECOND),
 			time.as(msg_t - timing.t, time.MILLISECOND),
