@@ -48,11 +48,11 @@ _half_fit_list_index_ceil :: proc(size: int) -> int {
 half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, size: int) -> rawptr {
 	// TODO: alignment
 	size_index := _half_fit_list_index_ceil(size)
-	if intrinsics.expect(size_index > HALF_FIT_FREE_LIST_COUNT, false) {
-		return nil // OutOfMemory
-	}
 	size_mask := ~i32(0) >> u32(size_index)
 	list_index := math.log2_floor(half_fit.available_bitfield & u32(size_mask))
+	if intrinsics.expect(list_index == 0, false) {
+		return nil // OutOfMemory
+	}
 	block_header := (^HalfFitBlockHeader)(half_fit.free_lists[list_index])
 	ptr := math.ptr_add(block_header, size_of(HalfFitBlockHeader))
 	// update free list
@@ -65,8 +65,7 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, size: int) -> rawptr {
 		half_fit_add_block(half_fit, next_block[:prev_block_size - size])
 	}
 	// update available_bitfield
-	available_bitfield_mask :=
-		half_fit.free_lists[list_index] == nil ? ~(i32(1) << list_index) : ~i32(0)
+	available_bitfield_mask := half_fit.free_lists[list_index] == nil ? ~(i32(1) << list_index) : ~i32(0)
 	half_fit.available_bitfield &= u32(available_bitfield_mask)
 	// return
 	return ptr

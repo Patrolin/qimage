@@ -7,10 +7,7 @@ import "core:strings"
 
 main :: proc() {
 	// a 1 GB file
-	file, errno := os.open(
-		utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH),
-		os.O_CREATE,
-	)
+	file, errno := os.open(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH), os.O_CREATE)
 	assert(errno == nil)
 	string_to_write := strings.repeat("aaaabbb\n", 512)
 	assert(len(string_to_write) == 4096)

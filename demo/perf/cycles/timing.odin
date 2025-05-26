@@ -15,12 +15,7 @@ TimingCase :: struct($T: typeid) {
 	average_time:   f64,
 	run_count:      int,
 }
-timingCase :: proc(
-	$T: typeid,
-	name: string,
-	f: proc(v: T) -> T,
-	break_before := false,
-) -> TimingCase(T) {
+timingCase :: proc($T: typeid, name: string, f: proc(v: T) -> T, break_before := false) -> TimingCase(T) {
 	return TimingCase(T){name, f, break_before, 0, 0, 0}
 }
 printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
@@ -29,22 +24,11 @@ printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
 	}
 	run_count_string := ""
 	if _case.run_count > 1000 {
-		run_count_string = fmt.aprintf(
-			"%.0e",
-			f64(_case.run_count),
-			allocator = context.temp_allocator,
-		)
+		run_count_string = fmt.aprintf("%.0e", f64(_case.run_count), allocator = context.temp_allocator)
 	} else {
 		run_count_string = fmt.aprintf("%v", _case.run_count, allocator = context.temp_allocator)
 	}
-	fmt.sbprintfln(
-		sb,
-		"%v: %.2f cy, %.0f ns, %v runs",
-		_case.name,
-		_case.average_cycles,
-		time.nanos(_case.average_time),
-		run_count_string,
-	)
+	fmt.sbprintfln(sb, "%v: %.2f cy, %.0f ns, %v runs", _case.name, _case.average_cycles, time.nanos(_case.average_time), run_count_string)
 }
 printCasesEnd :: proc(sb: ^strings.Builder) {
 	fmt.sbprintfln(sb, "")
@@ -64,8 +48,7 @@ measureCold :: proc($T: typeid, _cases: []TimingCase(T)) {
 		}
 		intrinsics.atomic_load(&acc[0])
 		run_count := f64(_case.run_count)
-		_case.average_cycles =
-			(_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + 1)
+		_case.average_cycles = (_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + 1)
 		_case.average_time = (_case.average_time * run_count + diff_time) / (run_count + 1)
 		_case.run_count += 1
 		printCase(T, &sb, _case)
@@ -88,10 +71,8 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 		}
 		intrinsics.atomic_load(&acc[0])
 		run_count := f64(_case.run_count)
-		_case.average_cycles =
-			(_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + REPEAT_COUNT)
-		_case.average_time =
-			(_case.average_time * run_count + diff_time) / (run_count + REPEAT_COUNT)
+		_case.average_cycles = (_case.average_cycles * run_count + f64(diff_cycles)) / (run_count + REPEAT_COUNT)
+		_case.average_time = (_case.average_time * run_count + diff_time) / (run_count + REPEAT_COUNT)
 		_case.run_count += REPEAT_COUNT
 		printCase(T, &sb, _case)
 	}

@@ -40,16 +40,9 @@ foreign import onecorelib "system:onecore.lib"
 foreign onecorelib {
 	VirtualAlloc2 :: proc(Process: win.HANDLE, BaseAddress: win.PVOID, Size: win.SIZE_T, AllocationType: win.ULONG, PageProtection: win.ULONG, ExtendedParameters: ^MEM_EXTENDED_PARAMETER, ParameterCount: win.ULONG) -> win.LPVOID ---
 }
+// TODO: don't use page_alloc() or page_alloc_aligned()
 page_alloc :: proc(size: math.Size) -> []u8 {
-	ptr := VirtualAlloc2(
-		nil,
-		nil,
-		win.SIZE_T(size),
-		win.MEM_RESERVE | win.MEM_COMMIT,
-		win.PAGE_READWRITE,
-		nil,
-		0,
-	)
+	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE, nil, 0)
 	return (cast([^]u8)ptr)[:size]
 }
 page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []u8 {
@@ -57,10 +50,7 @@ page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []u8 {
 		Alignment = win.SIZE_T(size),
 	}
 	alloc_params: []MEM_EXTENDED_PARAMETER = {
-		MEM_EXTENDED_PARAMETER {
-			Type = .MemExtendedParameterAddressRequirements,
-			Pointer = &address_requirement,
-		},
+		MEM_EXTENDED_PARAMETER{Type = .MemExtendedParameterAddressRequirements, Pointer = &address_requirement},
 	}
 	ptr := VirtualAlloc2(
 		nil,

@@ -24,13 +24,8 @@ SlotArray :: struct($Key, $Value: typeid) {
 	capacity:      u32,
 }
 @(private)
-getFreeOrCurrentSlot :: proc(
-	slots: [^]MapLikeSlot($Key, $Value),
-	capacity: int,
-	key: Key,
-	hash: int,
-) -> ^MapLikeSlot(Key, Value) {
-	hash_step := math_utils.hashStep(hash)
+getFreeOrCurrentSlot :: proc(slots: [^]MapLikeSlot($Key, $Value), capacity: int, key: Key, hash: int) -> ^MapLikeSlot(Key, Value) {
+	hash_step := hash | 1 // NOTE: len(slots) must be a power of two
 	slot: ^MapLikeSlot(Key, Value) = nil
 	for i := hash % capacity;; i += hash_step {
 		slot = &slots[i]
@@ -117,17 +112,8 @@ removeKey :: proc {
 	removeKey_map,
 	removeKey_set,
 }
-delete_map_like_map :: proc(
-	m: ^Map($Key, $Value),
-	allocator := context.allocator,
-	loc := #caller_location,
-) {
-	runtime.mem_free_with_size(
-		m.slots,
-		int(m.capacity) * size_of(MapLikeSlot(Key, Value)),
-		allocator,
-		loc,
-	)
+delete_map_like_map :: proc(m: ^Map($Key, $Value), allocator := context.allocator, loc := #caller_location) {
+	runtime.mem_free_with_size(m.slots, int(m.capacity) * size_of(MapLikeSlot(Key, Value)), allocator, loc)
 	m.slots = nil
 	m.added_slots = 0
 	m.removed_slots = 0
@@ -139,7 +125,8 @@ delete_map_like :: proc {
 }
 
 // Set
-void :: struct {}
+void :: struct {
+}
 #assert(size_of(void) == 0)
 Set :: struct($Key: typeid) {
 	using _: SlotArray(Key, void),
@@ -169,17 +156,8 @@ removeKey_set :: proc(m: ^$M/Set($Key), key: Key) {
 		shrink_slotArray(cast(^SlotArray(Key, void))m)
 	}
 }
-delete_map_like_set :: proc(
-	m: ^Set($Key),
-	allocator := context.allocator,
-	loc := #caller_location,
-) {
-	runtime.mem_free_with_size(
-		m.slots,
-		int(m.capacity) * size_of(MapLikeSlot(Key, void)),
-		allocator,
-		loc,
-	)
+delete_map_like_set :: proc(m: ^Set($Key), allocator := context.allocator, loc := #caller_location) {
+	runtime.mem_free_with_size(m.slots, int(m.capacity) * size_of(MapLikeSlot(Key, void)), allocator, loc)
 	m.slots = nil
 	m.added_slots = 0
 	m.removed_slots = 0

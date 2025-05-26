@@ -41,12 +41,7 @@ relativeRect :: #force_inline proc "contextless" (rect: AbsoluteRect) -> Relativ
 }
 // TODO: rect utils
 inBounds :: proc(pos: i32x2, rect: AbsoluteRect) -> bool {
-	return(
-		(pos.x >= rect.left) &
-		(pos.x <= rect.right) &
-		(pos.y >= rect.bottom) &
-		(pos.y <= rect.top) \
-	)
+	return (pos.x >= rect.left) & (pos.x <= rect.right) & (pos.y >= rect.bottom) & (pos.y <= rect.top)
 }
 
 @(private)

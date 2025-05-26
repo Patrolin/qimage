@@ -4,9 +4,9 @@ import "../os"
 import "base:runtime"
 import "core:fmt"
 
-CACHE_SIZE :: 64 * math.BYTES
-PAGE_SIZE :: 4 * math.KIBI_BYTES
-HUGE_PAGE_SIZE :: 2 * math.MEBI_BYTES
+CACHE_LINE_SIZE_EXPONENT :: 6
+PAGE_SIZE_EXPONENT :: 12
+HUGE_PAGE_SIZE_EXPONENT :: 21
 thread_id_to_context := map[int]runtime.Context{}
 
 emptyContext :: os.emptyContext
@@ -26,24 +26,6 @@ make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	return context
 }
 
-makeBig :: proc($T: typeid/[]$V, count: int) -> T {
-	total_size := size_of(T) * count
-	if (total_size <= int(MAX_SLAB_SIZE)) {
-		return make(T, count)
-	} else {
-		data := page_alloc_aligned(math.Size(total_size))
-		t_data: [^]V = raw_data(data)
-		return t_data[:count]
-	}
-}
-freeBig :: proc($T: typeid/[]$V, ptr: T) {
-	total_size := size_of(T) * count
-	if (total_size <= MAX_SLAB_SIZE) {
-		return free(ptr)
-	} else {
-		page_free(ptr)
-	}
-}
 @(private)
 _make_fake_dynamic_array :: proc($V: typeid, array: ^[dynamic]V, buffer: []V) {
 	raw_array: ^runtime.Raw_Dynamic_Array = (^runtime.Raw_Dynamic_Array)(array)

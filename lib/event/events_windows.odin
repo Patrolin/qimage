@@ -24,10 +24,7 @@ updateOsEventsInfo :: proc() {
 	current_window := os_events_info.current_window
 	current_window.monitor_rect = os.win_getMonitorRect(current_window.handle)
 	current_window.window_rect = os.win_getWindowRect(current_window.handle)
-	current_window.client_rect = os.win_getClientRect(
-		current_window.handle,
-		current_window.window_rect,
-	)
+	current_window.client_rect = os.win_getClientRect(current_window.handle, current_window.window_rect)
 	if os_events_info.resized_window {
 		append(&os_events, WindowResizeEvent{})
 	}
@@ -72,10 +69,7 @@ messageHandler :: proc "stdcall" (
 	case win.WM_MOVE:
 		os_events_info.moved_window = true
 	case win.WM_MOUSEMOVE:
-		append(
-			&os_events,
-			MouseMoveEvent{client_pos = {i32(os.LOIWORD(lParam)), i32(os.HIIWORD(lParam))}},
-		)
+		append(&os_events, MouseMoveEvent{client_pos = {i32(os.LOIWORD(lParam)), i32(os.HIIWORD(lParam))}})
 	case win.WM_INPUT:
 		//fmt.printfln("WM_INPUT")
 		if os_events_info.moved_window || os_events_info.resized_window {return}
@@ -85,13 +79,7 @@ messageHandler :: proc "stdcall" (
 		}
 		raw_input: win.RAWINPUT
 		raw_input_size := u32(size_of(raw_input))
-		win.GetRawInputData(
-			win.HRAWINPUT(lParam),
-			win.RID_INPUT,
-			&raw_input,
-			&raw_input_size,
-			size_of(win.RAWINPUTHEADER),
-		)
+		win.GetRawInputData(win.HRAWINPUT(lParam), win.RID_INPUT, &raw_input, &raw_input_size, size_of(win.RAWINPUTHEADER))
 		// TODO: send mouse pos relative to window, or send window rect?
 		//monitorInfo, windowPlacement := win.getWindowAndMonitorInfo(window.handle)
 		//monitorRect := monitorInfo.rcMonitor
@@ -133,14 +121,7 @@ messageHandler :: proc "stdcall" (
 			scan_code = os.MAKEWORD(scan_code, 0xE0) // e.g. Windows key
 		}
 		text_buffer: [10]win.WCHAR // NOTE: windows can theoretically return ligatures with up to 255 WCHARs
-		text_len := win.ToUnicode(
-			key_code,
-			scan_code,
-			&_keyboard_state[0],
-			&text_buffer[0],
-			len(text_buffer),
-			0x4,
-		)
+		text_len := win.ToUnicode(key_code, scan_code, &_keyboard_state[0], &text_buffer[0], len(text_buffer), 0x4)
 		text := os.win_wstringToString(text_buffer[:max(text_len, 0)])
 		append(
 			&os_events,

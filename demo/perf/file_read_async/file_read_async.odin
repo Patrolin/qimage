@@ -3,13 +3,13 @@ package main
 
 import "../utils"
 import "../utils/ioringapi"
+import "base:runtime"
 import "core:fmt"
 import vmem "core:mem/virtual"
 import "core:strings"
 import win "core:sys/windows"
-import "core:time"
 import "core:thread"
-import "base:runtime"
+import "core:time"
 
 FILE_COUNT :: 1 + utils.SMALL_TEST_FILE_COUNT
 main :: proc() {
@@ -17,12 +17,7 @@ main :: proc() {
 	win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	arena: vmem.Arena
 	ARENA_SIZE :: 2 * 1024 * 1024 * 1024
-	arena_buffer_ptr := win.VirtualAlloc(
-		nil,
-		ARENA_SIZE,
-		win.MEM_RESERVE | win.MEM_COMMIT,
-		win.PAGE_READWRITE,
-	)
+	arena_buffer_ptr := win.VirtualAlloc(nil, ARENA_SIZE, win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE)
 	assert(arena_buffer_ptr != nil)
 	arena_buffer := (cast([^]u8)arena_buffer_ptr)[:ARENA_SIZE]
 	assert(arena_buffer != nil)
@@ -44,14 +39,10 @@ main :: proc() {
 	// open files
 	file_handles: [FILE_COUNT]win.HANDLE
 	file_infos: [FILE_COUNT]FileInfo
-	file_handles[0] = open_file_for_reading(
-		win.utf8_to_wstring(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH)),
-	)
+	file_handles[0] = open_file_for_reading(win.utf8_to_wstring(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH)))
 	file_infos[0] = FileInfo{0, 1024 * 1024 * 1024}
 	for i in 1 ..< FILE_COUNT {
-		file_path := win.utf8_to_wstring(
-			utils.sbprint_file_path("%v/small_file_%v.txt", utils.TEST_FILE_PATH, i - 1),
-		)
+		file_path := win.utf8_to_wstring(utils.sbprint_file_path("%v/small_file_%v.txt", utils.TEST_FILE_PATH, i - 1))
 		file_handles[i] = open_file_for_reading(file_path)
 		file_infos[i] = FileInfo{u32(i), 4096}
 	}
@@ -81,15 +72,7 @@ FileInfo :: struct {
 	size: i64,
 }
 open_file_for_reading :: proc(file_path: [^]u16) -> (handle: win.HANDLE) {
-	handle = win.CreateFileW(
-		file_path,
-		win.GENERIC_READ,
-		win.FILE_SHARE_READ,
-		nil,
-		win.OPEN_EXISTING,
-		win.FILE_ATTRIBUTE_NORMAL,
-		nil,
-	)
+	handle = win.CreateFileW(file_path, win.GENERIC_READ, win.FILE_SHARE_READ, nil, win.OPEN_EXISTING, win.FILE_ATTRIBUTE_NORMAL, nil)
 	fmt.assertf(win.GetLastError() == 0, "Failed to open file: %v", file_path)
 	return
 }
@@ -100,13 +83,13 @@ read_files_asynchronously :: proc(
 	buffer_infos: []ioringapi.IORING_BUFFER_INFO,
 ) {
 	ThreadData :: struct {
-		allocator: runtime.Allocator,
-		log: ^utils.TimingLog,
-		ioring: ioringapi.HIORING,
+		allocator:  runtime.Allocator,
+		log:        ^utils.TimingLog,
+		ioring:     ioringapi.HIORING,
 		file_infos: []FileInfo,
 	}
 	thread_data := ThreadData{context.allocator, log, ioring, file_infos}
-	thread_proc :: proc (raw_data: rawptr) {
+	thread_proc :: proc(raw_data: rawptr) {
 		thread_data := (^ThreadData)(raw_data)
 		context.allocator = thread_data.allocator
 		context.temp_allocator = thread_data.allocator
@@ -114,14 +97,8 @@ read_files_asynchronously :: proc(
 			user_data := (^u32)(uintptr(file.id))
 			error := ioringapi.BuildIoRingReadFile(
 				thread_data.ioring,
-				ioringapi.IORING_HANDLE_REF {
-					Kind = .IORING_REF_REGISTERED,
-					HandleUnion = file.id,
-				},
-				ioringapi.IORING_BUFFER_REF {
-					Kind = .IORING_REF_REGISTERED,
-					BufferUnion = ioringapi.IORING_REGISTERED_BUFFER{file.id, 0},
-				},
+				ioringapi.IORING_HANDLE_REF{Kind = .IORING_REF_REGISTERED, HandleUnion = file.id},
+				ioringapi.IORING_BUFFER_REF{Kind = .IORING_REF_REGISTERED, BufferUnion = ioringapi.IORING_REGISTERED_BUFFER{file.id, 0}},
 				u64(file.size),
 				0,
 				user_data,

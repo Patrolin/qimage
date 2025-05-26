@@ -23,15 +23,18 @@ any_allocator_proc :: proc(
 ) {
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		//data, err = alloc_page(math.Size(size)), nil
+		data, err = nil, .Mode_Not_Implemented
+	//data, err = alloc_page(math.Size(size)), nil
 	case .Free:
-		//free_error := page_free(old_ptr)
-		//data, err = nil, free_error ? .Invalid_Argument : .None
+		data, err = nil, .Mode_Not_Implemented
+	//free_error := page_free(old_ptr)
+	//data, err = nil, free_error ? .Invalid_Argument : .None
 	case .Resize, .Resize_Non_Zeroed:
-		//data = alloc_page(math.Size(size))
-		mem.copy(&data[0], old_ptr, min(size, old_size))
-		//free_error := page_free(old_ptr)
-		//err = free_error ? .Invalid_Argument : .None
+		data, err = nil, .Mode_Not_Implemented
+	//data = alloc_page(math.Size(size))
+	//mem.copy(&data[0], old_ptr, min(size, old_size))
+	//free_error := page_free(old_ptr)
+	//err = free_error ? .Invalid_Argument : .None
 	case .Query_Features:
 		set := (^mem.Allocator_Mode_Set)(old_ptr)
 		if set != nil {

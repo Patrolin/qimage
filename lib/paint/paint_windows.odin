@@ -40,7 +40,7 @@ resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	new_data_size := int(width) * int(height) * 4
 	if new_data_size != 0 {
 		// NOTE: size is 0 when window is minimized
-		new_data_buffer := alloc.page_alloc_aligned(math.Size(new_data_size))
+		new_data_buffer := alloc.page_alloc(math.Size(new_data_size))
 		frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)] // NOTE: width and height should never be zero
 	}
 	frameBuffer.width = width
@@ -60,20 +60,12 @@ copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {
 	}
 }
 packRGBA_v4 :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.f32x4) {
-	bgra :=
-		((u32(rgba.b) & 0xff << 0) |
-			(u32(rgba.g) & 0xff << 8) |
-			(u32(rgba.r) & 0xff << 16) |
-			(u32(rgba.a) & 0xff << 24))
+	bgra := ((u32(rgba.b) & 0xff << 0) | (u32(rgba.g) & 0xff << 8) | (u32(rgba.r) & 0xff << 16) | (u32(rgba.a) & 0xff << 24))
 	stride := int(frameBuffer.width)
 	frameBuffer.data[y * stride + x] = bgra
 }
 packRGBA_v4i :: proc(frameBuffer: FrameBuffer, x, y: int, rgba: math.i32x4) {
-	bgra :=
-		((u32(rgba.b) & 0xff << 0) |
-			(u32(rgba.g) & 0xff << 8) |
-			(u32(rgba.r) & 0xff << 16) |
-			(u32(rgba.a) & 0xff << 24))
+	bgra := ((u32(rgba.b) & 0xff << 0) | (u32(rgba.g) & 0xff << 8) | (u32(rgba.r) & 0xff << 16) | (u32(rgba.a) & 0xff << 24))
 	stride := int(frameBuffer.width)
 	frameBuffer.data[y * stride + x] = bgra
 }
@@ -84,12 +76,7 @@ packRGBA :: proc {
 unpackRGBA :: proc(frameBuffer: FrameBuffer, x, y: int) -> math.f32x4 {
 	stride := int(frameBuffer.width)
 	bgra := frameBuffer.data[y * stride + x]
-	return math.f32x4 {
-		f32((bgra >> 16) & 0xff),
-		f32((bgra >> 8) & 0xff),
-		f32((bgra >> 0) & 0xff),
-		f32((bgra >> 24) & 0xff),
-	}
+	return math.f32x4{f32((bgra >> 16) & 0xff), f32((bgra >> 8) & 0xff), f32((bgra >> 0) & 0xff), f32((bgra >> 24) & 0xff)}
 }
 
 copyFrameBufferToWindow :: proc(frameBuffer: FrameBuffer, window: event.Window) {

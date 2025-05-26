@@ -21,7 +21,7 @@ pool_allocator :: proc(slot_size: u16) -> PoolAllocator {
 	return PoolAllocator{nil, nil, slot_size}
 }
 pool_get_header :: proc(ptr: rawptr) -> ^PoolChunkHeader {
-	return (^PoolChunkHeader)(uintptr(ptr) & uintptr(math.highMask(PAGE_SIZE)))
+	return (^PoolChunkHeader)(uintptr(ptr) & uintptr(math.high_mask(uint(PAGE_SIZE_EXPONENT))))
 }
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]u8) {
 	chunk_header: ^PoolChunkHeader
@@ -42,7 +42,7 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]u8) {
 			pool.next_empty_slot = nil
 		}
 	} else {
-		new_page := page_alloc(PAGE_SIZE)
+		new_page := page_alloc(1 << PAGE_SIZE_EXPONENT)
 		new = ([^]u8)(&new_page[pool.slot_size]) // NOTE: new_page[0] holds the PoolChunkHeader
 		pool.next_empty_slot = &new_page[pool.slot_size]
 		chunk_header = pool_get_header(new)

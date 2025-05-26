@@ -49,5 +49,7 @@ KeyboardEvent :: struct {
 	repeat_count:        u32,
 	is_dead_char:        b32,
 }
-WindowResizeEvent :: struct {}
-WindowCloseEvent :: struct {}
+WindowResizeEvent :: struct {
+}
+WindowCloseEvent :: struct {
+}

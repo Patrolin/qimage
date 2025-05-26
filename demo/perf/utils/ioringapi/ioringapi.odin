@@ -57,7 +57,7 @@ IORING_CQE :: struct {
 }
 IORING_BUFFER_INFO :: struct {
 	address: win.PVOID,
-	Length: win.UINT32,
+	Length:  win.UINT32,
 }
 
 foreign import ioringapi "system:onecore.lib"

@@ -5,33 +5,13 @@ import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
 
-check_was_allocated :: proc(
-	t: ^testing.T,
-	ptr: ^int,
-	name: string,
-	value: int,
-	loc := #caller_location,
-) {
+check_was_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int, loc := #caller_location) {
 	testing.expectf(t, ptr != nil, "Failed was_allocated, %v: %v", name, ptr, loc = loc)
 	ptr^ = value
 	testing.expect(t, ptr^ == value, "Failed was_allocated", loc = loc)
 }
-check_still_allocated :: proc(
-	t: ^testing.T,
-	ptr: ^int,
-	name: string,
-	value: int,
-	loc := #caller_location,
-) {
-	testing.expectf(
-		t,
-		ptr != nil && ptr^ == value,
-		"Failed still_allocated, %v: %v at %v",
-		name,
-		ptr^,
-		ptr,
-		loc = loc,
-	)
+check_still_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int, loc := #caller_location) {
+	testing.expectf(t, ptr != nil && ptr^ == value, "Failed still_allocated, %v: %v at %v", name, ptr^, ptr, loc = loc)
 }
 
 @(test)
@@ -58,13 +38,8 @@ tests_pageAlloc :: proc(t: ^testing.T) {
 	data = page_alloc_aligned(64 * math.KIBI_BYTES)
 	testing.expectf(t, data != nil, "Failed to page_alloc_aligned 64 kiB, data: %v", data)
 	data_ptr := &data[0]
-	low_bits := uintptr(data_ptr) & uintptr(math.lowMask(64 * math.KIBI_BYTES))
-	testing.expectf(
-		t,
-		low_bits == 0,
-		"Failed to page_alloc_aligned 64 kiB, low_bits: %v",
-		low_bits,
-	)
+	low_bits := uintptr(data_ptr) & uintptr(math.low_mask(uint(16)))
+	testing.expectf(t, low_bits == 0, "Failed to page_alloc_aligned 64 kiB, low_bits: %v", low_bits)
 }
 
 @(test)

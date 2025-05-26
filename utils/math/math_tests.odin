@@ -22,47 +22,19 @@ test_count_leading_zeros :: proc(t: ^testing.T) {
 @(test)
 math_log2_floor :: proc(t: ^testing.T) {
 	context = test.get_context(t)
-	test_cases := []test.Case(uint, uint) {
-		{0, 0},
-		{1, 0},
-		{2, 1},
-		{3, 1},
-		{4, 2},
-		{7, 2},
-		{4096, 12},
-	}
+	test_cases := []test.Case(uint, uint){{0, 0}, {1, 0}, {2, 1}, {3, 1}, {4, 2}, {7, 2}, {4096, 12}}
 	for test_case in test_cases {
 		using test_case
-		test.expect(
-			log2_floor(key) == expected,
-			"log2_floor(%v): %v, expected: %v",
-			key,
-			log2_floor(key),
-			expected,
-		)
+		test.expect(log2_floor(key) == expected, "log2_floor(%v): %v, expected: %v", key, log2_floor(key), expected)
 	}
 	test.free_context()
 }
 @(test)
 test_log2_ceil :: proc(t: ^testing.T) {
 	context = test.get_context(t)
-	for test_case in ([]test.Case(u64, u64) {
-			{0, 0},
-			{1, 0},
-			{2, 1},
-			{3, 2},
-			{4, 2},
-			{7, 3},
-			{4096, 12},
-		}) {
+	for test_case in ([]test.Case(u64, u64){{0, 0}, {1, 0}, {2, 1}, {3, 2}, {4, 2}, {7, 3}, {4096, 12}}) {
 		using test_case
-		test.expect(
-			log2_ceil(key) == expected,
-			"log2_ceil(%v): %v, expected: %v",
-			key,
-			log2_ceil(key),
-			expected,
-		)
+		test.expect(log2_ceil(key) == expected, "log2_ceil(%v): %v, expected: %v", key, log2_ceil(key), expected)
 	}
 	test.free_context()
 }

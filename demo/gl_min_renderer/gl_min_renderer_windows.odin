@@ -13,23 +13,21 @@ isRunning := false
 
 main :: proc() {
 	os.initInfo()
-	context = alloc.defaultContext()
+	//context = alloc.defaultContext(0) // TODO: use when allocator is implement
 	thread.initThreads()
 	event.initEvents({onPaint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)
 	timing: struct {
-		t, prev_t, max_ddt: f64,
-		frame:              int,
+		t, prev_t, max_dt: time.Duration,
+		frame:             int,
 	}
 	timing.t = time.time()
 	timing.prev_t = timing.t
 	for isRunning = true; isRunning; {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
-		if (timing.frame > 30) {
-			timing.max_ddt = max(timing.max_ddt, abs(time.millis(dt) - 16.6666666666666666666))
-		}
+		if (timing.frame > 30) {timing.max_dt = max(timing.max_dt, abs(dt))}
 		event.getAllEvents()
 		for os_event in event.os_events {
 			#partial switch event in os_event {
@@ -43,11 +41,11 @@ main :: proc() {
 		updateAndRender()
 		render_t := time.time()
 		fmt.printf(
-			"dt: %v ms, max_ddt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
-			time.millis(dt),
-			timing.max_ddt,
-			time.millis(msg_t - timing.t),
-			time.millis(render_t - msg_t),
+			"dt: %v ms, max_dt: %v ms, frame_msg_time: %v ms, frame_render_time: %v ms\n",
+			time.as(dt, time.MILLISECOND),
+			time.as(timing.max_dt, time.MILLISECOND),
+			time.as(msg_t - timing.t, time.MILLISECOND),
+			time.as(render_t - msg_t, time.MILLISECOND),
 		)
 		timing.prev_t = timing.t
 		timing.t = event.doVsyncBadly()

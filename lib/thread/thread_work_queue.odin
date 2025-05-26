@@ -34,11 +34,7 @@ initThreads :: proc() -> []ThreadInfo {
 	intrinsics.atomic_store(&thread_utils.thread_count, thread_count)
 	for i in 1 ..= thread_count {
 		thread_infos[i - 1] = ThreadInfo {
-			thread_id = thread_utils._createThread(
-				64 * math.KIBI_BYTES,
-				threadProc,
-				&thread_infos[i - 1],
-			),
+			thread_id = thread_utils._createThread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
 			index     = u32(i),
 		}
 	}
@@ -72,11 +68,7 @@ launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 		for i := 0; i < len(queue.items); i += 1 {
 			slot_index := start_index + i * slot_step
 			item := &queue.items[slot_index]
-			prev_state := intrinsics.atomic_compare_exchange_weak(
-				&item.state,
-				WorkItemState.Empty,
-				WorkItemState.Writing,
-			)
+			prev_state := intrinsics.atomic_compare_exchange_weak(&item.state, WorkItemState.Empty, WorkItemState.Writing)
 			if prev_state == WorkItemState.Empty {
 				item^ = work
 				intrinsics.atomic_store(&item.state, WorkItemState.Written)
@@ -93,11 +85,7 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	for i := 0; i < len(queue.items); i += 1 {
 		slot_index := start_index + i * slot_step
 		item := &queue.items[slot_index & (len(queue.items) - 1)]
-		prev_state := intrinsics.atomic_compare_exchange_weak(
-			&item.state,
-			WorkItemState.Written,
-			WorkItemState.Reading,
-		)
+		prev_state := intrinsics.atomic_compare_exchange_weak(&item.state, WorkItemState.Written, WorkItemState.Reading)
 		if prev_state == WorkItemState.Written {
 			work := item^
 			intrinsics.atomic_store(&item.state, WorkItemState.Empty)

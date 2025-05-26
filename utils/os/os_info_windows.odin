@@ -47,10 +47,5 @@ initInfo :: proc "contextless" () {
 	// window_border
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
-	info.window_border = {
-		-window_border.left,
-		-window_border.top,
-		window_border.right,
-		window_border.bottom,
-	}
+	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
 }

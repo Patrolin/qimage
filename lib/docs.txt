@@ -21,7 +21,6 @@ TODO: out of date:
     ctz :: proc(x: $T) -> T
     count_ones :: proc(x: $T) -> T
     count_zeros :: proc(x: $T) -> T
-    lowMask :: #force_inline proc "contextless" (power_of_two: $T) -> T
     getBit :: #force_inline proc "contextless" (x, bit_index: $T) -> T
     setBit :: proc(x, bit_index, bit_value: $T) -> T
     ilog2Ceil :: proc(x: $T) -> T
@@ -59,7 +58,6 @@ TODO: out of date:
   /alloc
     pageAlloc :: proc(size: math.Size) -> []u8
     pageFree :: proc(ptr: rawptr)
-    makeBig :: proc($T: typeid/[]$V, count: int) -> T
     partitionAlloc :: proc(partition: ^Partition, chunk_size: math.Size) -> []u8
     partitionAlloc :: proc(partition: ^Partition, fraction: f64) -> []u8
     slabAllocator :: proc() -> mem.Allocator

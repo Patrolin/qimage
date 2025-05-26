@@ -10,16 +10,9 @@ import win "core:sys/windows"
 default_window_class_name: win.wstring
 @(private)
 initWindow :: proc() {
-	default_window_class_name = os.win_stringToWstring(
-		"lib_window_default",
-		allocator = context.allocator,
-	)
+	default_window_class_name = os.win_stringToWstring("lib_window_default", allocator = context.allocator)
 	registerWindowClass(
-		{
-			style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC,
-			lpfnWndProc = messageHandler,
-			lpszClassName = default_window_class_name,
-		},
+		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler, lpszClassName = default_window_class_name},
 	)
 }
 @(private)
@@ -28,10 +21,7 @@ registerWindowClass :: proc(class: win.WNDCLASSEXW) {
 	if class.cbSize == 0 {
 		class.cbSize = size_of(win.WNDCLASSEXW)
 	}
-	assert(
-		class.lpszClassName != nil && class.lpszClassName[0] != 0,
-		"lpszClassName cannot be empty",
-	)
+	assert(class.lpszClassName != nil && class.lpszClassName[0] != 0, "lpszClassName cannot be empty")
 	if class.hCursor == nil {
 		class.hCursor = win.LoadCursorA(nil, win.IDC_ARROW)
 	}
@@ -50,11 +40,7 @@ Window :: struct {
 	handle:               win.HWND,
 	dc:                   win.HDC,
 }
-openWindow :: proc(
-	title: string,
-	client_size: math.i32x2,
-	window_pos: math.i32x2 = {-1, -1},
-) -> ^Window {
+openWindow :: proc(title: string, client_size: math.i32x2, window_pos: math.i32x2 = {-1, -1}) -> ^Window {
 	assert(os_events_info.current_window == nil, "We don't support multiple windows")
 	window := new(Window)
 	window.initial_client_ratio = {client_size.x, client_size.y}
@@ -101,27 +87,14 @@ openWindow :: proc(
 			hwndTarget  = window.handle,
 		},
 	}
-	assert(
-		bool(
-			win.RegisterRawInputDevices(
-				&raw_devices[0],
-				u32(len(raw_devices)),
-				size_of(win.RAWINPUTDEVICE),
-			),
-		),
-	)
+	assert(bool(win.RegisterRawInputDevices(&raw_devices[0], u32(len(raw_devices)), size_of(win.RAWINPUTDEVICE))))
 	return window
 }
 
 // utils
 // TODO: setCursor(...)
 // NOTE: toggleFullscreen() from Raymond Chen
-getWindowAndMonitorInfo :: proc(
-	window: win.HWND,
-) -> (
-	monitorInfo: win.MONITORINFO,
-	windowPlacement: win.WINDOWPLACEMENT,
-) {
+getWindowAndMonitorInfo :: proc(window: win.HWND) -> (monitorInfo: win.MONITORINFO, windowPlacement: win.WINDOWPLACEMENT) {
 	monitor := win.MonitorFromWindow(window, win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST)
 	monitorInfo.cbSize = size_of(win.MONITORINFO)
 	assert(bool(win.GetWindowPlacement(window, &windowPlacement)))
@@ -135,15 +108,7 @@ toggleFullscreen :: proc(window: win.HWND) {
 		monitorInfo, windowPlacement := getWindowAndMonitorInfo(window)
 		win.SetWindowLongW(window, win.GWL_STYLE, i32(windowStyle & ~win.WS_OVERLAPPEDWINDOW))
 		using monitorInfo.rcMonitor
-		win.SetWindowPos(
-			window,
-			nil,
-			left,
-			top,
-			right - left,
-			bottom - top,
-			win.SWP_NOOWNERZORDER | win.SWP_FRAMECHANGED,
-		)
+		win.SetWindowPos(window, nil, left, top, right - left, bottom - top, win.SWP_NOOWNERZORDER | win.SWP_FRAMECHANGED)
 		prevWindowPlacement = windowPlacement
 	} else {
 		win.SetWindowLongW(window, win.GWL_STYLE, i32(windowStyle | win.WS_OVERLAPPEDWINDOW))

@@ -50,10 +50,7 @@ log_timef :: #force_inline proc(log: ^TimingLog, format: string, args: ..any) {
 	thread.getMutex(&log.mutex)
 	sb := strings.builder_make()
 	fmt.sbprintf(&sb, format, ..args)
-	append(
-		&log.items,
-		TimingLogItem{strings.to_string(sb), intrinsics.read_cycle_counter(), .Time},
-	)
+	append(&log.items, TimingLogItem{strings.to_string(sb), intrinsics.read_cycle_counter(), .Time})
 	thread.releaseMutex(&log.mutex)
 }
 

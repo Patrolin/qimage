@@ -26,12 +26,7 @@ updateAndRender :: proc() {
 				R := image.data[y * stride + x * pitch]
 				G := image.data[y * stride + x * pitch + 1]
 				B := image.data[y * stride + x * pitch + 2]
-				paint.packRGBA(
-					frame_buffer,
-					int(last_mouse_pos.x) + x,
-					int(last_mouse_pos.y) + y,
-					math.i32x4{i32(R), i32(G), i32(B), 0xff},
-				)
+				paint.packRGBA(frame_buffer, int(last_mouse_pos.x) + x, int(last_mouse_pos.y) + y, math.i32x4{i32(R), i32(G), i32(B), 0xff})
 			}
 		}
 	}

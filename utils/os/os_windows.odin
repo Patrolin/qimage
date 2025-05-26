@@ -15,18 +15,12 @@ HIBYTE :: #force_inline proc "contextless" (v: $T) -> u8 {return u8(v >> 8)}
 // wstring
 win_stringToWstring :: win.utf8_to_wstring
 @(private)
-win_wstringToString_nullTerminated :: proc(
-	str: [^]win.WCHAR,
-	allocator := context.temp_allocator,
-) -> string {
+win_wstringToString_nullTerminated :: proc(str: [^]win.WCHAR, allocator := context.temp_allocator) -> string {
 	res, err := win.wstring_to_utf8(str, -1, allocator = allocator)
 	return res
 }
 @(private)
-win_wstringToString_slice :: proc(
-	str: []win.WCHAR,
-	allocator := context.temp_allocator,
-) -> string {
+win_wstringToString_slice :: proc(str: []win.WCHAR, allocator := context.temp_allocator) -> string {
 	res, err := win.wstring_to_utf8(raw_data(str), len(str), allocator = allocator)
 	return res
 }
@@ -66,30 +60,20 @@ foreign user32 {
 }
 // rects
 win_getMonitorRect :: proc(window_handle: win.HWND) -> math.RelativeRect {
-	monitor := win.MonitorFromWindow(
-		window_handle,
-		win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST,
-	)
+	monitor := win.MonitorFromWindow(window_handle, win.Monitor_From_Flags.MONITOR_DEFAULTTONEAREST)
 	info := win.MONITORINFO {
 		cbSize = size_of(win.MONITORINFO),
 	}
 	assert(bool(win.GetMonitorInfoW(monitor, &info)))
 	monitor_rect := info.rcMonitor
-	return math.relativeRect(
-		{monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom},
-	)
+	return math.relativeRect({monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom})
 }
 win_getWindowRect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 	window_rect: win.RECT
 	win.GetWindowRect(window_handle, &window_rect)
-	return math.relativeRect(
-		{window_rect.left, window_rect.top, window_rect.right, window_rect.bottom},
-	)
+	return math.relativeRect({window_rect.left, window_rect.top, window_rect.right, window_rect.bottom})
 }
-win_getClientRect :: proc(
-	window_handle: win.HWND,
-	window_rect: math.RelativeRect,
-) -> math.RelativeRect {
+win_getClientRect :: proc(window_handle: win.HWND, window_rect: math.RelativeRect) -> math.RelativeRect {
 	win_client_rect: win.RECT
 	win.GetClientRect(window_handle, &win_client_rect)
 	window_border := info.window_border

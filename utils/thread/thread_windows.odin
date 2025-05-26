@@ -6,21 +6,8 @@ OsThreadId :: struct #packed {
 	handle: win.HANDLE,
 	id:     u32,
 }
-_createThread :: proc(
-	stack_size: math.Size,
-	thread_proc: proc "stdcall" (data: rawptr) -> u32,
-	param: rawptr,
-) -> (
-	thread_id: OsThreadId,
-) {
-	thread_id.handle = win.CreateThread(
-		nil,
-		uint(stack_size),
-		thread_proc,
-		param,
-		0,
-		&thread_id.id,
-	)
+_createThread :: proc(stack_size: math.Size, thread_proc: proc "stdcall" (data: rawptr) -> u32, param: rawptr) -> (thread_id: OsThreadId) {
+	thread_id.handle = win.CreateThread(nil, uint(stack_size), thread_proc, param, 0, &thread_id.id)
 	return
 }
 
