@@ -15,13 +15,18 @@ GIBI_BYTES :: 1024 * MEBI_BYTES
 ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]u8 {
 	return &([^]u8)(ptr)[offset]
 }
+align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: uint) -> uint {
+	assert(is_power_of_two(align_power_of_two))
+	remainder := uint(uintptr(ptr)) & (align_power_of_two - 1)
+	return remainder == 0 ? 0 : align_power_of_two - remainder
+}
 
 // bits
 count_leading_zeros :: bits.count_leading_zeros
 count_trailing_zeros :: bits.count_trailing_zeros
 count_ones :: bits.count_ones
 count_zeros :: bits.count_zeros
-is_power_of_two :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_integer(T) {
+is_power_of_two :: #force_inline proc "contextless" (x: $T) -> bool where intrinsics.type_is_integer(T) {
 	return count_ones(x) == 1
 }
 
