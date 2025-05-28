@@ -118,14 +118,12 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr) {
 	// merge with next_block
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + block_header.size))
 	if !next_block.is_used {
-		fmt.printfln(" merge with next: %v", next_block)
 		_half_fit_unlink_free_block(next_block)
 		block_header.size += size_of(HalfFitBlockHeader) + next_block.size
 	}
 	// merge with prev_block
 	prev_block := block_header.prev_block
 	if prev_block != nil && !prev_block.is_used {
-		fmt.printfln(" merge with prev")
 		_half_fit_unlink_free_block(prev_block)
 		prev_block.size += size_of(HalfFitBlockHeader) + block_header.size
 		block_header = prev_block
