@@ -50,22 +50,22 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	buffer := make([]u8, 1000)
 	half_fit: HalfFitAllocator
 	half_fit_allocator_init(&half_fit, buffer)
-	half_fit_print_free_list("1.", &half_fit, buffer)
+	half_fit_print_blocks("1.", &half_fit, buffer)
 
 	x := (^int)(half_fit_alloc(&half_fit, size_of(int)))
 	check_was_allocated(t, x, "x", 13)
-	half_fit_print_free_list("2.", &half_fit, buffer)
+	half_fit_print_blocks("2.", &half_fit, buffer)
 
 	y := (^int)(half_fit_alloc(&half_fit, size_of(int)))
 	check_was_allocated(t, y, "y", 7)
 	check_still_allocated(t, x, "x", 13)
-	half_fit_print_free_list("3.", &half_fit, buffer)
+	half_fit_print_blocks("3.", &half_fit, buffer)
 
 	half_fit_free(&half_fit, x)
-	half_fit_print_free_list("4.", &half_fit, buffer)
+	half_fit_print_blocks("4.", &half_fit, buffer)
 
 	half_fit_free(&half_fit, y)
-	half_fit_print_free_list("5.", &half_fit, buffer)
+	half_fit_print_blocks("5.", &half_fit, buffer)
 	free(&buffer[0])
 
 	fmt.printfln("\n\n", flush = true)

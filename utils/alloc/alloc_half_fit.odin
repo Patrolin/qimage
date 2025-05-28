@@ -37,7 +37,7 @@ _half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (li
 	available_mask := half_fit.available_bitfield & u32(size_mask)
 	return math.log2_floor(available_mask), available_mask == 0
 }
-half_fit_print_free_list :: proc(prefix: string, half_fit: ^HalfFitAllocator, buffer: []u8) {
+half_fit_print_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, buffer: []u8) {
 	fmt.println(prefix)
 	offset := 0
 	for offset < len(buffer) {
