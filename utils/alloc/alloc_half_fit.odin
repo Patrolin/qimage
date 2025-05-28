@@ -91,7 +91,7 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> rawptr {
 	list_index, none_available := _half_fit_data_index(half_fit, data_size)
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
-	if (^HalfFitFreeList)(block_header) == free_list {
+	if intrinsics.expect((^HalfFitFreeList)(block_header) == free_list, false) {
 		return nil // OutOfMemory
 	}
 	ptr := math.ptr_add(block_header, size_of(HalfFitBlockHeader))
@@ -117,13 +117,13 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr) {
 	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
 	// merge with next_block
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + block_header.size))
-	if !next_block.is_used {
+	if intrinsics.expect(!next_block.is_used, true) {
 		_half_fit_unlink_free_block(next_block)
 		block_header.size += size_of(HalfFitBlockHeader) + next_block.size
 	}
 	// merge with prev_block
 	prev_block := block_header.prev_block
-	if prev_block != nil && !prev_block.is_used {
+	if intrinsics.expect(prev_block != nil && !prev_block.is_used, true) {
 		_half_fit_unlink_free_block(prev_block)
 		prev_block.size += size_of(HalfFitBlockHeader) + block_header.size
 		block_header = prev_block
