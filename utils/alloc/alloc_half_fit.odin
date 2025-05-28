@@ -18,8 +18,7 @@ HalfFitFreeList :: struct {
 }
 HalfFitBlockHeader :: struct {
 	// used by free blocks
-	next_free:  ^HalfFitFreeList,
-	prev_free:  ^HalfFitFreeList,
+	using _:    HalfFitFreeList,
 	// shared
 	prev_block: ^HalfFitBlockHeader,
 	size:       int,
