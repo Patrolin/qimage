@@ -17,8 +17,10 @@ HalfFitFreeList :: struct {
 	prev_free: ^HalfFitFreeList,
 }
 HalfFitBlockHeader :: struct {
+	// used by free blocks
 	next_free:  ^HalfFitFreeList,
 	prev_free:  ^HalfFitFreeList,
+	// shared
 	prev_block: ^HalfFitBlockHeader,
 	size:       int,
 	is_used:    bool,
@@ -35,15 +37,17 @@ _half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (li
 	available_mask := half_fit.available_bitfield & u32(size_mask)
 	return math.log2_floor(available_mask), available_mask == 0
 }
-half_fit_print_free_list :: proc(prefix: string, half_fit: ^HalfFitAllocator, list_index: int) {
-	free_list := &half_fit.free_lists[list_index]
-	fmt.printfln("%vfree_lists[%v] at %p:", prefix, list_index, free_list)
-	for curr := free_list.next_free; curr != free_list; curr = curr.next_free {
-		fmt.printfln("- %v at %p", (^HalfFitBlockHeader)(curr), curr)
+half_fit_print_free_list :: proc(prefix: string, half_fit: ^HalfFitAllocator, buffer: []u8) {
+	fmt.println(prefix)
+	offset := 0
+	for offset < len(buffer) {
+		block_header := (^HalfFitBlockHeader)(&buffer[offset])
+		fmt.printfln("- %p: %v", block_header, block_header)
+		offset += size_of(HalfFitBlockHeader) + block_header.size
 	}
 }
 
-half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, block: []u8) {
+half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 	half_fit.available_bitfield = 0
 	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
 		free_list := &half_fit.free_lists[i]
@@ -52,13 +56,12 @@ half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, block: []u8) {
 			prev_free = free_list,
 		}
 	}
-	_half_fit_create_new_block(half_fit, nil, block)
+	_half_fit_create_new_block(half_fit, nil, buffer)
 }
 _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^HalfFitBlockHeader, block: []u8) {
 	block_header := (^HalfFitBlockHeader)(&block[0])
 	block_header.prev_block = prev_block
 	block_header.size = len(block) - size_of(HalfFitBlockHeader)
-	block_header.is_used = false
 	_half_fit_mark_block_as_free(half_fit, block_header)
 }
 _half_fit_mark_block_as_free :: proc(half_fit: ^HalfFitAllocator, block_header: ^HalfFitBlockHeader) {
@@ -71,17 +74,15 @@ _half_fit_mark_block_as_free :: proc(half_fit: ^HalfFitAllocator, block_header: 
 	block_header.next_free = next_free
 	next_free.prev_free = (^HalfFitFreeList)(block_header)
 
+	block_header.is_used = false
+
 	half_fit.available_bitfield |= 1 << u32(list_index)
 }
-_half_fit_merge_with_next_block :: proc(block_header: ^HalfFitBlockHeader, next_block: ^HalfFitBlockHeader) {
-	fmt.printfln("_half_fit_merge_with_next_block.1:\n  %v\n  %v", block_header, next_block)
-	prev_free := next_block.prev_free
-	next_free := next_block.next_free
+_half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
+	prev_free := block_header.prev_free
+	next_free := block_header.next_free
 	prev_free.next_free = next_free
 	next_free.prev_free = prev_free
-
-	block_header.size += size_of(HalfFitBlockHeader) + next_block.size
-	fmt.printfln("_half_fit_merge_with_next_block.2:\n  %v", block_header)
 }
 
 half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> rawptr {
@@ -97,7 +98,7 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> rawptr {
 	// mark first free block as used
 	block_header.is_used = true
 	next_free := block_header.next_free
-	free_list.next_free = next_free // TODO: these make multiple people point to free_list, have nil instead?
+	free_list.next_free = next_free
 	next_free.prev_free = free_list
 	available_bitfield_mask := next_free == free_list ? ~(i32(1) << list_index) : ~i32(0)
 	half_fit.available_bitfield &= u32(available_bitfield_mask)
@@ -117,14 +118,21 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr) {
 	// merge with next_block
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + block_header.size))
 	if !next_block.is_used {
-		_half_fit_merge_with_next_block(block_header, next_block)
+		fmt.printfln(" merge with next: %v", next_block)
+		_half_fit_unlink_free_block(next_block)
+		block_header.size += size_of(HalfFitBlockHeader) + next_block.size
 	}
 	// merge with prev_block
 	prev_block := block_header.prev_block
 	if prev_block != nil && !prev_block.is_used {
-		_half_fit_merge_with_next_block(prev_block, block_header)
+		fmt.printfln(" merge with prev")
+		_half_fit_unlink_free_block(prev_block)
+		prev_block.size += size_of(HalfFitBlockHeader) + block_header.size
 		block_header = prev_block
 	}
+	// fix up next_block.prev_block
+	next_block = (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + block_header.size))
+	next_block.prev_block = block_header // TODO: this will crash on the last block..
 	// mark block as free
 	_half_fit_mark_block_as_free(half_fit, block_header)
 }
