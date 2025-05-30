@@ -16,12 +16,17 @@ defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	}
 	return thread_id_to_context[user_index]
 }
+global_allocator: HalfFitAllocator
 @(private)
 make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	context = emptyContext()
-	// TODO: reimplement when anyAllocator() is implemented
-	//context.allocator = 0 in thread_id_to_context ? thread_id_to_context[0].allocator : slabAllocator()
-	//context.temp_allocator = slabAllocator()
+	allocator: runtime.Allocator
+	if (!(0 in thread_id_to_context)) {
+		buffer := page_alloc(1 << 11) // TODO: grow on page fault
+		half_fit_allocator_init(&global_allocator, buffer)
+	}
+	//context.allocator = global_allocator
+	//context.temp_allocator = arenaAllocator()
 	thread_id_to_context[user_index] = context
 	return context
 }
