@@ -16,6 +16,8 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 	NOTE: Not strictly necessary, but this way each allocation is on a different cache line.
 	Therefore different threads won't be fighting over the same cache line.
 	-> dynamic arrays should then start at 32B and grow to `2*len + 32B`
+	   this kind of implies we should be using buckets of size `(1 << n) - 32` instead?
+	Alternatively, we could have some kind of scheme to decide whether the HeaderBlock is before or after?
 */
 #assert(HALF_FIT_MIN_BLOCK_SIZE == 64)
 
