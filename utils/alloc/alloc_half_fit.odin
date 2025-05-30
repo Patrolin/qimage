@@ -11,6 +11,14 @@ HALF_FIT_FREE_LIST_COUNT :: 31
 HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: 5
 HALF_FIT_MIN_BLOCK_DATA_SIZE :: 1 << HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
+
+/*
+	NOTE: Not strictly necessary, but this way each allocation is on a different cache line.
+	Therefore different threads won't be fighting over the same cache line.
+	-> dynamic arrays should then start at 32B and grow to `2*len + 32B`
+*/
+#assert(HALF_FIT_MIN_BLOCK_SIZE == 64)
+
 HalfFitAllocator :: struct {
 	// TODO: mutex
 	available_bitfield: u32,
