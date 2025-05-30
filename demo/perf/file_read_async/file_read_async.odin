@@ -19,7 +19,7 @@ main :: proc() {
 	ARENA_SIZE :: 2 * 1024 * 1024 * 1024
 	arena_buffer_ptr := win.VirtualAlloc(nil, ARENA_SIZE, win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE)
 	assert(arena_buffer_ptr != nil)
-	arena_buffer := (cast([^]u8)arena_buffer_ptr)[:ARENA_SIZE]
+	arena_buffer := (cast([^]byte)arena_buffer_ptr)[:ARENA_SIZE]
 	assert(arena_buffer != nil)
 	arena_err := vmem.arena_init_buffer(&arena, arena_buffer)
 	ensure(arena_err == nil)
@@ -124,7 +124,7 @@ read_files_asynchronously :: proc(
 				}
 			}
 		}
-		buffer := ([^]u8)(buffer_infos[completions].address)
+		buffer := ([^]byte)(buffer_infos[completions].address)
 		fmt.assertf(string(buffer[:8]) == "aaaabbb\n", "%v", buffer[:8])
 		start_file_id := file_infos[0].id
 		fmt.assertf(int(result.user_data) == int(start_file_id) + completions, "Out of order reads!")

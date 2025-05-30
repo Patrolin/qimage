@@ -41,11 +41,11 @@ foreign onecorelib {
 	VirtualAlloc2 :: proc(Process: win.HANDLE, BaseAddress: win.PVOID, Size: win.SIZE_T, AllocationType: win.ULONG, PageProtection: win.ULONG, ExtendedParameters: ^MEM_EXTENDED_PARAMETER, ParameterCount: win.ULONG) -> win.LPVOID ---
 }
 // TODO: don't use page_alloc() or page_alloc_aligned()
-page_alloc :: proc(size: math.Size) -> []u8 {
+page_alloc :: proc(size: math.Size) -> []byte {
 	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE, nil, 0)
-	return (cast([^]u8)ptr)[:size]
+	return (cast([^]byte)ptr)[:size]
 }
-page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []u8 {
+page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []byte {
 	address_requirement := MEM_ADDRESS_REQUIREMENTS {
 		Alignment = win.SIZE_T(size),
 	}
@@ -62,7 +62,7 @@ page_alloc_aligned :: proc(size: math.Size, loc := #caller_location) -> []u8 {
 		u32(len(alloc_params)),
 	)
 	assert(ptr != nil, "Failed to allocate", loc = loc)
-	return (cast([^]u8)ptr)[:size]
+	return (cast([^]byte)ptr)[:size]
 }
 page_free :: proc(ptr: rawptr) -> b32 {
 	return b32(win.VirtualFree(ptr, 0, win.MEM_RELEASE))
@@ -92,11 +92,6 @@ pageAllocatorProc :: proc(
 		mem.copy(&data[0], old_ptr, min(size, old_size))
 		free_error := page_free(old_ptr)
 		err = free_error ? .Invalid_Argument : .None
-	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_ptr)
-		if set != nil {
-			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Resize_Non_Zeroed, .Query_Features}
-		}
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

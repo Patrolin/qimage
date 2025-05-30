@@ -12,8 +12,8 @@ KIBI_BYTES :: 1024 * BYTES
 MEBI_BYTES :: 1024 * KIBI_BYTES
 GIBI_BYTES :: 1024 * MEBI_BYTES
 
-ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]u8 {
-	return &([^]u8)(ptr)[offset]
+ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]byte {
+	return &([^]byte)(ptr)[offset]
 }
 align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: uint) -> uint {
 	assert(is_power_of_two(align_power_of_two))
@@ -30,11 +30,11 @@ is_power_of_two :: #force_inline proc "contextless" (x: $T) -> bool where intrin
 	return count_ones(x) == 1
 }
 
-low_mask :: #force_inline proc "contextless" (bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return (1 << bit_index) - 1
+low_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+	return power_of_two - 1
 }
-high_mask :: #force_inline proc "contextless" (bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
-	return ~((1 << bit_index) - 1)
+high_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
+	return ~(power_of_two - 1)
 }
 
 get_bit :: #force_inline proc "contextless" (x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {

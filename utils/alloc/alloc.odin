@@ -4,9 +4,9 @@ import "../os"
 import "base:runtime"
 import "core:fmt"
 
-CACHE_LINE_SIZE_EXPONENT :: 6
-PAGE_SIZE_EXPONENT :: 12
-HUGE_PAGE_SIZE_EXPONENT :: 21
+CACHE_LINE_SIZE :: 1 << 6
+PAGE_SIZE :: 1 << 12
+HUGE_PAGE_SIZE :: 1 << 21
 thread_id_to_context := map[int]runtime.Context{}
 
 emptyContext :: os.emptyContext
@@ -20,12 +20,11 @@ global_allocator: HalfFitAllocator
 @(private)
 make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	context = emptyContext()
-	allocator: runtime.Allocator
 	if (!(0 in thread_id_to_context)) {
-		buffer := page_alloc(1 << 11) // TODO: grow on page fault
+		buffer := page_alloc(1 << 16) // TODO: grow on page fault
 		half_fit_allocator_init(&global_allocator, buffer)
 	}
-	//context.allocator = global_allocator
+	context.allocator = runtime.Allocator{half_fit_allocator_proc, &global_allocator}
 	//context.temp_allocator = arenaAllocator()
 	thread_id_to_context[user_index] = context
 	return context

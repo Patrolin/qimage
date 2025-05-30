@@ -35,11 +35,6 @@ any_allocator_proc :: proc(
 	//mem.copy(&data[0], old_ptr, min(size, old_size))
 	//free_error := page_free(old_ptr)
 	//err = free_error ? .Invalid_Argument : .None
-	case .Query_Features:
-		set := (^mem.Allocator_Mode_Set)(old_ptr)
-		if set != nil {
-			set^ = {.Alloc, .Alloc_Non_Zeroed, .Free, .Resize, .Resize_Non_Zeroed, .Query_Features}
-		}
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

@@ -16,7 +16,7 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slo
 
 main :: proc() {
 	os.initInfo()
-	//context = alloc.defaultContext(0) // TODO: use when allocator is implement
+	context = alloc.defaultContext(0)
 	thread.initThreads()
 	event.initEvents({onPaint})
 	window := event.openWindow("cpu_min_renderer", {1200, 800})

@@ -1,18 +1,22 @@
 package lib_alloc
 import "../math"
 import "base:intrinsics"
+import "base:runtime"
 import "core:fmt"
+import "core:mem"
 import "core:testing"
 
 // utils
-HALF_FIT_FREE_LIST_COUNT :: 32
-HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + 8
-HALF_FIT_INDEX_OFFSET :: 3
+HALF_FIT_FREE_LIST_COUNT :: 31
+HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: 5
+HALF_FIT_MIN_BLOCK_DATA_SIZE :: 1 << HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
+HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
 HalfFitAllocator :: struct {
 	// TODO: mutex
 	available_bitfield: u32,
 	free_lists:         [HALF_FIT_FREE_LIST_COUNT]HalfFitFreeList,
 }
+#assert(size_of(HalfFitAllocator) <= 16 * 32)
 HalfFitFreeList :: struct {
 	next_free: ^HalfFitFreeList,
 	prev_free: ^HalfFitFreeList,
@@ -29,10 +33,10 @@ HalfFitBlockHeader :: struct {
 #assert(align_of(HalfFitBlockHeader) == 8)
 
 _half_fit_block_index :: proc(size: uint) -> int {
-	return max(0, int(math.log2_floor(size)) - HALF_FIT_INDEX_OFFSET)
+	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 }
 _half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (list_index: u32, none_available: bool) {
-	size_index := max(0, int(math.log2_ceil(data_size)) - HALF_FIT_INDEX_OFFSET)
+	size_index := int(math.log2_ceil(data_size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 	size_mask := ~i32(0) >> u32(size_index)
 	available_mask := half_fit.available_bitfield & u32(size_mask)
 	return math.log2_floor(available_mask), available_mask == 0
@@ -56,6 +60,7 @@ half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 			prev_free = free_list,
 		}
 	}
+	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
 	_half_fit_create_new_block(half_fit, nil, true, buffer)
 }
 _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^HalfFitBlockHeader, is_last: bool, block: []u8) {
@@ -67,6 +72,7 @@ _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^Hal
 _half_fit_mark_block_as_free :: proc(half_fit: ^HalfFitAllocator, block_header: ^HalfFitBlockHeader) {
 	size := (block_header.size_and_flags << 2) >> 2
 	list_index := _half_fit_block_index(size)
+	fmt.printfln("size: %v, list_index: %v", size, list_index)
 	free_list := &half_fit.free_lists[list_index]
 
 	next_free := free_list.next_free
@@ -86,17 +92,18 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	next_free.prev_free = prev_free
 }
 
-half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> rawptr {
-	// TODO: alignment
-	// get `free_list.next_free`
+half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (ptr: rawptr, err: runtime.Allocator_Error) {
+	// get next free block
+	data_size := max(HALF_FIT_MIN_BLOCK_DATA_SIZE, data_size)
 	list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
 	if intrinsics.expect((^HalfFitFreeList)(block_header) == free_list, false) {
-		return nil // OutOfMemory
+		err = .Out_Of_Memory
+		return
 	}
-	ptr := math.ptr_add(block_header, size_of(HalfFitBlockHeader))
-	// mark first free block as used.1
+	ptr = math.ptr_add(block_header, size_of(HalfFitBlockHeader))
+	// mark first free block as used
 	next_free := block_header.next_free
 	free_list.next_free = next_free
 	next_free.prev_free = free_list
@@ -109,10 +116,10 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> rawptr {
 		block_header.size_and_flags = transmute(uint)data_size
 		_half_fit_create_new_block(half_fit, block_header, is_last, next_block[:transmute(int)prev_size - data_size])
 	}
-	// mark first free block as used.2
+	// mark first free block as used.cont
 	block_header.size_and_flags |= uint(1) << 63
 	// return
-	return ptr
+	return
 }
 half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #caller_location) {
 	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
@@ -198,4 +205,31 @@ _half_fit_print_free_lists :: proc(half_fit: ^HalfFitAllocator) {
 			fmt.printfln("  %v: %v", i, free_list)
 		}
 	}
+}
+
+// odin wrapper
+half_fit_allocator_proc :: proc(
+	allocator_data: rawptr,
+	mode: mem.Allocator_Mode,
+	size, _alignment: int,
+	old_ptr: rawptr,
+	old_size: int,
+	loc := #caller_location,
+) -> (
+	data: []byte,
+	err: mem.Allocator_Error,
+) {
+	fmt.printfln("alignment: %v", _alignment)
+	half_fit := (^HalfFitAllocator)(allocator_data)
+	#partial switch mode {
+	case .Alloc, .Alloc_Non_Zeroed:
+		ptr: rawptr
+		ptr, err = half_fit_alloc(half_fit, size)
+		data = ([^]byte)(ptr)[:size]
+	case .Free:
+		half_fit_free(half_fit, old_ptr, loc)
+	case:
+		data, err = nil, .Mode_Not_Implemented
+	}
+	return
 }

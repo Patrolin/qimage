@@ -31,6 +31,7 @@ tests_defaultContext :: proc(t: ^testing.T) {
 	check_was_allocated(t, y, "y", 7)
 	free(y, allocator = temp_allocator_to_check)
 }
+
 @(test)
 tests_pageAlloc :: proc(t: ^testing.T) {
 	os.initInfo()
@@ -39,7 +40,7 @@ tests_pageAlloc :: proc(t: ^testing.T) {
 	data = page_alloc_aligned(64 * math.KIBI_BYTES)
 	testing.expectf(t, data != nil, "Failed to page_alloc_aligned 64 kiB, data: %v", data)
 	data_ptr := &data[0]
-	low_bits := uintptr(data_ptr) & uintptr(math.low_mask(uint(16)))
+	low_bits := uintptr(data_ptr) & math.low_mask(uintptr(16))
 	testing.expectf(t, low_bits == 0, "Failed to page_alloc_aligned 64 kiB, low_bits: %v", low_bits)
 }
 
@@ -54,11 +55,13 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	is_used, is_last, size := _half_fit_split_size_and_flags(a)
 	half_fit_check_blocks(t, "1.", &half_fit, buffer)
 
-	x := (^int)(half_fit_alloc(&half_fit, size_of(int)))
+	x_raw, _ := half_fit_alloc(&half_fit, size_of(int))
+	x := (^int)(x_raw)
 	check_was_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "2.", &half_fit, buffer)
 
-	y := (^int)(half_fit_alloc(&half_fit, size_of(int)))
+	y_raw, _ := half_fit_alloc(&half_fit, size_of(int))
+	y := (^int)(y_raw)
 	check_was_allocated(t, y, "y", 7)
 	check_still_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "3.", &half_fit, buffer)
