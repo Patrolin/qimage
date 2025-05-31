@@ -13,11 +13,20 @@ HALF_FIT_MIN_BLOCK_DATA_SIZE :: 1 << HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
 
 /*
-	NOTE: Not strictly necessary, but this way each allocation is on a different cache line.
-	Therefore different threads won't be fighting over the same cache line.
-	-> dynamic arrays should then start at 32B and grow to `2*len + 32B`
-	   this kind of implies we should be using buckets of size `(1 << n) - 32` instead?
-	Alternatively, we could have some kind of scheme to decide whether the HeaderBlock is before or after?
+	NOTE: Not strictly necessary, but:
+		- This way each allocation is on a different cache line.
+			Therefore different threads won't be fighting over the same cache line.
+		- AVX-512 also needs data to be aligned to 64B.
+	Therefore:
+		- TODO: We will use buckets with `data_size = (32 << list_index) - 32`.
+		- If the alignment is >32, we will allocate `size + alignment` bytes and align forward.
+			(Alternatively, you could make the header a footer instead and just always be aligned to 64B.
+			However this requires you to know the size of the allocation when you call free()
+			to find the footer, which may not be practical, especially in other languages like C/C++.
+			The footer could then also be on a different page from the start of the data, which seems bad..)
+		- Dynamic arrays will start at a size of 32B and grow to `(size_in_bytes << 1) + 32`.
+			(This will happen automatically, since we round up the allocation size.)
+
 */
 #assert(HALF_FIT_MIN_BLOCK_SIZE == 64)
 
@@ -82,7 +91,6 @@ _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^Hal
 _half_fit_mark_block_as_free :: proc(half_fit: ^HalfFitAllocator, block_header: ^HalfFitBlockHeader) {
 	size := (block_header.size_and_flags << 2) >> 2
 	list_index := _half_fit_block_index(size)
-	fmt.printfln("size: %v, list_index: %v", size, list_index)
 	free_list := &half_fit.free_lists[list_index]
 
 	next_free := free_list.next_free
@@ -138,10 +146,13 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	assert(is_used, "Cannot free an unused block", loc = loc)
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + transmute(int)size))
 	next_is_used, next_is_last, next_size := _half_fit_split_size_and_flags(next_block.size_and_flags)
+	DEBUG :: false
 	if intrinsics.expect(!next_is_used, true) {
-		fmt.printfln("merge with next_block:")
-		_half_fit_print_block(block_header)
-		_half_fit_print_block(next_block)
+		if DEBUG {
+			fmt.printfln("merge with next_block:")
+			_half_fit_print_block(block_header)
+			_half_fit_print_block(next_block)
+		}
 		_half_fit_unlink_free_block(next_block)
 		is_last = next_is_last
 		size += size_of(HalfFitBlockHeader) + next_size
@@ -150,11 +161,13 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	// merge with prev_block
 	prev_block := block_header.prev_block
 	if intrinsics.expect(prev_block != nil, true) {
-		fmt.printfln("merge with prev_block:")
-		_half_fit_print_block(prev_block)
-		_half_fit_print_block(block_header)
 		prev_is_used, prev_is_last, prev_size := _half_fit_split_size_and_flags(prev_block.size_and_flags)
 		if intrinsics.expect(!prev_is_used, true) {
+			if DEBUG {
+				fmt.printfln("merge with prev_block:")
+				_half_fit_print_block(prev_block)
+				_half_fit_print_block(block_header)
+			}
 			_half_fit_unlink_free_block(prev_block)
 			size += size_of(HalfFitBlockHeader) + prev_size
 			prev_block.size_and_flags = _half_fit_merge_size_and_flags(false, is_last, size)
@@ -221,7 +234,7 @@ _half_fit_print_free_lists :: proc(half_fit: ^HalfFitAllocator) {
 half_fit_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
-	size, _alignment: int,
+	size, alignment: int,
 	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
@@ -229,15 +242,18 @@ half_fit_allocator_proc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
-	fmt.printfln("alignment: %v", _alignment)
 	half_fit := (^HalfFitAllocator)(allocator_data)
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		ptr: rawptr
-		ptr, err = half_fit_alloc(half_fit, size)
+		ptr, err = half_fit_alloc(half_fit, size + (alignment > 32 ? alignment : 0))
+		alignment_offset := alignment > 32 ? math.align_forward(ptr, alignment) : 0
+		ptr = math.ptr_add(ptr, alignment_offset)
 		data = ([^]byte)(ptr)[:size]
 	case .Free:
-		half_fit_free(half_fit, old_ptr, loc)
+		fmt.printfln("old_ptr: %X", old_ptr)
+		// TODO: we have no idea where the BlockHeader is right now, probably align it forward? (and align back when we merge etc.)
+		half_fit_free(half_fit, rawptr(old_ptr), loc)
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

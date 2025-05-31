@@ -1,6 +1,7 @@
 package lib_alloc
 import "../math"
 import "../os"
+import "../test"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
@@ -17,19 +18,27 @@ check_still_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int
 
 @(test)
 tests_defaultContext :: proc(t: ^testing.T) {
-	os.initInfo()
+	test.start_test(t)
+
 	debug_temp_allocator := context.temp_allocator
+	os.initInfo()
 	context = defaultContext(0)
 	temp_allocator_to_check := context.temp_allocator
 	context.temp_allocator = debug_temp_allocator
+
 	// allocator
 	x := new(int)
 	check_was_allocated(t, x, "x", 13)
 	free(x)
+
 	// temp_allocator
-	y := new(int, allocator = temp_allocator_to_check)
-	check_was_allocated(t, y, "y", 7)
-	free(y, allocator = temp_allocator_to_check)
+	if temp_allocator_to_check.procedure != nil {
+		y := new(int, allocator = temp_allocator_to_check)
+		check_was_allocated(t, y, "y", 7)
+		free(y, allocator = temp_allocator_to_check)
+	}
+
+	test.end_test()
 }
 
 @(test)
@@ -46,7 +55,7 @@ tests_pageAlloc :: proc(t: ^testing.T) {
 
 @(test)
 tests_half_fit_allocator :: proc(t: ^testing.T) {
-	time.sleep(100 * time.Millisecond)
+	test.start_test(t)
 
 	buffer := make([]u8, 1000)
 	half_fit: HalfFitAllocator
@@ -73,7 +82,7 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	half_fit_check_blocks(t, "5.", &half_fit, buffer)
 	free(&buffer[0])
 
-	fmt.printfln("\n\n", flush = true)
+	test.end_test()
 }
 
 @(test)
