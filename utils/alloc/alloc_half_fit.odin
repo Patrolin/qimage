@@ -8,28 +8,18 @@ import "core:testing"
 
 // utils
 HALF_FIT_FREE_LIST_COUNT :: 31
-HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: 5
+HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: 6
 HALF_FIT_MIN_BLOCK_DATA_SIZE :: 1 << HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
 
 /*
-	NOTE: Not strictly necessary, but:
-		- This way each allocation is on a different cache line.
-			Therefore different threads won't be fighting over the same cache line.
-		- AVX-512 also needs data to be aligned to 64B.
-	Therefore:
-		- TODO: We will use buckets with `data_size = (32 << list_index) - 32`.
-		- If the alignment is 64B, we will allocate `size + 32` bytes and align forward.
-			(Alternatively, you could make the header a footer instead and just always be aligned to 64B.
-			However this requires you to know the size of the allocation when you call free()
-			to find the footer, which may not be practical, especially in other languages like C/C++
-			(and even in Odin, when someone frees a rawptr, like the builtin map type).
-			The footer could then also be on a different page from the start of the data, which seems bad..)
-		- Dynamic arrays will start at a size of 32B and grow to `(size_in_bytes << 1) + 32`.
-			(This will happen automatically, since we round up the allocation size.)
-
+	We will use `header_size = 64B` and `data_size = 64 << list_index`.
+		- This way each allocation is on a different cache line. Therefore different threads
+			won't be fighting over the same cache line (at least on machines with 64B cache lines).
+		- AVX-512 needs data to be aligned to 64B.
 */
-#assert(HALF_FIT_MIN_BLOCK_SIZE == 64)
+#assert(HALF_FIT_MIN_BLOCK_SIZE == 128)
+#assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == 64)
 
 HalfFitAllocator :: struct {
 	// TODO: mutex
@@ -48,19 +38,24 @@ HalfFitBlockHeader :: struct {
 	prev_block:     ^HalfFitBlockHeader,
 	/* {is_used: u1, is_last: u1, size: u62} */
 	size_and_flags: uint `fmt:"#X"`,
+	padding:        [4]u64, // TODO: put flags here instead of merged in size
 }
-#assert(size_of(HalfFitBlockHeader) == 32)
+#assert(size_of(HalfFitBlockHeader) == 64)
 #assert(align_of(HalfFitBlockHeader) == 8)
 
 _half_fit_block_index :: proc(size: uint) -> int {
 	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 }
-_half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (list_index: u32, none_available: bool) {
-	size_index := int(math.log2_ceil(data_size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
-	size_mask := ~i32(0) >> u32(size_index)
-	available_mask := half_fit.available_bitfield & u32(size_mask)
-	return math.log2_floor(available_mask), available_mask == 0
+_half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (size_index: uint, list_index: uint, none_available: bool) {
+	raw_size_index := math.log2_ceil(data_size) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
+	size_index = raw_size_index < 64 ? raw_size_index : 0
+	size_mask := ~uint(0) >> uint(size_index)
+	available_mask := uint(half_fit.available_bitfield) & size_mask
+	list_index = math.log2_floor(available_mask)
+	none_available = available_mask == 0
+	return
 }
+
 _half_fit_split_size_and_flags :: proc(size_and_flags: uint) -> (is_used: bool, is_last: bool, size: uint) {
 	is_used = (size_and_flags >> 63) != 0
 	is_last = ((size_and_flags >> 62) & 1) != 0
@@ -113,8 +108,8 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 
 half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (ptr: rawptr, err: runtime.Allocator_Error) {
 	// get next free block
-	data_size := max(HALF_FIT_MIN_BLOCK_DATA_SIZE, data_size)
-	list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
+	size_index, list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
+	data_size := HALF_FIT_MIN_BLOCK_DATA_SIZE << size_index
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
 	if intrinsics.expect((^HalfFitFreeList)(block_header) == free_list, false) {
@@ -235,7 +230,7 @@ _half_fit_print_free_lists :: proc(half_fit: ^HalfFitAllocator) {
 half_fit_allocator_proc :: proc(
 	allocator_data: rawptr,
 	mode: mem.Allocator_Mode,
-	size, alignment: int,
+	size, _alignment: int,
 	old_ptr: rawptr,
 	old_size: int,
 	loc := #caller_location,
@@ -248,19 +243,14 @@ half_fit_allocator_proc :: proc(
 	case .Alloc, .Alloc_Non_Zeroed:
 		// TODO: move alignment code into half_fit functions
 		ptr: rawptr
-		alignment_offset := alignment > 32 ? 32 : 0
-		ptr, err = half_fit_alloc(half_fit, size + alignment_offset)
-		ptr = math.ptr_add(ptr, alignment_offset)
-		assert((uintptr(ptr) & 63) == 0)
-		fmt.printfln("\nalloc:  %#X, size: %v, alignment: %v", ptr, size, alignment)
+		ptr, err = half_fit_alloc(half_fit, size)
+		fmt.printfln("\nalloc:  %#X, size: %v, alignment: %v, loc: %v", ptr, size, _alignment, loc)
+		assert((uintptr(ptr) & 63) == 0, loc = loc)
 		data = ([^]byte)(ptr)[:size]
 	case .Free:
 		is_64B_alignment := (uintptr(old_ptr) >> 5) & 1 == 0
-		fmt.printfln("\nfree.1: %#X", old_ptr)
-		alignment_offset := alignment > 32 ? 32 : 0
-		old_ptr := math.ptr_add(old_ptr, -alignment_offset)
-		fmt.printfln("\nfree.2: %#X", old_ptr)
-		assert((uintptr(old_ptr) & 63) == uintptr(alignment_offset))
+		fmt.printfln("free:  %#X, loc: %v", old_ptr, loc)
+		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
 		half_fit_free(half_fit, rawptr(old_ptr), loc)
 	case .Resize, .Resize_Non_Zeroed:
 		assert(false, "Not implemented yet.", loc = loc)

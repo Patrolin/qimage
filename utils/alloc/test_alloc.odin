@@ -42,7 +42,7 @@ tests_defaultContext :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_pageAlloc :: proc(t: ^testing.T) {
+tests_page_alloc :: proc(t: ^testing.T) {
 	os.initInfo()
 	data := page_alloc(1 * math.BYTES)
 	testing.expectf(t, data != nil, "Failed to page_alloc 1 byte, data: %v", data)
@@ -58,14 +58,14 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	test.start_test(t)
 
 	// TODO: test half_fit_allocator_proc here
-	buffer := make([]u8, 1000)
+	buffer := page_alloc(PAGE_SIZE)
+	assert(uintptr(raw_data(buffer)) & uintptr(63) == 0)
 	half_fit: HalfFitAllocator
 	half_fit_allocator_init(&half_fit, buffer)
-	a := _half_fit_merge_size_and_flags(false, true, 10)
-	is_used, is_last, size := _half_fit_split_size_and_flags(a)
 	half_fit_check_blocks(t, "1.", &half_fit, buffer)
 
 	x_raw, _ := half_fit_alloc(&half_fit, size_of([2]int))
+	assert(uintptr(x_raw) & 63 == 0)
 	x := (^int)(x_raw)
 	check_was_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "2.", &half_fit, buffer)
@@ -82,7 +82,7 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 
 	half_fit_free(&half_fit, y)
 	half_fit_check_blocks(t, "5.", &half_fit, buffer)
-	free(&buffer[0])
+	page_free(raw_data(buffer))
 
 	test.end_test()
 }
