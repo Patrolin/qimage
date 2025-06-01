@@ -6,7 +6,7 @@ import "../../lib/file"
 import "../../lib/gl"
 import "../../lib/input"
 import "../../lib/paint"
-import "../../lib/thread"
+import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
@@ -23,7 +23,7 @@ image: file.Image
 main :: proc() {
 	os.initInfo()
 	context = alloc.defaultContext(0)
-	thread.initThreads()
+	threads.initThreads()
 	event.initEvents({onPaint})
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})

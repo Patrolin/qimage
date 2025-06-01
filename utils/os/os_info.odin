@@ -1,4 +1,4 @@
-package lib_os
+package os_utils
 import "../math"
 
 info: struct {

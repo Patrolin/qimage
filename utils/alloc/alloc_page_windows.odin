@@ -1,4 +1,4 @@
-package lib_alloc
+package alloc_utils
 import "../math"
 import "../os"
 import "core:fmt"

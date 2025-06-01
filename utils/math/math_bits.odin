@@ -1,4 +1,4 @@
-package lib_math
+package math_utils
 import "../test"
 import intrinsics "base:intrinsics"
 import "core:fmt"

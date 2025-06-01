@@ -1,4 +1,4 @@
-package lib_math
+package math_utils
 import "base:intrinsics"
 import coreMath "core:math"
 

@@ -1,4 +1,4 @@
-package lib_alloc
+package alloc_utils
 import "core:mem"
 
 AnyAllocator :: struct {

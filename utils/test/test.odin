@@ -1,4 +1,4 @@
-package lib_test
+package test_utils
 import "core:fmt"
 import "core:strings"
 import "core:testing"

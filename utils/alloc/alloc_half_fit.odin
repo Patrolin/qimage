@@ -1,5 +1,6 @@
-package lib_alloc
+package alloc_utils
 import "../math"
+import "../threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
@@ -22,7 +23,7 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 #assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == 64)
 
 HalfFitAllocator :: struct {
-	// !!!TODO: mutex
+	lock:               threads.Lock,
 	available_bitfield: u32,
 	free_lists:         [HALF_FIT_FREE_LIST_COUNT]HalfFitFreeList,
 }
@@ -107,6 +108,8 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 }
 
 half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (data: []byte, err: runtime.Allocator_Error) {
+	threads.get_lock(&half_fit.lock)
+	defer threads.release_lock(&half_fit.lock)
 	// get next free block
 	size_index, list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
 	data_size := HALF_FIT_MIN_BLOCK_DATA_SIZE << size_index
@@ -135,8 +138,10 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (data: []
 	return ptr[:data_size], nil
 }
 half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #caller_location) {
-	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
+	threads.get_lock(&half_fit.lock)
+	defer threads.release_lock(&half_fit.lock)
 	// merge with next_block
+	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
 	is_used, is_last, size := _half_fit_split_size_and_flags(block_header.size_and_flags)
 	assert(is_used, "Cannot free an unused block", loc = loc)
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + transmute(int)size))
@@ -187,11 +192,13 @@ half_fit_check_blocks :: proc(t: ^testing.T, prefix: string, half_fit: ^HalfFitA
 		block_header := (^HalfFitBlockHeader)(&buffer[offset])
 		_half_fit_print_block(block_header)
 		is_used, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
+		if data_size == 0 {break}
 		sum_of_block_sizes += size_of(HalfFitBlockHeader) + data_size
 		if is_last {break}
 		offset += size_of(HalfFitBlockHeader) + transmute(int)data_size
 	}
 	_half_fit_print_free_lists(half_fit)
+	fmt.printfln("  sum_of_block_sizes: %v, len(buffer): %v", sum_of_block_sizes, len(buffer))
 	fmt.print("\n")
 	testing.expectf(t, sum_of_block_sizes == len(buffer), "got: %v, expected: %v", sum_of_block_sizes, len(buffer), loc = loc)
 	return
@@ -247,24 +254,25 @@ half_fit_allocator_proc :: proc(
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		data, err = half_fit_alloc(half_fit, size)
+		ptr := raw_data(data)
 		if mode == .Alloc {
-			mem.zero_explicit(raw_data(data), len(data))
+			mem.zero_explicit(ptr, len(data))
 		}
-		assert((uintptr(raw_data(data)) & 63) == 0, loc = loc)
+		assert((uintptr(ptr) & 63) == 0, loc = loc)
 	case .Free:
 		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
 		half_fit_free(half_fit, rawptr(old_ptr), loc)
 	case .Resize, .Resize_Non_Zeroed:
-		// free
-		half_fit_free(half_fit, rawptr(old_ptr), loc)
 		// alloc
 		data, err = half_fit_alloc(half_fit, size)
 		ptr := raw_data(data)
+		// free // NOTE: free after alloc, so we can do a faster copy
+		half_fit_free(half_fit, old_ptr, loc)
 		// zero
 		if mode == .Resize {
 			align_backward := transmute(int)(math.align_backward(ptr, 64))
-			zero_start := math.ptr_add(raw_data(data), old_size - align_backward)
-			mem.zero_explicit(zero_start, size + align_backward)
+			zero_start := math.ptr_add(ptr, old_size - align_backward)
+			intrinsics.mem_zero_volatile(zero_start, size + align_backward)
 		}
 		// copy
 		intrinsics.mem_copy(ptr, old_ptr, old_size)

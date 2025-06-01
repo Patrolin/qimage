@@ -1,4 +1,4 @@
-package lib_math
+package math_utils
 // NOTE: we assume builtins min(), max() and abs() are fast
 import "base:intrinsics"
 import "core:math"

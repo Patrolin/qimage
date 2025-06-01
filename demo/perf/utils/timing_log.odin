@@ -1,5 +1,5 @@
 package perf_utils
-import "../../../utils/thread"
+import "../../../utils/threads"
 import "base:intrinsics"
 import "core:fmt"
 import "core:strings"
@@ -8,7 +8,7 @@ import "core:time"
 TimingLog :: struct {
 	start_time: i64,
 	items:      [dynamic]TimingLogItem,
-	mutex:      thread.Mutex,
+	lock:       threads.Lock,
 }
 TimingLogItem :: struct {
 	msg:  string,
@@ -42,16 +42,16 @@ logf :: #force_inline proc(log: ^TimingLog, format: string, args: ..any) {
 	append(&log.items, TimingLogItem{strings.to_string(sb), 0, .Log})
 }
 log_time :: #force_inline proc(log: ^TimingLog, msg: string) {
-	thread.getMutex(&log.mutex)
+	threads.get_lock(&log.lock)
 	append(&log.items, TimingLogItem{msg, intrinsics.read_cycle_counter(), .Time})
-	thread.releaseMutex(&log.mutex)
+	threads.release_lock(&log.lock)
 }
 log_timef :: #force_inline proc(log: ^TimingLog, format: string, args: ..any) {
-	thread.getMutex(&log.mutex)
+	threads.get_lock(&log.lock)
 	sb := strings.builder_make()
 	fmt.sbprintf(&sb, format, ..args)
 	append(&log.items, TimingLogItem{strings.to_string(sb), intrinsics.read_cycle_counter(), .Time})
-	thread.releaseMutex(&log.mutex)
+	threads.release_lock(&log.lock)
 }
 
 print_timing_log :: proc(log: TimingLog) {

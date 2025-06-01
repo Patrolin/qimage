@@ -1,5 +1,5 @@
 // odin test utils/math
-package lib_math
+package math_utils
 import "../test"
 import "base:intrinsics"
 import "core:fmt"

@@ -4,7 +4,7 @@ package main
 
 import "../../lib/event"
 import "../../lib/paint"
-import "../../lib/thread"
+import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
@@ -17,7 +17,7 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slo
 main :: proc() {
 	os.initInfo()
 	context = alloc.defaultContext(0)
-	thread.initThreads()
+	threads.initThreads()
 	event.initEvents({onPaint})
 	window := event.openWindow("cpu_min_renderer", {1200, 800})
 	paint.resizeFrameBuffer(&frame_buffer, i16(window.client_rect.width), i16(window.client_rect.height))

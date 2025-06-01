@@ -4,7 +4,7 @@ package main
 
 import "../../lib/event"
 import "../../lib/gl"
-import "../../lib/thread"
+import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/os"
 import "../../utils/time"
@@ -15,7 +15,7 @@ isRunning := false
 main :: proc() {
 	os.initInfo()
 	//context = alloc.defaultContext(0) // TODO: use when allocator is implement
-	thread.initThreads()
+	threads.initThreads()
 	event.initEvents({onPaint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)

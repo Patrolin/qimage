@@ -1,4 +1,4 @@
-package thread_utils
+package threads_utils
 import "../math"
 import win "core:sys/windows"
 

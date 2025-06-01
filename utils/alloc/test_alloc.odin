@@ -1,4 +1,4 @@
-package lib_alloc
+package alloc_utils
 import "../math"
 import "../os"
 import "../test"
@@ -88,12 +88,14 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	half_fit_check_blocks(t, "5.", &half_fit, buffer)
 
 	arr: [dynamic]int
-	half_fit_check_blocks(t, "1.1.", &half_fit, buffer)
-	for i in 0 ..< 50 {
-		append(&arr, i)
-	}
+	N :: 16
+	for i in 0 ..< N {append(&arr, i)}
 	fmt.printfln("arr: %v", arr)
-	half_fit_check_blocks(t, "1.2.", &half_fit, buffer)
+	half_fit_check_blocks(t, "6.", &half_fit, buffer)
+
+	for i in 0 ..< N {append(&arr, N + i)}
+	fmt.printfln("arr: %v", arr)
+	half_fit_check_blocks(t, "7.", &half_fit, buffer)
 
 	page_free(raw_data(buffer))
 

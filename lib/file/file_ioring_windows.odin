@@ -1,7 +1,7 @@
 package file_lib
 
 foreign import onecorelib "system:onecore.lib"
-import "../../utils/thread"
+import "../../utils/threads"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"
@@ -55,8 +55,8 @@ readFileAsync :: proc(path: string) {
 	)
 	fmt.assertf(error == 0, "Couldn't submit async read request, error: %v", error)
 	// launch thread to get result // TODO: reuse work queue threads?
-	intrinsics.atomic_add(&thread.pending_async_files, 1)
-	thread.launchThread()
+	intrinsics.atomic_add(&threads.pending_async_files, 1)
+	threads.launchThread()
 }
 
 IORING_VERSION :: enum i32 {
