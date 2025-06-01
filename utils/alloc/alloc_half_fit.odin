@@ -16,7 +16,7 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 	We will use `header_size = 64B` and `data_size = 64 << list_index`.
 		- This way each allocation is on a different cache line. Therefore different threads
 			won't be fighting over the same cache line (at least on machines with 64B cache lines).
-		- AVX-512 needs data to be aligned to 64B.
+		- Also, AVX-512 needs data to be aligned to 64B.
 */
 #assert(HALF_FIT_MIN_BLOCK_SIZE == 128)
 #assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == 64)
