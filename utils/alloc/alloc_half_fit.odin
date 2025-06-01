@@ -19,10 +19,11 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 		- AVX-512 also needs data to be aligned to 64B.
 	Therefore:
 		- TODO: We will use buckets with `data_size = (32 << list_index) - 32`.
-		- If the alignment is >32, we will allocate `size + alignment` bytes and align forward.
+		- If the alignment is 64B, we will allocate `size + 32` bytes and align forward.
 			(Alternatively, you could make the header a footer instead and just always be aligned to 64B.
 			However this requires you to know the size of the allocation when you call free()
-			to find the footer, which may not be practical, especially in other languages like C/C++.
+			to find the footer, which may not be practical, especially in other languages like C/C++
+			(and even in Odin, when someone frees a rawptr, like the builtin map type).
 			The footer could then also be on a different page from the start of the data, which seems bad..)
 		- Dynamic arrays will start at a size of 32B and grow to `(size_in_bytes << 1) + 32`.
 			(This will happen automatically, since we round up the allocation size.)
@@ -245,15 +246,25 @@ half_fit_allocator_proc :: proc(
 	half_fit := (^HalfFitAllocator)(allocator_data)
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
+		// TODO: move alignment code into half_fit functions
 		ptr: rawptr
-		ptr, err = half_fit_alloc(half_fit, size + (alignment > 32 ? alignment : 0))
-		alignment_offset := alignment > 32 ? math.align_forward(ptr, alignment) : 0
+		alignment_offset := alignment > 32 ? 32 : 0
+		ptr, err = half_fit_alloc(half_fit, size + alignment_offset)
 		ptr = math.ptr_add(ptr, alignment_offset)
+		assert((uintptr(ptr) & 63) == 0)
+		fmt.printfln("\nalloc:  %#X, size: %v, alignment: %v", ptr, size, alignment)
 		data = ([^]byte)(ptr)[:size]
 	case .Free:
-		fmt.printfln("old_ptr: %X", old_ptr)
-		// TODO: we have no idea where the BlockHeader is right now, probably align it forward? (and align back when we merge etc.)
+		is_64B_alignment := (uintptr(old_ptr) >> 5) & 1 == 0
+		fmt.printfln("\nfree.1: %#X", old_ptr)
+		alignment_offset := alignment > 32 ? 32 : 0
+		old_ptr := math.ptr_add(old_ptr, -alignment_offset)
+		fmt.printfln("\nfree.2: %#X", old_ptr)
+		assert((uintptr(old_ptr) & 63) == uintptr(alignment_offset))
 		half_fit_free(half_fit, rawptr(old_ptr), loc)
+	case .Resize, .Resize_Non_Zeroed:
+		assert(false, "Not implemented yet.", loc = loc)
+		data, err = nil, .Mode_Not_Implemented
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

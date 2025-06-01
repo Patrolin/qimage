@@ -57,6 +57,7 @@ tests_pageAlloc :: proc(t: ^testing.T) {
 tests_half_fit_allocator :: proc(t: ^testing.T) {
 	test.start_test(t)
 
+	// TODO: test half_fit_allocator_proc here
 	buffer := make([]u8, 1000)
 	half_fit: HalfFitAllocator
 	half_fit_allocator_init(&half_fit, buffer)
@@ -64,12 +65,13 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	is_used, is_last, size := _half_fit_split_size_and_flags(a)
 	half_fit_check_blocks(t, "1.", &half_fit, buffer)
 
-	x_raw, _ := half_fit_alloc(&half_fit, size_of(int))
+	x_raw, _ := half_fit_alloc(&half_fit, size_of([2]int))
 	x := (^int)(x_raw)
 	check_was_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "2.", &half_fit, buffer)
 
 	y_raw, _ := half_fit_alloc(&half_fit, size_of(int))
+	assert(uintptr(y_raw) & 63 == 0)
 	y := (^int)(y_raw)
 	check_was_allocated(t, y, "y", 7)
 	check_still_allocated(t, x, "x", 13)
