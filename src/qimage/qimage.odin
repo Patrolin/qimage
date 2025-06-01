@@ -14,7 +14,7 @@ updateAndRender :: proc() {
 			paint.packRGBA(frame_buffer, x, y, rgba)
 		}
 	}
-	// show an image at the cursor // TODO!: how do we offset to window top left?
+	// show an image at the cursor // !TODO: how do we offset to window top left?
 	pitch := 3
 	stride := pitch * int(image.width)
 	last_mouse_pos := input.lastMousePos()

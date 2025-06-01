@@ -5,7 +5,7 @@ import "core:os" // TODO: remove this
 import "core:strings"
 
 readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
-	// TODO?: write this is win api
+	// ?TODO: write this is win api
 	return os.read_entire_file(fileName, allocator = context.temp_allocator)
 }
 

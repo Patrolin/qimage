@@ -52,7 +52,7 @@ resize_slotArray :: proc(m: ^SlotArray($Key, $Value), new_capacity: u32) {
 		}
 	}
 	m.slots = new_slots
-	m.added_slots = new_added_slots // TODO?: futex
+	m.added_slots = new_added_slots // ?TODO: mutex
 	m.capacity = new_capacity
 	free(slots)
 }

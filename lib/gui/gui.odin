@@ -1,4 +1,4 @@
-// TODO!: move this into lib_events
+// !TODO: move this into lib_events
 package gui_lib
 import "../../utils/math"
 import "../file"
@@ -59,7 +59,7 @@ ImageNode :: struct {
 	image: ^file.Image, // 8 B
 }
 getTextSize :: proc(str: string) -> math.i32x2 {
-	return math.i32x2{50, 12} // TODO!: fonts?
+	return math.i32x2{50, 12} // !TODO: fonts?
 }
 
 placeRect :: proc(state: ^GuiState, size: math.i32x2) -> (rect: math.AbsoluteRect) {
@@ -83,9 +83,9 @@ wasClicked :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
 	return input.wentDownCount(input.mouse.LMB) > 0 && math.inBounds(input.mouse.clickPos, rect)
 }
 
-// TODO?: begin(row/column), end()
-// TODO!: margin(), indent()?
-// TODO!: wrap, ellipses, color, ...
+// ?TODO: begin(row/column), end()
+// !TODO: margin(), indent()?
+// !TODO: wrap, ellipses, color, ...
 addNode :: proc(state: ^GuiState, node: ^GuiNode) {
 	node.prev = state.nodes.next
 	state.nodes.next = node

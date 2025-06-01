@@ -60,7 +60,7 @@ renderImageBufferToWindow :: proc(window: event.Window) {
 	SwapBuffers(window.dc)
 }
 /*
-TODO!: compile .odin to gpu shaders
+?TODO: compile .odin to gpu shaders
 VSIn :: struct {
 	vertex_id: u32,
 	instance_id: u32,

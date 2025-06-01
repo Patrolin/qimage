@@ -50,5 +50,5 @@ loadBmp :: proc {
 	loadBmp_fromBuffer,
 }
 
-// TODO?: bypass default allocators
-// TODO?: LRU file cache (evictAsNecessary() on load) - hmh 132
+// ?TODO: bypass default allocators
+// ?TODO: LRU file cache (evictAsNecessary() on load) - hmh 132

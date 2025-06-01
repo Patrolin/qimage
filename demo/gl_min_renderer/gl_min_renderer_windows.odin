@@ -64,7 +64,7 @@ onPaint :: proc(window: event.Window) {
 	gl.renderImageBufferToWindow(window)
 }
 
-// TODO!: tell OpenGL we want sRGB - handmade hero 236-241
+// !TODO: tell OpenGL we want sRGB - handmade hero 236-241
 // NOTE: hmh 240: DisplayBitmapViaOpenGL() https://guide.handmadehero.org/code/day240/#1497
 // NOTE: enable vsync via wglSwapIntervalExt(1)
 // NOTE: are we able to disable vsync? https://guide.handmadehero.org/code/day549/#1043

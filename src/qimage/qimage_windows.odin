@@ -106,7 +106,7 @@ onPaint :: proc(window: event.Window) {
 
 // NOTE: WS_EX_LAYERED -> alpha channel
 // NOTE: perfmon = systrace for windows
-// TODO!: load windows screenshots
-// TODO!: allow cropping svgs
-// TODO?: 1D LUTs + 16x16x16 3D LUTs
-// TODO?: multithreading around windows events to get above 10000fps
+// !TODO: load windows screenshots
+// !TODO: allow cropping svgs
+// ?TODO: 1D LUTs + 16x16x16 3D LUTs
+// ?TODO: multithreading around windows events to get above 10000fps

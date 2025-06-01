@@ -149,7 +149,7 @@ class Cam16ViewingConditions {
     return sign(v) * (100 / this.F_l) * pow((27.13*abs_v) / (400 - abs_v), 1/0.42);
   }
   srgbToCam16(srgb) {
-    const [X, Y, Z] = [0, 0, 0] // TODO!: srgb to xyz
+    const [X, Y, Z] = [0, 0, 0] // !TODO: srgb to xyz
     return this.xyzToCam16({X, Y, Z});
   }
   xyzToCam16({X, Y, Z}) {
@@ -205,8 +205,8 @@ default_viewing_conditions = new Cam16ViewingConditions();
 console.log(default_viewing_conditions.xyzToCam16({X: 0, Y: 0, Z: 0})) // {J: 0, Q: 0, C: 0, M: 0, s: 0, h: 0}
 const z = default_viewing_conditions.xyzToCam16({X: WHITEPOINT_D65[0]/2, Y: WHITEPOINT_D65[1]/2, Z: WHITEPOINT_D65[2]/2})
 console.log(z)
-console.log(default_viewing_conditions.cam16ToXyz({J: z.J, C: z.C, h: z.h})); // TODO!: one of these is wrong...
-// TODO!: how does sRGB or w/e map to XYZ/CAM16?
+console.log(default_viewing_conditions.cam16ToXyz({J: z.J, C: z.C, h: z.h})); // !TODO: one of these is wrong...
+// !TODO: how does sRGB or w/e map to XYZ/CAM16?
 
 
 // 180,0,0 - 0,172,0 - 0,0,255
@@ -223,7 +223,7 @@ function getP(R, G, B) {
 function getPCorrection(R, G, B) {
   return sqrt(0.114) / sqrt(P_RED * R ** 2 + P_GREEN * G ** 2 + P_BLUE * B ** 2);
 }
-// TODO?: drawTriangle(canvasId, callback) {}
+// ?TODO: drawTriangle(canvasId, callback) {}
 function drawCircle(canvasId, callback) {
   const canvas = document.querySelector(canvasId);
   const context = canvas.getContext("2d");

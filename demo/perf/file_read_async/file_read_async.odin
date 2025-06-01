@@ -141,5 +141,5 @@ logIoRingInfo :: proc(log: ^utils.TimingLog, ioring: ioringapi.HIORING) {
 	utils.log_time(log, "GetIoRingInfo()")
 }
 
-// TODO!: check performance for many small files
-// TODO!: use this in lib
+// !TODO: check performance for many small files
+// !TODO: use this in lib

@@ -54,7 +54,7 @@ clamp_int :: proc(x, min, max: $T) -> T where intrinsics.type_is_numeric(T) {
 clamp_i32x2 :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2 {
 	return {clamp(pos.x, rect.left, rect.right), clamp(pos.y, rect.top, rect.bottom)}
 }
-clamp :: proc {// TODO!: simd clamp?
+clamp :: proc {// !TODO: simd clamp?
 	clamp_int,
 	clamp_i32x2,
 }

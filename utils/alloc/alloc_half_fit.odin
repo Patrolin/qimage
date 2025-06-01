@@ -22,7 +22,7 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 #assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == 64)
 
 HalfFitAllocator :: struct {
-	// TODO: mutex
+	// !!!TODO: mutex
 	available_bitfield: u32,
 	free_lists:         [HALF_FIT_FREE_LIST_COUNT]HalfFitFreeList,
 }

@@ -87,13 +87,13 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	free(y)
 	half_fit_check_blocks(t, "5.", &half_fit, buffer)
 
-	wstr := os.win_stringToWstring("lib_window_default", allocator = context.allocator)
-	fmt.printfln("arr: %v", wstr)
-	half_fit_check_blocks(t, "6.", &half_fit, buffer)
-
-	aaa := os.win_stringToWstring("lib_window_default", allocator = context.allocator)
-	fmt.printfln("arr: %v", aaa)
-	half_fit_check_blocks(t, "6.", &half_fit, buffer)
+	arr: [dynamic]int
+	half_fit_check_blocks(t, "1.1.", &half_fit, buffer)
+	for i in 0 ..< 50 {
+		append(&arr, i)
+	}
+	fmt.printfln("arr: %v", arr)
+	half_fit_check_blocks(t, "1.2.", &half_fit, buffer)
 
 	page_free(raw_data(buffer))
 
@@ -206,4 +206,4 @@ tests_set :: proc(t: ^testing.T) {
 	testing.expectf(t, !okA, "m[\"a\"] = %v", okA)
 	delete_map_like(&m)
 }
-// TODO!: get -no-crt -default-to-nil-allocator to work
+// !TODO: get -no-crt -default-to-nil-allocator to work
