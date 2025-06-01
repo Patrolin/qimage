@@ -3,6 +3,7 @@ import "../math"
 import "../os"
 import "../test"
 import "base:intrinsics"
+import "base:runtime"
 import "core:fmt"
 import "core:testing"
 import "core:time"
@@ -57,31 +58,43 @@ tests_page_alloc :: proc(t: ^testing.T) {
 tests_half_fit_allocator :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	// TODO: test half_fit_allocator_proc here
 	buffer := page_alloc(PAGE_SIZE)
 	assert(uintptr(raw_data(buffer)) & uintptr(63) == 0)
 	half_fit: HalfFitAllocator
 	half_fit_allocator_init(&half_fit, buffer)
+	context.allocator = runtime.Allocator {
+		data      = &half_fit,
+		procedure = half_fit_allocator_proc,
+	}
 	half_fit_check_blocks(t, "1.", &half_fit, buffer)
 
-	x_raw, _ := half_fit_alloc(&half_fit, size_of([2]int))
-	assert(uintptr(x_raw) & 63 == 0)
+	x_raw := new([2]int)
+	assert(uintptr(rawptr(x_raw)) & 63 == 0)
 	x := (^int)(x_raw)
 	check_was_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "2.", &half_fit, buffer)
 
-	y_raw, _ := half_fit_alloc(&half_fit, size_of(int))
-	assert(uintptr(y_raw) & 63 == 0)
+	y_raw := new(int)
+	assert(uintptr(rawptr(y_raw)) & 63 == 0)
 	y := (^int)(y_raw)
 	check_was_allocated(t, y, "y", 7)
 	check_still_allocated(t, x, "x", 13)
 	half_fit_check_blocks(t, "3.", &half_fit, buffer)
 
-	half_fit_free(&half_fit, x)
+	free(x)
 	half_fit_check_blocks(t, "4.", &half_fit, buffer)
 
-	half_fit_free(&half_fit, y)
+	free(y)
 	half_fit_check_blocks(t, "5.", &half_fit, buffer)
+
+	wstr := os.win_stringToWstring("lib_window_default", allocator = context.allocator)
+	fmt.printfln("arr: %v", wstr)
+	half_fit_check_blocks(t, "6.", &half_fit, buffer)
+
+	aaa := os.win_stringToWstring("lib_window_default", allocator = context.allocator)
+	fmt.printfln("arr: %v", aaa)
+	half_fit_check_blocks(t, "6.", &half_fit, buffer)
+
 	page_free(raw_data(buffer))
 
 	test.end_test()

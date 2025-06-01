@@ -106,17 +106,16 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	next_free.prev_free = prev_free
 }
 
-half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (ptr: rawptr, err: runtime.Allocator_Error) {
+half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (data: []byte, err: runtime.Allocator_Error) {
 	// get next free block
 	size_index, list_index, none_available := _half_fit_data_index(half_fit, transmute(uint)data_size)
 	data_size := HALF_FIT_MIN_BLOCK_DATA_SIZE << size_index
 	free_list := &half_fit.free_lists[list_index]
 	block_header := (^HalfFitBlockHeader)(free_list.next_free)
 	if intrinsics.expect((^HalfFitFreeList)(block_header) == free_list, false) {
-		err = .Out_Of_Memory
-		return
+		return nil, .Out_Of_Memory
 	}
-	ptr = math.ptr_add(block_header, size_of(HalfFitBlockHeader))
+	ptr := math.ptr_add(block_header, size_of(HalfFitBlockHeader))
 	// mark first free block as used
 	next_free := block_header.next_free
 	free_list.next_free = next_free
@@ -133,7 +132,7 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (ptr: raw
 	// mark first free block as used.cont
 	block_header.size_and_flags |= uint(1) << 63
 	// return
-	return
+	return ptr[:data_size], nil
 }
 half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #caller_location) {
 	block_header := (^HalfFitBlockHeader)(math.ptr_add(old_ptr, -size_of(HalfFitBlockHeader)))
@@ -187,31 +186,36 @@ half_fit_check_blocks :: proc(t: ^testing.T, prefix: string, half_fit: ^HalfFitA
 	for offset < len(buffer) {
 		block_header := (^HalfFitBlockHeader)(&buffer[offset])
 		_half_fit_print_block(block_header)
-		is_used, is_last, size := _half_fit_split_size_and_flags(block_header.size_and_flags)
-		sum_of_block_sizes += size_of(HalfFitBlockHeader) + size
+		is_used, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
+		sum_of_block_sizes += size_of(HalfFitBlockHeader) + data_size
 		if is_last {break}
-		offset += size_of(HalfFitBlockHeader) + transmute(int)size
+		offset += size_of(HalfFitBlockHeader) + transmute(int)data_size
 	}
 	_half_fit_print_free_lists(half_fit)
-	fmt.print("\n", flush = true)
+	fmt.print("\n")
 	testing.expectf(t, sum_of_block_sizes == len(buffer), "got: %v, expected: %v", sum_of_block_sizes, len(buffer), loc = loc)
 	return
 }
 _half_fit_print_block :: proc(block_header: ^HalfFitBlockHeader) {
-	is_used, is_last, size := _half_fit_split_size_and_flags(block_header.size_and_flags)
-	// TODO: fix is_used, (fix next_free, prev_free)(?)
+	is_used, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
 	if is_used {
-		fmt.printfln("- %p: {{prev_block=%p, is_used=%v, is_last=%v, size=%v}}", block_header, block_header.prev_block, is_used, is_last, size)
+		fmt.printfln(
+			"- %p: {{is_used=%v, data_size=%v, is_last=%v, prev_block=%p}}",
+			block_header,
+			is_used,
+			data_size,
+			is_last,
+			block_header.prev_block,
+		)
 	} else {
 		fmt.printfln(
-			"- %p: {{next_free=%p, prev_free=%p, prev_block=%p, is_used=%v, is_last=%v, size=%v}}",
+			"- %p: {{data_size=%v, is_last=%v, next_free=%p, prev_free=%p, prev_block=%p}}",
 			block_header,
+			data_size,
+			is_last,
 			block_header.next_free,
 			block_header.prev_free,
 			block_header.prev_block,
-			is_used,
-			is_last,
-			size,
 		)
 	}
 }
@@ -238,23 +242,32 @@ half_fit_allocator_proc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
+	//fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v", mode, size, _alignment, old_ptr, old_size)
 	half_fit := (^HalfFitAllocator)(allocator_data)
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
-		// TODO: move alignment code into half_fit functions
-		ptr: rawptr
-		ptr, err = half_fit_alloc(half_fit, size)
-		fmt.printfln("\nalloc:  %#X, size: %v, alignment: %v, loc: %v", ptr, size, _alignment, loc)
-		assert((uintptr(ptr) & 63) == 0, loc = loc)
-		data = ([^]byte)(ptr)[:size]
+		data, err = half_fit_alloc(half_fit, size)
+		if mode == .Alloc {
+			mem.zero_explicit(raw_data(data), len(data))
+		}
+		assert((uintptr(raw_data(data)) & 63) == 0, loc = loc)
 	case .Free:
-		is_64B_alignment := (uintptr(old_ptr) >> 5) & 1 == 0
-		fmt.printfln("free:  %#X, loc: %v", old_ptr, loc)
 		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
 		half_fit_free(half_fit, rawptr(old_ptr), loc)
 	case .Resize, .Resize_Non_Zeroed:
-		assert(false, "Not implemented yet.", loc = loc)
-		data, err = nil, .Mode_Not_Implemented
+		// free
+		half_fit_free(half_fit, rawptr(old_ptr), loc)
+		// alloc
+		data, err = half_fit_alloc(half_fit, size)
+		ptr := raw_data(data)
+		// zero
+		if mode == .Resize {
+			align_backward := transmute(int)(math.align_backward(ptr, 64))
+			zero_start := math.ptr_add(raw_data(data), old_size - align_backward)
+			mem.zero_explicit(zero_start, size + align_backward)
+		}
+		// copy
+		intrinsics.mem_copy(ptr, old_ptr, old_size)
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

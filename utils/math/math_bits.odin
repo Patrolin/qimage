@@ -15,10 +15,13 @@ GIBI_BYTES :: 1024 * MEBI_BYTES
 ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]byte {
 	return &([^]byte)(ptr)[offset]
 }
-align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: int) -> int {
+align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: uintptr) -> uintptr {
 	assert(is_power_of_two(align_power_of_two))
-	remainder := transmute(int)(uintptr(ptr)) & (align_power_of_two - 1)
+	remainder := (uintptr(ptr)) & uintptr(align_power_of_two - 1)
 	return remainder == 0 ? 0 : align_power_of_two - remainder
+}
+align_backward :: #force_inline proc(ptr: rawptr, alignment_power_of_two: uintptr) -> uintptr {
+	return uintptr(ptr) & (alignment_power_of_two - 1)
 }
 
 // bits
