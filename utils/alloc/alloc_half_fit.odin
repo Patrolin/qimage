@@ -77,6 +77,7 @@ half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 		}
 	}
 	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
+	assert(uintptr(raw_data(buffer)) & 63 == 0)
 	_half_fit_create_new_block(half_fit, nil, true, buffer)
 }
 _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^HalfFitBlockHeader, is_last: bool, block: []u8) {
@@ -107,6 +108,7 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	next_free.prev_free = prev_free
 }
 
+DEBUG :: false
 half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (data: []byte, err: runtime.Allocator_Error) {
 	threads.get_lock(&half_fit.lock)
 	defer threads.release_lock(&half_fit.lock)
@@ -131,8 +133,13 @@ half_fit_alloc :: proc(half_fit: ^HalfFitAllocator, data_size: int) -> (data: []
 		next_block := math.ptr_add(ptr, data_size)
 		block_header.size_and_flags = transmute(uint)data_size
 		_half_fit_create_new_block(half_fit, block_header, is_last, next_block[:transmute(int)prev_size - data_size])
+		if DEBUG {
+			fmt.printfln("SPLIT result:")
+			_half_fit_print_block(block_header)
+			_half_fit_print_block((^HalfFitBlockHeader)(next_block))
+		}
 	}
-	// mark first free block as used.cont
+	// set is_used flag
 	block_header.size_and_flags |= uint(1) << 63
 	// return
 	return ptr[:data_size], nil
@@ -146,10 +153,9 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	assert(is_used, "Cannot free an unused block", loc = loc)
 	next_block := (^HalfFitBlockHeader)(math.ptr_add(block_header, size_of(HalfFitBlockHeader) + transmute(int)size))
 	next_is_used, next_is_last, next_size := _half_fit_split_size_and_flags(next_block.size_and_flags)
-	DEBUG :: false
 	if intrinsics.expect(!next_is_used, true) {
 		if DEBUG {
-			fmt.printfln("merge with next_block:")
+			fmt.printfln("MERGE with next_block:")
 			_half_fit_print_block(block_header)
 			_half_fit_print_block(next_block)
 		}
@@ -164,7 +170,7 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 		prev_is_used, prev_is_last, prev_size := _half_fit_split_size_and_flags(prev_block.size_and_flags)
 		if intrinsics.expect(!prev_is_used, true) {
 			if DEBUG {
-				fmt.printfln("merge with prev_block:")
+				fmt.printfln("MERGE with prev_block:")
 				_half_fit_print_block(prev_block)
 				_half_fit_print_block(block_header)
 			}
@@ -181,6 +187,10 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	}
 	// mark block as free
 	_half_fit_mark_block_as_free(half_fit, block_header)
+	if DEBUG {
+		fmt.printfln("MERGE result:")
+		_half_fit_print_block(block_header)
+	}
 }
 
 // debug
@@ -249,14 +259,24 @@ half_fit_allocator_proc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
-	//fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v", mode, size, _alignment, old_ptr, old_size)
+	if DEBUG {
+		fmt.printfln(
+			"-- mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v",
+			mode,
+			size,
+			_alignment,
+			old_ptr,
+			old_size,
+			loc,
+		)
+	}
 	half_fit := (^HalfFitAllocator)(allocator_data)
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		data, err = half_fit_alloc(half_fit, size)
 		ptr := raw_data(data)
 		if mode == .Alloc {
-			mem.zero_explicit(ptr, len(data))
+			intrinsics.mem_zero_volatile(ptr, len(data))
 		}
 		assert((uintptr(ptr) & 63) == 0, loc = loc)
 	case .Free:
@@ -265,17 +285,20 @@ half_fit_allocator_proc :: proc(
 	case .Resize, .Resize_Non_Zeroed:
 		// alloc
 		data, err = half_fit_alloc(half_fit, size)
-		ptr := raw_data(data)
 		// free // NOTE: free after alloc, so we can do a faster copy
+		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
 		half_fit_free(half_fit, old_ptr, loc)
 		// zero
+		ptr := raw_data(data)
 		if mode == .Resize {
-			align_backward := transmute(int)(math.align_backward(ptr, 64))
-			zero_start := math.ptr_add(ptr, old_size - align_backward)
-			intrinsics.mem_zero_volatile(zero_start, size + align_backward)
+			if size > old_size {
+				align_backward := transmute(int)(math.align_backward(ptr, 64))
+				zero_start := math.ptr_add(ptr, old_size - align_backward)
+				intrinsics.mem_zero_volatile(zero_start, size - old_size + align_backward)
+			}
 		}
 		// copy
-		intrinsics.mem_copy(ptr, old_ptr, old_size)
+		intrinsics.mem_copy(ptr, old_ptr, min(size, old_size))
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}
