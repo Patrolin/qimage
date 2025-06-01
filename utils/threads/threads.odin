@@ -10,9 +10,13 @@ get_lock :: #force_inline proc "contextless" (lock: ^Lock) {
 		if intrinsics.expect(old_value == false, true) {return}
 		intrinsics.cpu_relax()
 	}
+	read_write_fence()
 }
 release_lock :: #force_inline proc "contextless" (lock: ^Lock) {
 	intrinsics.atomic_store(lock, false)
+}
+read_write_fence :: #force_inline proc "contextless" () {
+	intrinsics.atomic_thread_fence(.Seq_Cst)
 }
 
 // thread info

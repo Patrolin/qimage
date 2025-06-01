@@ -21,16 +21,18 @@ global_allocator: HalfFitAllocator
 make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
 	ctx := emptyContext()
 	ctx.allocator = runtime.Allocator{half_fit_allocator_proc, &global_allocator}
+	ctx.temp_allocator = runtime.default_context().temp_allocator
+	// TODO: context.temp_allocator = arenaAllocator()
 	context = ctx
 	if (!(0 in thread_id_to_context)) {
 		buffer := page_alloc(1 << 16) // TODO: grow on page fault
 		half_fit_allocator_init(&global_allocator, buffer)
 	}
-	//context.temp_allocator = arenaAllocator()
 	thread_id_to_context[user_index] = ctx
 	return context
 }
 
+// TODO: remove this
 @(private)
 _make_fake_dynamic_array :: proc($V: typeid, array: ^[dynamic]V, buffer: []V) {
 	raw_array: ^runtime.Raw_Dynamic_Array = (^runtime.Raw_Dynamic_Array)(array)

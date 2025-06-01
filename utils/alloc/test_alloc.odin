@@ -66,36 +66,36 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 		data      = &half_fit,
 		procedure = half_fit_allocator_proc,
 	}
-	half_fit_check_blocks(t, "1.", &half_fit, buffer)
+	half_fit_check_blocks(t, "1.", &half_fit)
 
 	x_raw := new([2]int)
 	assert(uintptr(rawptr(x_raw)) & 63 == 0)
 	x := (^int)(x_raw)
 	check_was_allocated(t, x, "x", 13)
-	half_fit_check_blocks(t, "2.", &half_fit, buffer)
+	half_fit_check_blocks(t, "2.", &half_fit)
 
 	y_raw := new(int)
 	assert(uintptr(rawptr(y_raw)) & 63 == 0)
 	y := (^int)(y_raw)
 	check_was_allocated(t, y, "y", 7)
 	check_still_allocated(t, x, "x", 13)
-	half_fit_check_blocks(t, "3.", &half_fit, buffer)
+	half_fit_check_blocks(t, "3.", &half_fit)
 
 	free(x)
-	half_fit_check_blocks(t, "4.", &half_fit, buffer)
+	half_fit_check_blocks(t, "4.", &half_fit)
 
 	free(y)
-	half_fit_check_blocks(t, "5.", &half_fit, buffer)
+	half_fit_check_blocks(t, "5.", &half_fit)
 
 	arr: [dynamic]int
 	N :: 16
 	for i in 0 ..< N {append(&arr, i)}
 	fmt.printfln("arr: %v", arr)
-	half_fit_check_blocks(t, "6.", &half_fit, buffer)
+	half_fit_check_blocks(t, "6.", &half_fit)
 
 	for i in 0 ..< N {append(&arr, N + i)}
 	fmt.printfln("arr: %v", arr)
-	half_fit_check_blocks(t, "7.", &half_fit, buffer)
+	half_fit_check_blocks(t, "7.", &half_fit)
 
 	page_free(raw_data(buffer))
 
