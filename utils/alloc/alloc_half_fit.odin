@@ -114,7 +114,7 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	next_free.prev_free = prev_free
 }
 
-DEBUG :: true
+DEBUG :: false
 half_fit_alloc :: proc(
 	half_fit: ^HalfFitAllocator,
 	data_size: int,

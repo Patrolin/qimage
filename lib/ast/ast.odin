@@ -10,7 +10,7 @@ Utf8Iterator :: struct {
 eatUtf8Char :: proc(iterator: ^Utf8Iterator) -> rune {
 	iterator.i = iterator.j
 	first_byte := iterator.str[iterator.i]
-	neg_bits := math.clz(~first_byte)
+	neg_bits := math.count_leading_zeros(~first_byte)
 	neg_bits = neg_bits + u8(neg_bits == 0)
 	byte_count := int(neg_bits)
 	iterator.j = iterator.i + byte_count

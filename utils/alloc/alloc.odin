@@ -7,29 +7,28 @@ import "core:fmt"
 CACHE_LINE_SIZE :: 1 << 6
 PAGE_SIZE :: 1 << 12
 HUGE_PAGE_SIZE :: 1 << 21
-thread_id_to_context := map[int]runtime.Context{}
+
+global_allocator: HalfFitAllocator
+thread_index_to_context: [dynamic]runtime.Context
+
+// NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are..
+init_thread_contexts :: proc() {
+	assert(len(thread_index_to_context) == 0)
+	for thread_index in 0 ..< os.info.logical_core_count {
+		ctx := emptyContext()
+		if thread_index == 0 {
+			buffer := page_alloc(1 << 16) // TODO: grow on page fault
+			half_fit_allocator_init(&global_allocator, buffer)
+		}
+		ctx.allocator = runtime.Allocator{half_fit_allocator_proc, &global_allocator}
+		ctx.temp_allocator = runtime.default_context().temp_allocator
+		append(&thread_index_to_context, ctx)
+	}
+}
 
 emptyContext :: os.emptyContext
 defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
-	if !(user_index in thread_id_to_context) {
-		make_defaultContext(user_index) // NOTE: Odin doesn't like setting context inside of an if
-	}
-	return thread_id_to_context[user_index]
-}
-global_allocator: HalfFitAllocator
-@(private)
-make_defaultContext :: proc "contextless" (user_index: int) -> runtime.Context {
-	ctx := emptyContext()
-	ctx.allocator = runtime.Allocator{half_fit_allocator_proc, &global_allocator}
-	ctx.temp_allocator = runtime.default_context().temp_allocator
-	// TODO: context.temp_allocator = arenaAllocator()
-	context = ctx
-	if (!(0 in thread_id_to_context)) {
-		buffer := page_alloc(1 << 16) // TODO: grow on page fault
-		half_fit_allocator_init(&global_allocator, buffer)
-	}
-	thread_id_to_context[user_index] = ctx
-	return context
+	return thread_index_to_context[user_index]
 }
 
 // TODO: remove this

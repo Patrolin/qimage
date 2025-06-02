@@ -14,8 +14,9 @@ isRunning := false
 
 main :: proc() {
 	os.initInfo()
-	//context = alloc.defaultContext(0) // TODO: use when allocator is implement
-	threads.initThreads()
+	alloc.init_thread_contexts()
+	context = alloc.defaultContext(0)
+	threads.init_threads()
 	event.initEvents({onPaint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)

@@ -26,7 +26,7 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	}
 }
 ThreadInfo :: threads_utils.ThreadInfo
-initThreads :: proc() -> []ThreadInfo {
+init_threads :: proc() -> []ThreadInfo {
 	assert(threads_utils.thread_count == 1)
 	thread_count := os.info.logical_core_count - 1
 	threads_utils._semaphore = threads_utils._createSemaphore(i32(thread_count))

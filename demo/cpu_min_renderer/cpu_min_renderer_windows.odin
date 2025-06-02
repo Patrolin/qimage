@@ -16,8 +16,9 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slo
 
 main :: proc() {
 	os.initInfo()
+	alloc.init_thread_contexts()
 	context = alloc.defaultContext(0)
-	threads.initThreads()
+	threads.init_threads()
 	event.initEvents({onPaint})
 	window := event.openWindow("cpu_min_renderer", {1200, 800})
 	paint.resizeFrameBuffer(&frame_buffer, i16(window.client_rect.width), i16(window.client_rect.height))
