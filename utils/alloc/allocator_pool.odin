@@ -2,7 +2,6 @@ package alloc_utils
 import "../math"
 import "base:intrinsics"
 
-// TODO: buddy + pool
 PoolAllocator :: struct {
 	// TODO: mutex here
 	next_free_slot:  rawptr,

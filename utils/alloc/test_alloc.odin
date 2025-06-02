@@ -8,6 +8,8 @@ import "core:fmt"
 import "core:testing"
 import "core:time"
 
+// !TODO: get -no-crt -default-to-nil-allocator to work
+
 check_was_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int, loc := #caller_location) {
 	testing.expectf(t, ptr != nil, "Failed was_allocated, %v: %v", name, ptr, loc = loc)
 	ptr^ = value
@@ -20,9 +22,10 @@ check_still_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int
 @(test)
 tests_defaultContext :: proc(t: ^testing.T) {
 	test.start_test(t)
-
 	debug_temp_allocator := context.temp_allocator
+
 	os.initInfo()
+	init_thread_contexts()
 	context = defaultContext(0)
 	temp_allocator_to_check := context.temp_allocator
 	context.temp_allocator = debug_temp_allocator
@@ -39,6 +42,7 @@ tests_defaultContext :: proc(t: ^testing.T) {
 		free(y, allocator = temp_allocator_to_check)
 	}
 
+	delete(thread_index_to_context)
 	test.end_test()
 }
 
@@ -46,12 +50,12 @@ tests_defaultContext :: proc(t: ^testing.T) {
 tests_page_alloc :: proc(t: ^testing.T) {
 	os.initInfo()
 	data := page_alloc(1 * math.BYTES)
-	testing.expectf(t, data != nil, "Failed to page_alloc 1 byte, data: %v", data)
-	data = page_alloc_aligned(64 * math.KIBI_BYTES)
-	testing.expectf(t, data != nil, "Failed to page_alloc_aligned 64 kiB, data: %v", data)
+	testing.expectf(t, data != nil, "Failed to page_alloc(1 B), data: %v", data)
+	data = page_alloc_aligned(64 * math.KIBI_BYTES, 64 * math.KIBI_BYTES)
+	testing.expectf(t, data != nil, "Failed to page_alloc_aligned(64 kiB, 64 kiB), data: %v", data)
 	data_ptr := &data[0]
 	low_bits := uintptr(data_ptr) & math.low_mask(uintptr(16))
-	testing.expectf(t, low_bits == 0, "Failed to page_alloc_aligned 64 kiB, low_bits: %v", low_bits)
+	testing.expectf(t, low_bits == 0, "Failed to page_alloc_aligned(64 kiB, 64 kiB), low_bits: %v", low_bits)
 }
 
 @(test)
@@ -98,7 +102,6 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	half_fit_check_blocks(t, "7.", &half_fit)
 
 	page_free(raw_data(buffer))
-
 	test.end_test()
 }
 
@@ -113,61 +116,7 @@ tests_pool_allocator :: proc(t: ^testing.T) {
 	pool_free(&pool_64b, x)
 	pool_free(&pool_64b, y)
 }
-/*
-@(test)
-tests_anyAllocator :: proc(t: ^testing.T) {
-	os.initInfo()
-	context.allocator = slabAllocator()
-	allocator := (^SlabAllocator)(context.allocator.data)
-	x := new(u8)
-	get_slab_header :: proc(allocator: ^SlabAllocator, slab_index: u16) -> SlabHeader {
-		free_ptr := allocator.free_slots[slab_index]
-		return allocator.headers[free_ptr]
-	}
-	testing.expectf(
-		t,
-		x != nil,
-		"Failed to allocate, x: %v\nallocator: %v\nheader: %v",
-		x,
-		allocator,
-		get_slab_header(allocator, 0),
-	)
-	x^ = 13
-	testing.expectf(
-		t,
-		x^ == 13,
-		"Failed to allocate\nallocator: %v\nheader: %v",
-		allocator,
-		get_slab_header(allocator, 0),
-	)
-	free(x)
-	y := new(u8)
-	testing.expectf(
-		t,
-		y == x,
-		"Failed to free, x: %v, y: %v\nallocator: %v\nheader: %v",
-		x,
-		y,
-		allocator,
-		get_slab_header(allocator, 0),
-	)
-	z := new(u8)
-	testing.expectf(
-		t,
-		z != y,
-		"Failed to allocate, y: %v, z: %v\nallocator: %v\nheader: %v",
-		y,
-		z,
-		allocator,
-		get_slab_header(allocator, 0),
-	)
-	/*
-	free_all()
-	y = new(x)
-	testing.expectf(t, y == x, "Failed to free_all, x: %v, y: %v", x, y)
-	*/
-}
-*/
+
 @(test)
 tests_map :: proc(t: ^testing.T) {
 	os.initInfo()
@@ -188,6 +137,7 @@ tests_map :: proc(t: ^testing.T) {
 	testing.expectf(t, !okA && (valueA^ == {}), "m[\"a\"] = %v", valueA^)
 	delete_map_like(&m)
 }
+
 @(test)
 tests_set :: proc(t: ^testing.T) {
 	os.initInfo()
@@ -208,4 +158,3 @@ tests_set :: proc(t: ^testing.T) {
 	testing.expectf(t, !okA, "m[\"a\"] = %v", okA)
 	delete_map_like(&m)
 }
-// !TODO: get -no-crt -default-to-nil-allocator to work
