@@ -42,10 +42,10 @@ _make_fake_dynamic_array :: proc($V: typeid, array: ^[dynamic]V, buffer: []V) {
 }
 
 zero_simd_64B :: proc(dest, dest_end: uintptr) {
-	zero := (#simd[8]u64)(0)
+	zero := (#simd[64]byte)(0)
 	dest := dest
 	for dest < dest_end {
-		(^#simd[8]u64)(dest)^ = zero
+		(^#simd[64]byte)(dest)^ = zero
 		dest += 64
 	}
 }
@@ -53,7 +53,7 @@ copy_simd_64B :: proc(dest, dest_end, src: uintptr) {
 	dest := dest
 	src := src
 	for dest < dest_end {
-		(^#simd[8]u64)(dest)^ = (^#simd[8]u64)(src)^
+		(^#simd[64]byte)(dest)^ = (^#simd[64]byte)(src)^
 		dest += 64
 		src += 64
 	}
