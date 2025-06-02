@@ -18,6 +18,13 @@ start_test :: proc(t: ^testing.T) {
 	time.sleep(100 * time.Millisecond) // NOTE: fix printing
 	test_context.t = t
 }
+expect :: #force_inline proc(condition: bool, loc := #caller_location) {
+	if ODIN_TEST {
+		testing.expect(test_context.t, condition, loc = loc)
+	} else {
+		assert(condition, loc = loc)
+	}
+}
 expectf :: #force_inline proc(condition: bool, format: string, args: ..any, loc := #caller_location) {
 	if ODIN_TEST {
 		testing.expectf(test_context.t, condition, format, ..args, loc = loc)
@@ -30,7 +37,8 @@ expect_case :: proc(test_case: Case($K, $V), got: V, expression := #caller_expre
 	sb := strings.builder_from_slice(buffer[:])
 	key_string := fmt.sbprint(&sb, test_case.key)
 
-	subexpression := expression[len("test.expect_case(test_case, "):len(expression) - len(")")]
+	subexpression_start := strings.index(expression, ", ") + 1
+	subexpression := expression[subexpression_start:len(expression) - len(")")]
 	formatted_subexpression, _was_allocation := strings.replace_all(subexpression, "key", key_string, allocator = context.temp_allocator)
 
 	expectf(got == test_case.expected, "%v: %v, expected: %v", formatted_subexpression, got, test_case.expected)

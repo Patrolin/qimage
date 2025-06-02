@@ -6,6 +6,30 @@ import "core:fmt"
 import "core:testing"
 
 @(test)
+test_round_floor_ceil :: proc(t: ^testing.T) {
+	test.start_test(t)
+
+	// TODO: also test negative numbers
+	test.expect(math.round(1.9) == 2.0)
+	test.expect(math.round(1.5) == 2.0)
+	test.expect(math.round(1.0) == 1.0)
+
+	test.expect(math.round_to_int(1.9) == 2)
+	test.expect(math.round_to_int(1.5) == 2)
+	test.expect(math.round_to_int(1.0) == 1)
+
+	test.expect(math.floor(1.9) == 1.0)
+	test.expect(math.floor(1.5) == 1.0)
+	test.expect(math.floor(1.0) == 1.0)
+
+	test.expect(math.ceil(1.9) == 2.0)
+	test.expect(math.ceil(1.5) == 2.0)
+	test.expect(math.ceil(1.0) == 1.0)
+
+	test.end_test()
+}
+
+@(test)
 test_count_leading_zeros :: proc(t: ^testing.T) {
 	test.start_test(t)
 
