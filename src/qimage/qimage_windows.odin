@@ -21,10 +21,9 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7
 image: file.Image
 
 main :: proc() {
-	os.initInfo()
-	alloc.init_thread_contexts()
-	context = alloc.defaultContext(0)
-	threads.init_threads()
+	os.init()
+	context = alloc.init()
+	threads.init()
 	event.initEvents({onPaint})
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})

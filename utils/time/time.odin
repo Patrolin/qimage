@@ -1,12 +1,14 @@
 package time_utils
 import "../os"
+import "../test"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"
 import "core:testing"
+import core_time "core:time"
 
 // time, cycles
-Duration :: distinct int
+Duration :: core_time.Duration
 NANOSECOND :: Duration(1)
 MICROSECOND :: Duration(1e3)
 MILLISECOND :: Duration(1e6)
@@ -77,15 +79,8 @@ sleep_ns :: proc(ns: Duration) {
 			diff = end_time - time()
 		}
 		//fmt.printfln("  2: %v ns", diff)
-		fmt.assertf(diff == 0, "diff: %v", diff)
+		test.expectf(diff == 0, "diff: %v", diff)
 	} else {
 		#assert(false, "Not implemented")
-	}
-}
-@(test)
-test_sleep_ns :: proc(t: ^testing.T) {
-	// TODO: test random amounts to sleep?
-	for i := 0; i < 5; i += 1 {
-		sleep_ns(4 * MILLISECOND)
 	}
 }

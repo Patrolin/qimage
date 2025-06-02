@@ -43,7 +43,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.defaultContext(0) // NOTE: we assume this was called from main thread
+	context = alloc.thread_context(0) // NOTE: we assume this was called from main thread
 	result = 0
 	switch message {
 	// minimum needed messages

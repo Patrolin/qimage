@@ -10,16 +10,14 @@ foreign import kernel32 "system:kernel32.lib"
 foreign kernel32 {
 	@(private)
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
-	@(private)
-	ExitThread :: proc(dwExitCode: win.DWORD) ---
 }
 
-emptyContext :: proc "contextless" () -> runtime.Context {
+empty_context :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
 	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
 }
-initInfo :: proc "contextless" () {
-	context = emptyContext()
+init :: proc "contextless" () {
+	context = empty_context()
 	// console
 	ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
 	STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
@@ -48,4 +46,18 @@ initInfo :: proc "contextless" () {
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
 	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
+	// page fault exception handler
+	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
+}
+
+_page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
+	//context = runtime.default_context()
+	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
+		//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
+		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]
+		ptr := pException.ExceptionRecord.ExceptionInformation[1]
+		ptr = win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
+		return ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
+	}
+	return win.EXCEPTION_EXECUTE_HANDLER
 }

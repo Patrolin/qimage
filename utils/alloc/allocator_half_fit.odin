@@ -1,12 +1,12 @@
 package alloc_utils
 import "../math"
+import "../test"
 import "../threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
 import "core:mem"
 import "core:strings"
-import "core:testing"
 
 // utils
 HALF_FIT_FREE_LIST_COUNT :: 30
@@ -114,7 +114,6 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	next_free.prev_free = prev_free
 }
 
-DEBUG :: false
 half_fit_alloc :: proc(
 	half_fit: ^HalfFitAllocator,
 	data_size: int,
@@ -195,15 +194,9 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 }
 
 // debug
-half_fit_check_blocks :: proc(t: ^testing.T, prefix: string, half_fit: ^HalfFitAllocator, loc := #caller_location) {
-	do_the_assert :: proc(t: ^testing.T, condition: bool, format: string, args: ..any, loc := #caller_location) {
-		if t != nil {
-			testing.expectf(t, condition, format, ..args)
-		} else {
-			fmt.assertf(condition, format, ..args)
-		}
-	}
-	fmt.println(prefix)
+DEBUG :: false
+half_fit_check_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, loc := #caller_location) {
+	if DEBUG {fmt.println(prefix)}
 	sum_of_block_sizes := uint(0)
 	offset := 0
 	buffer := half_fit._buffer
@@ -211,21 +204,23 @@ half_fit_check_blocks :: proc(t: ^testing.T, prefix: string, half_fit: ^HalfFitA
 	for offset < len(buffer) {
 		// get next block header
 		block_header := (^HalfFitBlockHeader)(&buffer[offset])
-		_half_fit_print_block(block_header)
+		if DEBUG {_half_fit_print_block(block_header)}
 		is_used, is_last, data_size := _half_fit_split_size_and_flags(block_header.size_and_flags)
 		// check for invalid block
 		if data_size == 0 {break}
 		// check prev_block
-		do_the_assert(t, block_header.prev_block == prev_block, "prev_block: %p, expected: %p", block_header.prev_block, prev_block)
+		test.expectf(block_header.prev_block == prev_block, "prev_block: %p, expected: %p", block_header.prev_block, prev_block)
 		prev_block = block_header
 		// loop
 		sum_of_block_sizes += size_of(HalfFitBlockHeader) + data_size
 		if is_last {break}
 		offset += size_of(HalfFitBlockHeader) + transmute(int)data_size
 	}
-	_half_fit_print_free_lists(half_fit)
-	fmt.printfln("  sum_of_block_sizes: %v, len(buffer): %v\n", sum_of_block_sizes, len(buffer))
-	do_the_assert(t, sum_of_block_sizes == len(buffer), "sum_of_block_sizes: %v, expected: %v", sum_of_block_sizes, len(buffer), loc = loc)
+	if DEBUG {
+		_half_fit_print_free_lists(half_fit)
+		fmt.printfln("  sum_of_block_sizes: %v, len(buffer): %v\n", sum_of_block_sizes, len(buffer))
+	}
+	test.expectf(sum_of_block_sizes == len(buffer), "sum_of_block_sizes: %v, expected: %v", sum_of_block_sizes, len(buffer), loc = loc)
 	return
 }
 _half_fit_print_block :: proc(block_header: ^HalfFitBlockHeader) {
@@ -314,7 +309,7 @@ half_fit_allocator_proc :: proc(
 		data, err = nil, .Mode_Not_Implemented
 	}
 	if DEBUG {
-		half_fit_check_blocks(nil, "", half_fit)
+		half_fit_check_blocks("", half_fit)
 	}
 	return
 }

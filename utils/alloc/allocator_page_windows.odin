@@ -6,11 +6,12 @@ import "core:mem"
 import win "core:sys/windows"
 
 // TODO: don't use page_alloc() outside of utils/alloc
-page_alloc :: proc(size: math.Size) -> []byte {
-	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | win.MEM_COMMIT, win.PAGE_READWRITE, nil, 0)
+// TODO: never commit_immediately
+page_alloc :: proc(size: math.Size, commit_immediately := true) -> []byte {
+	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | (commit_immediately ? win.MEM_COMMIT : 0), win.PAGE_READWRITE, nil, 0)
 	return (cast([^]byte)ptr)[:size]
 }
-// TODO: remove this
+// ?TODO: remove this
 page_alloc_aligned :: proc(size: math.Size, alignment: math.Size, loc := #caller_location) -> []byte {
 	address_requirement := MEM_ADDRESS_REQUIREMENTS {
 		Alignment = win.SIZE_T(alignment),

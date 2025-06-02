@@ -80,7 +80,7 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 }
 main :: proc() {
 	// ?TODO: rewrite everything in test_case: testCase = TestCase()
-	os.initInfo()
+	os.init()
 	for {
 		fmt.println()
 		measureCold(int, cold_int_cases)
