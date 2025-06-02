@@ -286,7 +286,7 @@ half_fit_allocator_proc :: proc(
 		data, err = half_fit_alloc(half_fit, size)
 		ptr := raw_data(data)
 		if mode == .Alloc {
-			intrinsics.mem_zero_volatile(ptr, len(data))
+			zero_simd_64B(uintptr(ptr), uintptr(ptr) + transmute(uintptr)(len(data)))
 		}
 		assert((uintptr(ptr) & 63) == 0, loc = loc)
 	case .Free:
@@ -304,11 +304,12 @@ half_fit_allocator_proc :: proc(
 			if size > old_size {
 				align_backward := transmute(int)(math.align_backward(ptr, 64))
 				zero_start := math.ptr_add(ptr, old_size - align_backward)
-				intrinsics.mem_zero_volatile(zero_start, size - old_size + align_backward)
+				zero_simd_64B(uintptr(zero_start), uintptr(zero_start) + transmute(uintptr)(size - old_size + align_backward))
 			}
 		}
 		// copy
-		intrinsics.mem_copy(ptr, old_ptr, min(size, old_size))
+		size_to_copy := min(size, old_size)
+		copy_simd_64B(uintptr(ptr), uintptr(ptr) + transmute(uintptr)(size_to_copy), uintptr(old_ptr))
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

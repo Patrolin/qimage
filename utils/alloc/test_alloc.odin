@@ -12,6 +12,7 @@ import "core:time"
 
 check_was_allocated :: proc(t: ^testing.T, ptr: ^int, name: string, value: int, loc := #caller_location) {
 	testing.expectf(t, ptr != nil, "Failed was_allocated, %v: %v", name, ptr, loc = loc)
+	testing.expect(t, ptr^ == 0, "Failed was_allocated - should start zeroed", loc = loc)
 	ptr^ = value
 	testing.expect(t, ptr^ == value, "Failed was_allocated", loc = loc)
 }
@@ -100,6 +101,9 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 	for i in 0 ..< N {append(&arr, N + i)}
 	fmt.printfln("arr: %v", arr)
 	half_fit_check_blocks(t, "7.", &half_fit)
+	for i in 0 ..< 2 * N {
+		testing.expectf(t, arr[i] == i, "Failed to resize array: %v", arr)
+	}
 
 	page_free(raw_data(buffer))
 	test.end_test()

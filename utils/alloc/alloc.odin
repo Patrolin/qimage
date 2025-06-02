@@ -3,6 +3,7 @@ import "../math"
 import "../os"
 import "base:runtime"
 import "core:fmt"
+import "core:simd"
 
 CACHE_LINE_SIZE :: 1 << 6
 PAGE_SIZE :: 1 << 12
@@ -38,4 +39,22 @@ _make_fake_dynamic_array :: proc($V: typeid, array: ^[dynamic]V, buffer: []V) {
 	raw_array.data = &buffer[0]
 	raw_array.len = 0
 	raw_array.cap = len(buffer)
+}
+
+zero_simd_64B :: proc(dest, dest_end: uintptr) {
+	zero := (#simd[8]u64)(0)
+	dest := dest
+	for dest < dest_end {
+		(^#simd[8]u64)(dest)^ = zero
+		dest += 64
+	}
+}
+copy_simd_64B :: proc(dest, dest_end, src: uintptr) {
+	dest := dest
+	src := src
+	for dest < dest_end {
+		(^#simd[8]u64)(dest)^ = (^#simd[8]u64)(src)^
+		dest += 64
+		src += 64
+	}
 }
