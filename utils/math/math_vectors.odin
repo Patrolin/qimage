@@ -3,6 +3,7 @@ import "base:intrinsics"
 import coreMath "core:math"
 
 // NOTE: Odin vector types (.xyzw, .rgba)
+// TODO: how does this interact with #simd?
 i32x2 :: [2]i32 // 8 B
 i32x3 :: [3]i32 // 12 B
 i32x4 :: [4]i32 // 16 B
