@@ -143,6 +143,7 @@ test_map :: proc(t: ^testing.T) {
 	os.init()
 	context = alloc.init()
 	m: alloc.Map(string, int) = {}
+
 	alloc.addKey(&m, "a")^ = 1
 	alloc.addKey(&m, "b")^ = 2
 	valueA, okA := alloc.getKey(&m, "a")
@@ -151,13 +152,20 @@ test_map :: proc(t: ^testing.T) {
 	test.expectf(okB && (valueB^ == 2), "m[\"b\"] = %v", valueB^)
 	valueC, okC := alloc.getKey(&m, "c")
 	test.expectf(!okC && (valueC^ == {}), "m[\"b\"] = %v", valueC^)
+
 	alloc.removeKey(&m, "a")
 	alloc.removeKey(&m, "b")
 	alloc.removeKey(&m, "c")
 	valueA, okA = alloc.getKey(&m, "a")
 	test.expectf(!okA && (valueA^ == {}), "m[\"a\"] = %v", valueA^)
+	valueB, okB = alloc.getKey(&m, "b")
+	test.expectf(!okA && (valueB^ == {}), "m[\"b\"] = %v", valueB^)
+	valueC, okC = alloc.getKey(&m, "c")
+	test.expectf(!okA && (valueC^ == {}), "m[\"c\"] = %v", valueC^)
+
 	alloc.delete_map_like(&m)
 
+	alloc.free_all_for_tests()
 	test.end_test()
 }
 
@@ -168,6 +176,7 @@ test_set :: proc(t: ^testing.T) {
 	os.init()
 	context = alloc.init()
 	m: alloc.Set(string) = {}
+
 	alloc.addKey(&m, "a")
 	alloc.addKey(&m, "b")
 	okA := alloc.getKey(&m, "a")
@@ -176,12 +185,18 @@ test_set :: proc(t: ^testing.T) {
 	test.expectf(okB, "m[\"b\"] = %v", okB)
 	okC := alloc.getKey(&m, "c")
 	test.expectf(!okC, "m[\"b\"] = %v", okC)
+
 	alloc.removeKey(&m, "a")
 	alloc.removeKey(&m, "b")
 	alloc.removeKey(&m, "c")
 	okA = alloc.getKey(&m, "a")
 	test.expectf(!okA, "m[\"a\"] = %v", okA)
+	okB = alloc.getKey(&m, "b")
+	test.expectf(!okB, "m[\"b\"] = %v", okB)
+	okC = alloc.getKey(&m, "c")
+	test.expectf(!okC, "m[\"c\"] = %v", okC)
 	alloc.delete_map_like(&m)
 
+	alloc.free_all_for_tests()
 	test.end_test()
 }
