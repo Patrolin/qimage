@@ -72,6 +72,7 @@ _half_fit_merge_size_and_flags :: proc(is_used: bool, is_last: bool, size: uint)
 	return (uint(is_used) << 63) | (uint(is_last) << 62) | ((size << 2) >> 2)
 }
 
+// NOTE: HalfFitAllocator can't be copied, since there's a doubly linked list pointing to it, so we initialize it in-place
 half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 	half_fit.available_bitfield = 0
 	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {

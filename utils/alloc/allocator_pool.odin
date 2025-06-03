@@ -1,9 +1,10 @@
 package alloc_utils
 import "../math"
+import "../threads"
 import "base:intrinsics"
 
 PoolAllocator :: struct {
-	// TODO: mutex here
+	lock:            threads.Lock,
 	next_free_slot:  ^FreePoolSlot,
 	next_empty_slot: ^FreePoolSlot,
 	slot_size:       int,
@@ -16,9 +17,11 @@ FreePoolSlot :: struct {
 
 pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
 	assert(slot_size >= size_of(^FreePoolSlot))
-	return PoolAllocator{nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
+	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
 }
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
+	threads.get_lock(&pool.lock)
+	defer threads.release_lock(&pool.lock)
 	// find free slot
 	next_free_slot := pool.next_free_slot
 	next_empty_slot := pool.next_empty_slot
@@ -30,6 +33,8 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {
+	threads.get_lock(&pool.lock)
+	defer threads.release_lock(&pool.lock)
 	// TODO: guard against double free?
 	old_slot := (^FreePoolSlot)(old_ptr)
 	old_slot.next_free_slot = pool.next_free_slot
