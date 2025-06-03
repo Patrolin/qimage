@@ -4,53 +4,34 @@ import "base:intrinsics"
 
 PoolAllocator :: struct {
 	// TODO: mutex here
-	next_free_slot:  ^PoolSlot,
-	next_empty_slot: ^PoolSlot,
-	slot_size:       u16,
+	next_free_slot:  ^FreePoolSlot,
+	next_empty_slot: ^FreePoolSlot,
+	slot_size:       int,
 }
-PoolChunkHeader :: struct {
-	used_slot_count: u16,
+#assert(size_of(PoolAllocator) <= 64)
+FreePoolSlot :: struct {
+	next_free_slot: ^FreePoolSlot,
 }
-PoolSlot :: struct {
-	next_free_slot: ^PoolSlot,
-}
+#assert(size_of(FreePoolSlot) <= 8)
 
-pool_allocator :: proc(slot_size: u16) -> PoolAllocator {
-	assert(slot_size >= size_of(PoolChunkHeader))
-	return PoolAllocator{nil, nil, slot_size}
-}
-_pool_get_header :: #force_inline proc "contextless" (ptr: rawptr) -> ^PoolChunkHeader {
-	return (^PoolChunkHeader)(uintptr(ptr) & math.high_mask(uintptr(PAGE_SIZE)))
+pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
+	assert(slot_size >= size_of(^FreePoolSlot))
+	return PoolAllocator{nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
 }
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
-	chunk_header := _pool_get_header(new)
 	// find free slot
-	if intrinsics.expect(pool.next_free_slot != nil, true) {
-		new = ([^]byte)(pool.next_free_slot)
-		slot := (^PoolSlot)(new)
-		pool.next_free_slot = slot.next_free_slot
-	} else if intrinsics.expect(pool.next_empty_slot != nil, true) {
-		new = ([^]byte)(pool.next_empty_slot)
-		next_slot := &new[pool.slot_size]
-		pool.next_empty_slot = _pool_get_header(next_slot) == chunk_header ? (^PoolSlot)(next_slot) : nil
-	} else {
-		new_page := make([^]byte, PAGE_SIZE)
-		chunk_header = (^PoolChunkHeader)(new_page)
-		new = &new_page[pool.slot_size]
-		pool.next_empty_slot = (^PoolSlot)(&new[pool.slot_size])
-	}
-	// update chunk header
-	chunk_header.used_slot_count += 1
-	return
+	next_free_slot := pool.next_free_slot
+	next_empty_slot := pool.next_empty_slot
+	have_free_slot := next_free_slot != nil
+	slot := have_free_slot ? next_free_slot : next_empty_slot
+	// update pool
+	pool.next_free_slot = have_free_slot ? slot.next_free_slot : next_free_slot
+	pool.next_empty_slot = (^FreePoolSlot)(math.ptr_add(next_empty_slot, have_free_slot ? 0 : pool.slot_size))
+	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {
 	// TODO: guard against double free?
-	// free slot
-	old_slot := (^PoolSlot)(old_ptr)
+	old_slot := (^FreePoolSlot)(old_ptr)
 	old_slot.next_free_slot = pool.next_free_slot
 	pool.next_free_slot = old_slot
-	// update chunk header
-	chunk_header := _pool_get_header(old_ptr)
-	chunk_header.used_slot_count -= 1
-	// !!!TODO: free chunk if not used
 }

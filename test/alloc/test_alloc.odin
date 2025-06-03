@@ -23,7 +23,7 @@ check_still_allocated :: proc(ptr: ^int, name: string, value: int, loc := #calle
 }
 
 @(test)
-tests_page_alloc :: proc(t: ^testing.T) {
+test_page_alloc :: proc(t: ^testing.T) {
 	test.start_test(t)
 
 	os.init()
@@ -39,7 +39,7 @@ tests_page_alloc :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_half_fit_allocator :: proc(t: ^testing.T) {
+test_half_fit_allocator :: proc(t: ^testing.T) {
 	test.start_test(t)
 
 	buffer := alloc.page_alloc(alloc.PAGE_SIZE)
@@ -87,7 +87,7 @@ tests_half_fit_allocator :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_defaultContext :: proc(t: ^testing.T) {
+test_default_context :: proc(t: ^testing.T) {
 	test.start_test(t)
 	debug_temp_allocator := context.temp_allocator
 
@@ -117,15 +117,19 @@ tests_defaultContext :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_pool_allocator :: proc(t: ^testing.T) {
+test_pool_allocator :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	pool_64b := alloc.pool_allocator(8)
+	buffer := alloc.page_alloc(alloc.PAGE_SIZE)
+	pool_64b := alloc.pool_allocator(buffer, 8)
+
 	x := (^int)(alloc.pool_alloc(&pool_64b))
 	check_was_allocated(x, "x", 13)
+
 	y := (^int)(alloc.pool_alloc(&pool_64b))
 	check_was_allocated(y, "y", 7)
 	check_still_allocated(x, "x", 13)
+
 	alloc.pool_free(&pool_64b, x)
 	alloc.pool_free(&pool_64b, y)
 
@@ -133,7 +137,7 @@ tests_pool_allocator :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_map :: proc(t: ^testing.T) {
+test_map :: proc(t: ^testing.T) {
 	test.start_test(t)
 
 	os.init()
@@ -158,7 +162,7 @@ tests_map :: proc(t: ^testing.T) {
 }
 
 @(test)
-tests_set :: proc(t: ^testing.T) {
+test_set :: proc(t: ^testing.T) {
 	test.start_test(t)
 
 	os.init()
