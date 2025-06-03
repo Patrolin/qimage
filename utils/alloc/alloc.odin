@@ -45,6 +45,7 @@ thread_context :: proc "contextless" (user_index: int) -> runtime.Context {
 	return _thread_index_to_context[user_index]
 }
 
+// !TODO: make these be rawptrs and size: int
 zero_simd_64B :: proc(dest, dest_end: uintptr) {
 	zero := (#simd[64]byte)(0)
 	dest := dest
