@@ -5,9 +5,10 @@ import "../../utils/os"
 import "core:fmt"
 import "core:strings"
 
-loadBmp_fromFileName :: proc(fileName: string) -> Image {
-	file, ok := readFile(fileName)
-	assert(ok)
+loadBmp_fromFileName :: proc(file_name: string) -> Image {
+	file, error := readFile(file_name)
+	fmt.assertf(error == nil, "fileName: %v, error: .%v", file_name, error)
+	assert(error == nil)
 	return loadBmp_fromBuffer(file)
 }
 loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {

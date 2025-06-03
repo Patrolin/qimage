@@ -5,8 +5,22 @@ import "core:fmt"
 import "core:mem"
 import win "core:sys/windows"
 
+init_page_fault_handler :: proc "contextless" () {
+	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
+}
+_page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
+	//context = thread_context(0)
+	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
+		//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
+		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]
+		ptr := pException.ExceptionRecord.ExceptionInformation[1]
+		ptr = win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
+		return ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
+	}
+	return win.EXCEPTION_EXECUTE_HANDLER
+}
+
 // TODO: don't use page_alloc() outside of utils/alloc
-// TODO: never commit_immediately
 page_alloc :: proc(size: math.Size, commit_immediately := true) -> []byte {
 	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | (commit_immediately ? win.MEM_COMMIT : 0), win.PAGE_READWRITE, nil, 0)
 	return (cast([^]byte)ptr)[:size]

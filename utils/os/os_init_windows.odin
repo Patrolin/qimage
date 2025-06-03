@@ -46,18 +46,4 @@ init :: proc "contextless" () {
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
 	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
-	// page fault exception handler
-	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
-}
-
-_page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
-	//context = runtime.default_context()
-	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
-		//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
-		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]
-		ptr := pException.ExceptionRecord.ExceptionInformation[1]
-		ptr = win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
-		return ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
-	}
-	return win.EXCEPTION_EXECUTE_HANDLER
 }

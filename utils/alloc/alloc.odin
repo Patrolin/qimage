@@ -10,22 +10,30 @@ CACHE_LINE_SIZE :: 1 << 6
 PAGE_SIZE :: 1 << 12
 HUGE_PAGE_SIZE :: 1 << 21
 
+// allocators
+VMEM_TO_RESERVE :: 1 << 16
 _global_allocator: HalfFitAllocator
+_temporary_allocators: [dynamic]ArenaAllocator
 _thread_index_to_context: [dynamic]runtime.Context
 
 // NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are..
 init :: proc() -> runtime.Context {
 	assert(len(_thread_index_to_context) == 0)
+
+	init_page_fault_handler()
+	half_fit_allocator_init(&_global_allocator, page_alloc(VMEM_TO_RESERVE, false))
+	context.allocator = runtime.Allocator{half_fit_allocator_proc, &_global_allocator}
+
 	for thread_index in 0 ..< os.info.logical_core_count {
 		ctx := empty_context()
-		if thread_index == 0 {
-			buffer := page_alloc(1 << 16, false)
-			half_fit_allocator_init(&_global_allocator, buffer)
-		}
 		ctx.allocator = runtime.Allocator{half_fit_allocator_proc, &_global_allocator}
-		ctx.temp_allocator = runtime.default_context().temp_allocator
+
+		append(&_temporary_allocators, arena_allocator(page_alloc(VMEM_TO_RESERVE, false)))
+		ctx.temp_allocator = runtime.Allocator{arena_allocator_proc, &_temporary_allocators[thread_index]}
+
 		append(&_thread_index_to_context, ctx)
 	}
+
 	return thread_context(0)
 }
 free_all_for_tests :: proc() {

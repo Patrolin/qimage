@@ -4,9 +4,9 @@ import "core:fmt"
 import "core:os" // TODO: remove this
 import "core:strings"
 
-readFile :: proc(fileName: string) -> (data: []u8, success: bool) {
+readFile :: proc(fileName: string) -> (data: []u8, err: os.Error) {
 	// ?TODO: write this is win api
-	return os.read_entire_file(fileName, allocator = context.temp_allocator)
+	return os.read_entire_file_from_filename_or_err(fileName, allocator = context.temp_allocator)
 }
 
 Image :: struct {

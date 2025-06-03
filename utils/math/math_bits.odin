@@ -12,16 +12,19 @@ KIBI_BYTES :: 1024 * BYTES
 MEBI_BYTES :: 1024 * KIBI_BYTES
 GIBI_BYTES :: 1024 * MEBI_BYTES
 
+// pointer math
 ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]byte {
-	return &([^]byte)(ptr)[offset]
+	return ([^]byte)(uintptr(ptr) + transmute(uintptr)(offset))
 }
-align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: uintptr) -> uintptr {
+align_forward :: #force_inline proc(ptr: rawptr, align_power_of_two: int) -> int {
 	assert(is_power_of_two(align_power_of_two))
-	remainder := (uintptr(ptr)) & uintptr(align_power_of_two - 1)
-	return remainder == 0 ? 0 : align_power_of_two - remainder
+	remainder := (uintptr(ptr)) & transmute(uintptr)(align_power_of_two - 1)
+	result := remainder == 0 ? 0 : transmute(uintptr)align_power_of_two - remainder
+	return transmute(int)result
 }
-align_backward :: #force_inline proc(ptr: rawptr, alignment_power_of_two: uintptr) -> uintptr {
-	return uintptr(ptr) & (alignment_power_of_two - 1)
+align_backward :: #force_inline proc(ptr: rawptr, alignment_power_of_two: int) -> int {
+	result := uintptr(ptr) & (transmute(uintptr)alignment_power_of_two - 1)
+	return transmute(int)result
 }
 
 // bits
