@@ -43,8 +43,8 @@ TODO: out of date:
     clamp :: proc(x, min, max: $T) -> T
     clamp_i32x2 :: proc(pos: i32x2, rect: AbsoluteRect) -> i32x2
 /os
-  emptyContext :: proc "contextless" ()
-  defaultContext :: proc "contextless" ()
+  empty_context :: proc "contextless" ()
+  default_context :: proc "contextless" ()
   init :: proc "contextless" ()
   /info
     os_info: struct {

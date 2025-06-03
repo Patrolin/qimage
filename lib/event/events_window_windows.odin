@@ -116,8 +116,10 @@ toggleFullscreen :: proc(window: win.HWND) {
 		win.SetWindowPos(window, nil, 0, 0, 0, 0, win.SWP_NOOWNERZORDER | win.SWP_FRAMECHANGED)
 	}
 }
-// vsync us to 60fps (or whatever the monitor refresh rate is)
-// NOTE: this sometimes returns 0-125 ms later than it should..
+/*
+	vsync us to the monitor refresh rate
+	NOTE: this only works when using OpenGL, otherwise we get only get 60Hz and sometimes it returns 0-125 ms later than it should..
+*/
 doVsyncBadly :: proc() -> time.Duration {
 	win.DwmFlush()
 	return time.time()
