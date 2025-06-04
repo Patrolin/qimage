@@ -282,7 +282,7 @@ half_fit_allocator_proc :: proc(
 		data, err = half_fit_alloc(half_fit, size)
 		ptr := raw_data(data)
 		if mode == .Alloc {
-			zero_simd_64B(uintptr(ptr), uintptr(ptr) + transmute(uintptr)(len(data)))
+			zero_simd_64B(ptr, len(data))
 		}
 		assert((uintptr(ptr) & 63) == 0, loc = loc)
 	case .Free:
@@ -299,13 +299,14 @@ half_fit_allocator_proc :: proc(
 		if mode == .Resize {
 			if size > old_size {
 				align_backward := math.align_backward(ptr, 64)
-				zero_start := math.ptr_add(ptr, old_size - align_backward)
-				zero_simd_64B(uintptr(zero_start), uintptr(zero_start) + transmute(uintptr)(size - old_size + align_backward))
+				offset := old_size - align_backward
+				zero_start := math.ptr_add(ptr, offset)
+				zero_simd_64B(zero_start, size - offset)
 			}
 		}
 		// copy
 		size_to_copy := min(size, old_size)
-		copy_simd_64B(uintptr(ptr), uintptr(ptr) + transmute(uintptr)(size_to_copy), uintptr(old_ptr))
+		copy_simd_64B(ptr, old_ptr, size_to_copy)
 	case:
 		data, err = nil, .Mode_Not_Implemented
 	}

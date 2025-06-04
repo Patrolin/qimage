@@ -45,18 +45,21 @@ thread_context :: proc "contextless" (user_index: int) -> runtime.Context {
 	return _thread_index_to_context[user_index]
 }
 
-// !TODO: make these be rawptrs and size: int
-zero_simd_64B :: proc(dest, dest_end: uintptr) {
+zero_simd_64B :: proc(dest: rawptr, size: int) {
+	dest := uintptr(dest)
+	dest_end := dest + transmute(uintptr)(size)
+
 	zero := (#simd[64]byte)(0)
-	dest := dest
 	for dest < dest_end {
 		(^#simd[64]byte)(dest)^ = zero
 		dest += 64
 	}
 }
-copy_simd_64B :: proc(dest, dest_end, src: uintptr) {
-	dest := dest
-	src := src
+copy_simd_64B :: proc(dest, src: rawptr, size: int) {
+	dest := uintptr(dest)
+	dest_end := dest + transmute(uintptr)(size)
+	src := uintptr(src)
+
 	for dest < dest_end {
 		(^#simd[64]byte)(dest)^ = (^#simd[64]byte)(src)^
 		dest += 64
