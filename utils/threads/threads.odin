@@ -4,6 +4,10 @@ import "base:intrinsics"
 
 // mutex
 Lock :: distinct bool
+get_lock_or_error :: #force_inline proc "contextless" (lock: ^Lock) -> (ok: bool) {
+	old_value := intrinsics.atomic_exchange(lock, true)
+	return old_value == false
+}
 get_lock :: #force_inline proc "contextless" (lock: ^Lock) {
 	for {
 		old_value := intrinsics.atomic_exchange(lock, true)
