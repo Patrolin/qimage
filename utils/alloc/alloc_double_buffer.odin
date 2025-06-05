@@ -2,6 +2,8 @@ package alloc_utils
 import "../mem"
 import "../threads"
 
+// !TODO: put the data next to the header, so that we can avoid a pointer indirection
+// !TODO: SwapBuffer with three past values?
 DoubleBuffer :: [2]struct #align(mem.CACHE_LINE_SIZE) {
 	lock:        threads.Lock,
 	data:        []byte,

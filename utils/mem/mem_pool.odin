@@ -3,6 +3,7 @@ import "../math"
 import "../threads"
 import "base:intrinsics"
 
+// TODO: this is only useful if you allocate a tree and then free parts of it, does this ever happen in good code?
 PoolAllocator :: struct {
 	lock:            threads.Lock,
 	next_free_slot:  ^FreePoolSlot,

@@ -36,7 +36,7 @@ ButtonState :: enum {
 	Up,
 }
 RawMouseEvent :: struct {
-	dpos: math.i32x2, // NOTE: there is not reliable way to get pos from dpos in windows
+	dpos: math.i32x2, // NOTE: there is no reliable way to get pos from dpos in windows
 	LMB:  ButtonState,
 	RMB:  ButtonState,
 }
