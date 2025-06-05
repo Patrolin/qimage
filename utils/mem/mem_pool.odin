@@ -1,4 +1,4 @@
-package alloc_utils
+package mem_utils
 import "../math"
 import "../threads"
 import "base:intrinsics"

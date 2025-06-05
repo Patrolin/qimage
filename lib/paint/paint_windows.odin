@@ -1,6 +1,6 @@
 package paint_lib
-import "../../utils/alloc"
 import "../../utils/math"
+import "../../utils/mem"
 import "../../utils/os"
 import "../event"
 import "../file"
@@ -40,14 +40,14 @@ resizeFrameBuffer :: proc(frameBuffer: ^FrameBuffer, width, height: i16) {
 	new_data_size := int(width) * int(height) * 4
 	if new_data_size != 0 {
 		// NOTE: size is 0 when window is minimized
-		new_data_buffer := alloc.page_alloc(math.Size(new_data_size))
+		new_data_buffer := mem.page_alloc(math.Size(new_data_size))
 		frameBuffer.data = ([^]u32)(&new_data_buffer[0])[:int(width) * int(height)] // NOTE: width and height should never be zero
 	}
 	frameBuffer.width = width
 	frameBuffer.height = height
 	if prev_buffer.data != nil {
 		copyFrameBuffer(prev_buffer, frameBuffer^)
-		alloc.page_free(&prev_buffer.data[0])
+		mem.page_free(&prev_buffer.data[0])
 	}
 }
 copyFrameBuffer :: proc(from: FrameBuffer, to: FrameBuffer) {

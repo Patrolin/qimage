@@ -1,6 +1,6 @@
 package file_lib
-import "../../utils/alloc"
 import "../../utils/math"
+import "../../utils/mem"
 import "../../utils/os"
 import "core:fmt"
 import "core:strings"
@@ -20,7 +20,7 @@ loadBmp_fromBuffer :: proc(buffer: []u8) -> (image: Image) {
 		image.width = i16(bitmapHeader.width)
 		image.height = i16(bitmapHeader.height)
 		image.channels = i16(bitmapHeader.bitsPerPixel / 8)
-		image.data = alloc.page_alloc(math.Size(int(image.width) * int(image.height) * int(image.channels))) // TODO: don't use page_alloc directly
+		image.data = mem.page_alloc(math.Size(int(image.width) * int(image.height) * int(image.channels))) // TODO: don't use page_alloc directly
 		fmt.assertf(image.height >= 0, "Negative height (%v) is not supported", image.height)
 		fmt.assertf(bitmapHeader.compression == 0, "Compression (%v) is not supported", bitmapHeader.compression)
 		// NOTE: we ignore bV5XPelsPerMeter, bV5YPelsPerMeter, bV5ClrUsed, bV5ClrImportant
