@@ -11,6 +11,7 @@ import win "core:sys/windows"
 VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 _global_allocator: mem.HalfFitAllocator
 _temporary_allocators: [dynamic]mem.ArenaAllocator
+// NOTE: These will be accessed very rarely, so we don't care about false sharing
 _thread_index_to_context: [dynamic]runtime.Context
 
 // NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are..
@@ -40,5 +41,5 @@ free_all_for_tests :: proc() {
 
 empty_context :: os.empty_context
 thread_context :: proc "contextless" (user_index: int) -> runtime.Context {
-	return _thread_index_to_context[user_index]
+	return _thread_index_to_context[user_index] // NOTE: we are copying the context here
 }

@@ -15,9 +15,8 @@ HALF_FIT_MIN_BLOCK_DATA_SIZE :: CACHE_LINE_SIZE
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
 
 /*
-	We will use `header_size = 64B` and `data_size = 64 << list_index`.
-		- This way each allocation is on a different cache line. Therefore different threads
-			won't be fighting over the same cache line (at least on machines with 64B cache lines).
+	We will use `header_size = CACHE_LINE_SIZE` and `data_size = CACHE_LINE_SIZE << list_index`.
+		- This way we prevent false sharing.
 		- Also, AVX-512 needs data to be aligned to 64B.
 */
 #assert(HALF_FIT_MIN_BLOCK_SIZE == 2 * CACHE_LINE_SIZE)
@@ -27,7 +26,7 @@ HalfFitAllocator :: struct {
 	lock:               threads.Lock,
 	available_bitfield: u32,
 	free_lists:         [HALF_FIT_FREE_LIST_COUNT]HalfFitFreeList,
-	_buffer:            []u8, // used for debugging
+	_buffer:            []u8,
 }
 #assert(size_of(HalfFitAllocator) <= 16 * 32)
 
