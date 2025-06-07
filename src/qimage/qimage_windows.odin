@@ -21,7 +21,6 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7
 image: file.Image
 
 main :: proc() {
-	os.init()
 	context = alloc.init()
 	threads.init()
 	event.initEvents({onPaint})

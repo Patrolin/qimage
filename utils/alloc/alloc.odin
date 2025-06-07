@@ -17,6 +17,7 @@ _thread_index_to_context: [dynamic]runtime.Context
 // NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are..
 init :: proc() -> runtime.Context {
 	assert(len(_thread_index_to_context) == 0)
+	os.init()
 
 	mem.init_page_fault_handler()
 	mem.half_fit_allocator_init(&_global_allocator, mem.page_alloc(VIRTUAL_MEMORY_TO_RESERVE, false))

@@ -1,11 +1,10 @@
 package mem_utils
 import "../math"
-import "../threads"
 import "base:intrinsics"
 
 // TODO: this is only useful if you allocate a tree and then free parts of it, does this ever happen in good code?
 PoolAllocator :: struct {
-	lock:            threads.Lock,
+	lock:            Lock,
 	next_free_slot:  ^FreePoolSlot,
 	next_empty_slot: ^FreePoolSlot,
 	slot_size:       int,
@@ -21,8 +20,8 @@ pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
 	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
 }
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
-	threads.get_lock(&pool.lock)
-	defer threads.release_lock(&pool.lock)
+	get_lock(&pool.lock)
+	defer release_lock(&pool.lock)
 	// find free slot
 	next_free_slot := pool.next_free_slot
 	next_empty_slot := pool.next_empty_slot
@@ -34,8 +33,8 @@ pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	return ([^]byte)(slot)
 }
 pool_free :: proc(pool: ^PoolAllocator, old_ptr: rawptr) {
-	threads.get_lock(&pool.lock)
-	defer threads.release_lock(&pool.lock)
+	get_lock(&pool.lock)
+	defer release_lock(&pool.lock)
 	// TODO: guard against double free?
 	old_slot := (^FreePoolSlot)(old_ptr)
 	old_slot.next_free_slot = pool.next_free_slot

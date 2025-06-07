@@ -13,7 +13,6 @@ import "core:fmt"
 isRunning := false
 
 main :: proc() {
-	os.init()
 	context = alloc.init()
 	threads.init()
 	event.initEvents({onPaint})

@@ -15,7 +15,6 @@ isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 
 main :: proc() {
-	os.init()
 	context = alloc.init()
 	threads.init()
 	event.initEvents({onPaint})

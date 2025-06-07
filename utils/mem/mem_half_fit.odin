@@ -1,7 +1,6 @@
 package mem_utils
 import "../math"
 import "../test"
-import "../threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
@@ -23,7 +22,7 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 #assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == CACHE_LINE_SIZE)
 
 HalfFitAllocator :: struct {
-	lock:               threads.Lock,
+	lock:               Lock,
 	available_bitfield: u32,
 	free_lists:         [HALF_FIT_FREE_LIST_COUNT]HalfFitFreeList,
 	_buffer:            []u8,
@@ -269,8 +268,8 @@ half_fit_allocator_proc :: proc(
 	err: mem.Allocator_Error,
 ) {
 	half_fit := (^HalfFitAllocator)(allocator_data)
-	threads.get_lock(&half_fit.lock)
-	defer threads.release_lock(&half_fit.lock)
+	get_lock(&half_fit.lock)
+	defer release_lock(&half_fit.lock)
 	when DEBUG {
 		fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v", mode, size, _alignment, old_ptr, old_size, loc)
 	}

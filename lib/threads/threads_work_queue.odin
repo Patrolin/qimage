@@ -2,7 +2,7 @@ package threads_lib
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
-import threads_utils "../../utils/threads"
+import "../threads"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
@@ -19,22 +19,21 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
 	context = alloc.thread_context(int(thread_info.index))
 	for {
-		intrinsics.atomic_add(&threads_utils.running_thread_count, 1)
+		intrinsics.atomic_add(&threads.running_thread_count, 1)
 		for doNextWorkItem(&work_queue) {}
-		intrinsics.atomic_add(&threads_utils.running_thread_count, -1)
-		threads_utils._waitForSemaphore()
+		intrinsics.atomic_add(&threads.running_thread_count, -1)
+		threads._waitForSemaphore()
 	}
 }
-ThreadInfo :: threads_utils.ThreadInfo
 init :: proc() -> []ThreadInfo {
-	assert(threads_utils.thread_count == 1)
+	assert(threads.thread_count == 1)
 	thread_count := os.info.logical_core_count - 1
-	threads_utils._semaphore = threads_utils._createSemaphore(i32(thread_count))
+	threads._semaphore = threads._createSemaphore(i32(thread_count))
 	thread_infos := make([]ThreadInfo, thread_count)
-	intrinsics.atomic_store(&threads_utils.thread_count, thread_count)
+	intrinsics.atomic_store(&threads.thread_count, thread_count)
 	for i in 1 ..= thread_count {
 		thread_infos[i - 1] = ThreadInfo {
-			thread_id = threads_utils._createThread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
+			thread_id = threads._createThread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
 			index     = u32(i),
 		}
 	}
@@ -72,7 +71,7 @@ launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 			if prev_state == WorkItemState.Empty {
 				item^ = work
 				intrinsics.atomic_store(&item.state, WorkItemState.Written)
-				threads_utils.launchThread()
+				_launchThread()
 				return
 			}
 		}

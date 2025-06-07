@@ -17,7 +17,6 @@ test_default_context :: proc(t: ^testing.T) {
 	test.start_test(t)
 	debug_temp_allocator := context.temp_allocator
 
-	os.init()
 	context = alloc.init()
 	temp_allocator_to_check := context.temp_allocator
 	context.temp_allocator = debug_temp_allocator
@@ -66,7 +65,6 @@ test_pool_alloc :: proc(t: ^testing.T) {
 test_map :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	os.init()
 	context = alloc.init()
 	m: alloc.Map(string, int) = {}
 
@@ -99,7 +97,6 @@ test_map :: proc(t: ^testing.T) {
 test_set :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	os.init()
 	context = alloc.init()
 	m: alloc.Set(string) = {}
 

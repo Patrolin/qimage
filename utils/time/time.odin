@@ -1,4 +1,5 @@
 package time_utils
+import "../mem"
 import "../os"
 import "../test"
 import "base:intrinsics"
@@ -30,35 +31,34 @@ CycleCount :: distinct int
 cycles :: #force_inline proc() -> CycleCount {
 	return CycleCount(intrinsics.read_cycle_counter())
 }
-mfence :: #force_inline proc() {
-	intrinsics.atomic_thread_fence(.Seq_Cst)
-}
-// SCOPED_TIME, SCOPED_CYCLES
+
+// SCOPED_TIME
 @(deferred_in_out = _SCOPED_TIME_END)
 SCOPED_TIME :: proc(diff_time: ^Duration) -> (start_time: Duration) {
-	mfence()
+	mem.mfence()
 	start_time = time()
-	mfence()
+	mem.mfence()
 	return
 }
 @(private)
 _SCOPED_TIME_END :: proc(diff_time: ^Duration, start_time: Duration) {
-	mfence()
+	mem.mfence()
 	diff_time^ = time() - start_time
-	mfence()
+	mem.mfence()
 }
+// SCOPED_CYCLES
 @(deferred_in_out = _SCOPED_CYCLES_END)
 SCOPED_CYCLES :: proc(diff_cycles: ^CycleCount) -> (start_cycles: CycleCount) {
-	mfence()
+	mem.mfence()
 	start_cycles = cycles()
-	mfence()
+	mem.mfence()
 	return
 }
 @(private)
 _SCOPED_CYCLES_END :: proc(diff_cycles: ^CycleCount, start_cycles: CycleCount) {
-	mfence()
+	mem.mfence()
 	diff_cycles^ = cycles() - start_cycles
-	mfence()
+	mem.mfence()
 }
 
 sleep_ns :: proc(ns: Duration) {

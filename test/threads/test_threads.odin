@@ -22,7 +22,6 @@ tests_workQueue :: proc(t: ^testing.T) {
 		data := (^int)(data)
 		intrinsics.atomic_add(data, -2)
 	}
-	os.init()
 	context = alloc.init()
 	//thread_infos := initThreads()
 	N := 200

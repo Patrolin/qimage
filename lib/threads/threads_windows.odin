@@ -1,5 +1,5 @@
-package threads_utils
-import "../math"
+package threads_lib
+import "../../utils/math"
 import win "core:sys/windows"
 
 OsThreadId :: struct #packed {
@@ -15,7 +15,7 @@ OsSemaphore :: distinct win.HANDLE
 _createSemaphore :: proc(max_count: i32) -> OsSemaphore {
 	return OsSemaphore(win.CreateSemaphoreW(nil, 0, max_count, nil))
 }
-launchThread :: proc() {
+_launchThread :: proc() {
 	win.ReleaseSemaphore(win.HANDLE(_semaphore), 1, nil)
 }
 _waitForSemaphore :: proc() {

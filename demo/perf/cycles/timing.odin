@@ -12,7 +12,7 @@ TimingCase :: struct($T: typeid) {
 	f:              proc(v: T) -> T,
 	break_before:   bool,
 	average_cycles: f64,
-	average_time:   f64,
+	average_time:   u64,
 	run_count:      int,
 }
 timingCase :: proc($T: typeid, name: string, f: proc(v: T) -> T, break_before := false) -> TimingCase(T) {
@@ -28,7 +28,14 @@ printCase :: proc($T: typeid, sb: ^strings.Builder, _case: TimingCase(T)) {
 	} else {
 		run_count_string = fmt.aprintf("%v", _case.run_count, allocator = context.temp_allocator)
 	}
-	fmt.sbprintfln(sb, "%v: %.2f cy, %.0f ns, %v runs", _case.name, _case.average_cycles, time.nanos(_case.average_time), run_count_string)
+	fmt.sbprintfln(
+		sb,
+		"%v: %.2f cy, %.0f ns, %v runs",
+		_case.name,
+		_case.average_cycles,
+		time.Duration(_case.average_time),
+		run_count_string,
+	)
 }
 printCasesEnd :: proc(sb: ^strings.Builder) {
 	fmt.sbprintfln(sb, "")
@@ -40,7 +47,7 @@ measureCold :: proc($T: typeid, _cases: []TimingCase(T)) {
 	for &_case in _cases {
 		acc: [1]T // NOTE: make compiler not optimize away our function calls
 		diff_cycles: int
-		diff_time: f64 // NOTE: windows only gives us precision of 100 ns per sample
+		diff_time: u64 // NOTE: windows only gives us precision of 100 ns per sample
 		{
 			time.SCOPED_TIME(&diff_time)
 			time.SCOPED_CYCLES(&diff_cycles)

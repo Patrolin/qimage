@@ -1,11 +1,10 @@
 package alloc_utils
 import "../mem"
-import "../threads"
 
 // !TODO: put the data next to the header, so that we can avoid a pointer indirection
 // !TODO: SwapBuffer with three past values?
 DoubleBuffer :: [2]struct #align(mem.CACHE_LINE_SIZE) {
-	lock:        threads.Lock,
+	lock:        mem.Lock,
 	data:        []byte,
 	next_offset: int,
 }
@@ -15,7 +14,7 @@ double_buffer_append :: proc(double_buffer: ^DoubleBuffer, buffer_index: int, sr
 	// get one of the buffers
 	next_buffer_index = buffer_index
 	buffer := &double_buffer[buffer_index]
-	got_lock := threads.get_lock_or_error(&buffer.lock)
+	got_lock := mem.get_lock_or_error(&buffer.lock)
 	if !got_lock {
 		next_buffer_index = 1 - buffer_index
 		buffer = &double_buffer[next_buffer_index]
@@ -26,7 +25,7 @@ double_buffer_append :: proc(double_buffer: ^DoubleBuffer, buffer_index: int, sr
 	((^[4]u64)(ptr))^ = (^[4]u64)(src)^
 	buffer.next_offset = (next_offset + 4) & len(buffer.data)
 	// return
-	if got_lock {threads.release_lock(&buffer.lock)}
+	if got_lock {mem.release_lock(&buffer.lock)}
 	return
 }
 double_buffer_get :: proc(double_buffer: ^DoubleBuffer, buffer_index: int) -> (data: []byte, next_buffer_index: int) {
@@ -34,10 +33,10 @@ double_buffer_get :: proc(double_buffer: ^DoubleBuffer, buffer_index: int) -> (d
 	next_buffer_index = 1 - buffer_index
 	other_buffer := &double_buffer[next_buffer_index]
 	other_buffer.next_offset = 0
-	threads.release_lock(&other_buffer.lock)
+	mem.release_lock(&other_buffer.lock)
 	// lock and return the current buffer
 	buffer := &double_buffer[buffer_index]
 	data = buffer.data
-	threads.get_lock(&buffer.lock)
+	mem.get_lock(&buffer.lock)
 	return
 }
