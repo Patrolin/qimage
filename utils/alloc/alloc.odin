@@ -11,8 +11,7 @@ import win "core:sys/windows"
 VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 _global_allocator: mem.HalfFitAllocator
 _temporary_allocators: [dynamic]mem.ArenaAllocator
-// NOTE: These will be accessed very rarely, so we don't care about false sharing
-_thread_index_to_context: [dynamic]runtime.Context
+_thread_index_to_context: [dynamic]runtime.Context // NOTE: read-only after the first time
 
 // NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are..
 init :: proc() -> runtime.Context {

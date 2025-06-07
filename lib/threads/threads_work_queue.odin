@@ -2,7 +2,6 @@ package threads_lib
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
-import "../threads"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
@@ -19,22 +18,22 @@ threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
 	context = alloc.thread_context(int(thread_info.index))
 	for {
-		intrinsics.atomic_add(&threads.running_thread_count, 1)
+		intrinsics.atomic_add(&running_thread_count, 1)
 		for doNextWorkItem(&work_queue) {}
-		intrinsics.atomic_add(&threads.running_thread_count, -1)
-		threads._waitForSemaphore()
+		intrinsics.atomic_add(&running_thread_count, -1)
+		_waitForSemaphore()
 	}
 }
-init :: proc() -> []ThreadInfo {
-	assert(threads.thread_count == 1)
-	thread_count := os.info.logical_core_count - 1
-	threads._semaphore = threads._createSemaphore(i32(thread_count))
-	thread_infos := make([]ThreadInfo, thread_count)
-	intrinsics.atomic_store(&threads.thread_count, thread_count)
-	for i in 1 ..= thread_count {
+init_thread_pool :: proc() -> []ThreadInfo {
+	threads_to_launch_count := os.info.logical_core_count - running_thread_count
+	assert(threads_to_launch_count > 0)
+	_semaphore = _createSemaphore(i32(threads_to_launch_count))
+	thread_infos := make([]ThreadInfo, threads_to_launch_count)
+	intrinsics.atomic_add(&running_thread_count, threads_to_launch_count)
+	for i in running_thread_count ..= threads_to_launch_count {
 		thread_infos[i - 1] = ThreadInfo {
-			thread_id = threads._createThread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
-			index     = u32(i),
+			os_info = launch_os_thread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
+			index   = u32(i),
 		}
 	}
 	return thread_infos
@@ -43,7 +42,7 @@ init :: proc() -> []ThreadInfo {
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	items:           [32]WorkItem,
+	buffer:          [32]WorkItem,
 	pending_count:   int,
 	completed_count: int,
 }
@@ -62,16 +61,16 @@ WorkItemState :: enum {
 launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 	intrinsics.atomic_add(&queue.pending_count, 1)
 	for {
-		start_index := context.user_index // random number
-		slot_step := start_index | 1 // NOTE: len(items) must be a power of two
-		for i := 0; i < len(queue.items); i += 1 {
-			slot_index := start_index + i * slot_step
-			item := &queue.items[slot_index]
+		slot_index := context.user_index // start at a random number
+		slot_step := slot_index | 1 // NOTE: len(items) must be a power of two
+		for i := 0; i < len(queue.buffer); i += 1 {
+			slot_index = (slot_index + slot_step) & len(queue.buffer) // NOTE: len(items) must be a power of two
+			item := &queue.buffer[slot_index]
 			prev_state := intrinsics.atomic_compare_exchange_weak(&item.state, WorkItemState.Empty, WorkItemState.Writing)
 			if prev_state == WorkItemState.Empty {
 				item^ = work
 				intrinsics.atomic_store(&item.state, WorkItemState.Written)
-				_launchThread()
+				_resumeThread()
 				return
 			}
 		}
@@ -81,9 +80,9 @@ launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	start_index := context.user_index // random number
 	slot_step := start_index | 1 // NOTE: len(items) must be a power of two
-	for i := 0; i < len(queue.items); i += 1 {
+	for i := 0; i < len(queue.buffer); i += 1 {
 		slot_index := start_index + i * slot_step
-		item := &queue.items[slot_index & (len(queue.items) - 1)]
+		item := &queue.buffer[slot_index & (len(queue.buffer) - 1)]
 		prev_state := intrinsics.atomic_compare_exchange_weak(&item.state, WorkItemState.Written, WorkItemState.Reading)
 		if prev_state == WorkItemState.Written {
 			work := item^

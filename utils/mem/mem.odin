@@ -1,6 +1,7 @@
 package mem_utils
 import "base:intrinsics"
 
+// NOTE: reading from the same cache line is fine, but writing from multiple threads can lead to false sharing
 CACHE_LINE_SIZE_EXPONENT :: 6
 CACHE_LINE_SIZE :: 1 << CACHE_LINE_SIZE_EXPONENT
 

@@ -14,7 +14,7 @@ isRunning := false
 
 main :: proc() {
 	context = alloc.init()
-	threads.init()
+	threads.init_thread_pool()
 	event.initEvents({onPaint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)

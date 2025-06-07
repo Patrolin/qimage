@@ -56,7 +56,7 @@ readFileAsync :: proc(path: string) {
 	fmt.assertf(error == 0, "Couldn't submit async read request, error: %v", error)
 	// launch thread to get result // TODO: reuse work queue threads?
 	intrinsics.atomic_add(&threads.pending_async_files, 1)
-	threads._launchThread()
+	assert(false)
 }
 
 IORING_VERSION :: enum i32 {

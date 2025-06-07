@@ -22,7 +22,7 @@ image: file.Image
 
 main :: proc() {
 	context = alloc.init()
-	threads.init()
+	threads.init_thread_pool()
 	event.initEvents({onPaint})
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})
