@@ -10,8 +10,8 @@ import "core:strings"
 
 // utils
 HALF_FIT_FREE_LIST_COUNT :: 30
-HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: 6
-HALF_FIT_MIN_BLOCK_DATA_SIZE :: 1 << HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
+HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: CACHE_LINE_SIZE_EXPONENT
+HALF_FIT_MIN_BLOCK_DATA_SIZE :: CACHE_LINE_SIZE
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
 
 /*
@@ -20,8 +20,8 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 			won't be fighting over the same cache line (at least on machines with 64B cache lines).
 		- Also, AVX-512 needs data to be aligned to 64B.
 */
-#assert(HALF_FIT_MIN_BLOCK_SIZE == 128)
-#assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == 64)
+#assert(HALF_FIT_MIN_BLOCK_SIZE == 2 * CACHE_LINE_SIZE)
+#assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == CACHE_LINE_SIZE)
 
 HalfFitAllocator :: struct {
 	lock:               threads.Lock,
@@ -37,17 +37,16 @@ HalfFitFreeList :: struct {
 }
 #assert(align_of(HalfFitFreeList) == 8)
 
-HalfFitBlockHeader :: struct {
+HalfFitBlockHeader :: struct #align(CACHE_LINE_SIZE) {
 	// used by free blocks
 	using _:        HalfFitFreeList,
 	// shared
 	prev_block:     ^HalfFitBlockHeader,
 	/* {is_used: u1, is_last: u1, size: u62} */
 	size_and_flags: uint `fmt:"#X"`,
-	padding:        [4]u64, // TODO: put flags here instead of merged in size
+	// TODO: put flags here instead of merged in size?
 }
-#assert(size_of(HalfFitBlockHeader) == 64)
-#assert(align_of(HalfFitBlockHeader) == 8)
+#assert(size_of(HalfFitBlockHeader) == CACHE_LINE_SIZE)
 
 _half_fit_block_index :: proc(size: uint) -> int {
 	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT

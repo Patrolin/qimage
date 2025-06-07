@@ -2,6 +2,8 @@ package alloc_utils
 import math_utils "../math"
 import "base:runtime"
 
+// TODO: rethink this with half fit allocator in mind
+
 // SlotArray
 @(private)
 SlotUsed :: enum u8 {

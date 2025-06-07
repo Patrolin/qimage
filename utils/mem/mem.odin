@@ -1,8 +1,11 @@
 package mem_utils
 
-CACHE_LINE_SIZE :: 1 << 6
-PAGE_SIZE :: 1 << 12
-HUGE_PAGE_SIZE :: 1 << 21
+CACHE_LINE_SIZE_EXPONENT :: 6
+CACHE_LINE_SIZE :: 1 << CACHE_LINE_SIZE_EXPONENT
+PAGE_SIZE_EXPONENT :: 12
+PAGE_SIZE :: 1 << PAGE_SIZE_EXPONENT
+HUGE_PAGE_SIZE_EXPONENT :: 21
+HUGE_PAGE_SIZE :: 1 << HUGE_PAGE_SIZE_EXPONENT
 
 zero_simd_64B :: proc(dest: rawptr, size: int) {
 	dest := uintptr(dest)
