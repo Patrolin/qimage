@@ -18,14 +18,12 @@ import "core:time"
 test_default_context :: proc(t: ^testing.T) {
 	test.start_test(t)
 	context = threads.init()
+	ctx := context
 
 	// allocator
 	x := new(int)
-	fmt.print("ayaya.new\n")
 	test.expect_was_allocated(x, "x", 13)
-	fmt.print("ayaya.new.expect\n")
 	free(x)
-	fmt.print("ayaya.free\n")
 
 	// temp_allocator
 	arena := (^mem.ArenaAllocator)(context.temp_allocator.data)

@@ -9,7 +9,7 @@ init_page_fault_handler :: proc "contextless" () {
 	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
 }
 _page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
-	DEBUG :: true
+	DEBUG :: false
 	when DEBUG {context = runtime.default_context()}
 	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
 		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]

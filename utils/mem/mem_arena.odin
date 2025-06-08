@@ -6,7 +6,7 @@ import "core:mem"
 
 // we will assume single threaded
 ArenaAllocator :: struct {
-	buffer: []byte,
+	buffer: []byte `fmt:"%p"`,
 	next:   int,
 	lock:   Lock, // nocheckin
 }
