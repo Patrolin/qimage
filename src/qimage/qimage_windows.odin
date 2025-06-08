@@ -1,6 +1,5 @@
-// odin run src/qimage -subsystem:windows
+// odin run src/qimage -subsystem:windows -default-to-nil-allocator
 package main
-import "../../lib/ast"
 import "../../lib/event"
 import "../../lib/file"
 import "../../lib/gl"
@@ -27,19 +26,6 @@ main :: proc() {
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})
 	image = assets.loadImage("test_image.bmp")
-	/*
-	file.printImage(image, 0, 0, 3, 3)
-	x := "bÄ + 2"
-	for codepoint, index in x {
-		fmt.println(index, codepoint)
-		// 0 A
-		// 1 B
-		// 2 C
-	}
-	tokens := ast.tokenize(x, "+-0123456789", "\"'", "\\", "abcdefxyz", " \n\r\t")
-	fmt.println(tokens)
-	assert(false, "ayaya")
-	*/
 	paint.resizeFrameBuffer(&frame_buffer, i16(window.client_rect.width), i16(window.client_rect.height))
 	// TODO: Timer?
 	timing: struct {

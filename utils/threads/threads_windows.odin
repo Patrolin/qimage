@@ -1,6 +1,6 @@
 package threads_utils
-import "../../utils/math"
-import "../../utils/mem"
+import "../math"
+import "../mem"
 import "base:intrinsics"
 import "base:runtime"
 import win "core:sys/windows"
