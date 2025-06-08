@@ -12,34 +12,10 @@ import "core:time"
 	- prioritizing tasks that needs to be done immediately (throughput)
 */
 
-// threads
-work_queue_thread_proc :: proc "stdcall" (thread_info: rawptr) -> u32 {
-	thread_info := cast(^ThreadInfo)thread_info
-	context = thread_context(int(thread_info.index))
-	for {
-		intrinsics.atomic_add(&running_thread_count, 1)
-		join_queue(&work_queue)
-		intrinsics.atomic_add(&running_thread_count, -1)
-		_wait_for_semaphore()
-	}
-}
-init_thread_pool :: proc() {
-	thread_index_start := total_thread_count
-	thread_index_end := os.info.logical_core_count
-	new_thread_count := thread_index_end - thread_index_start
-	assert(new_thread_count > 0)
-
-	semaphore = _create_semaphore(i32(new_thread_count))
-	for i in thread_index_start ..< thread_index_end {
-		thread_infos[i] = ThreadInfo {
-			os_info = launch_os_thread(64 * math.KIBI_BYTES, work_queue_thread_proc, &thread_infos[i - 1]),
-			index   = u32(i),
-		}
-	}
-}
-
-// work queue
+// globals
 work_queue: WorkQueue
+
+// types
 WorkQueue :: struct {
 	buffer:          [32]Work,
 	pending_count:   int,
@@ -56,6 +32,28 @@ WorkItemState :: enum {
 	Writing,
 	Written,
 	Reading,
+}
+
+// procedures
+init_thread_pool :: proc() {
+	thread_index_start := total_thread_count
+	thread_index_end := os.info.logical_core_count
+	new_thread_count := thread_index_end - thread_index_start
+
+	semaphore = _create_semaphore(i32(max(0, new_thread_count)))
+	for i in thread_index_start ..< thread_index_end {
+		thread_infos[i].os_info = launch_os_thread(64 * math.KIBI_BYTES, work_queue_thread_proc, &thread_infos[i - 1])
+	}
+}
+work_queue_thread_proc :: proc "stdcall" (thread_info: rawptr) -> u32 {
+	thread_info := cast(^ThreadInfo)thread_info
+	context = thread_context(int(thread_info.index))
+	for {
+		intrinsics.atomic_add(&running_thread_count, 1)
+		join_queue(&work_queue)
+		intrinsics.atomic_add(&running_thread_count, -1)
+		_wait_for_semaphore()
+	}
 }
 append_work :: proc(queue: ^WorkQueue, work: Work) {
 	intrinsics.atomic_add(&queue.pending_count, 1)

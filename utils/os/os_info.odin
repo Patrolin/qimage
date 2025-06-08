@@ -1,7 +1,11 @@
 package os_utils
 import "../math"
 
-info: struct {
+// globals
+info: OsInfo
+
+// types
+OsInfo :: struct {
 	_time_divisor:      int,
 	page_size:          int,
 	large_page_size:    int,

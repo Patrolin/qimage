@@ -10,7 +10,7 @@ import win "core:sys/windows"
 default_window_class_name: win.wstring
 @(private)
 initWindow :: proc() {
-	default_window_class_name = os.win_stringToWstring("lib_window_default", allocator = context.allocator)
+	default_window_class_name = os.win_string_to_wstring("lib_window_default", allocator = context.allocator)
 	registerWindowClass(
 		{style = win.CS_HREDRAW | win.CS_VREDRAW | win.CS_OWNDC, lpfnWndProc = messageHandler, lpszClassName = default_window_class_name},
 	)
@@ -45,7 +45,7 @@ openWindow :: proc(title: string, client_size: math.i32x2, window_pos: math.i32x
 	window := new(Window)
 	window.initial_client_ratio = {client_size.x, client_size.y}
 	os_events_info.current_window = window
-	title: win.wstring = len(title) > 0 ? os.win_stringToWstring(title) : nil
+	title: win.wstring = len(title) > 0 ? os.win_string_to_wstring(title) : nil
 	window_border := os.info.window_border
 	window_size := math.i32x2 {
 		client_size.x + window_border.left + window_border.right,

@@ -4,16 +4,16 @@ package main
 
 import "../../lib/event"
 import "../../lib/gl"
-import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/os"
+import "../../utils/threads"
 import "../../utils/time"
 import "core:fmt"
 
 isRunning := false
 
 main :: proc() {
-	context = alloc.init()
+	context = threads.init()
 	threads.init_thread_pool()
 	event.initEvents({onPaint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})

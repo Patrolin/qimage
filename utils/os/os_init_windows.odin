@@ -4,6 +4,7 @@ import "core:fmt"
 import core_os "core:os"
 import win "core:sys/windows"
 
+// imports
 foreign import kernel32 "system:kernel32.lib"
 @(default_calling_convention = "std")
 foreign kernel32 {
@@ -11,6 +12,7 @@ foreign kernel32 {
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
 }
 
+// procedures
 empty_context :: #force_inline proc "contextless" () -> runtime.Context {
 	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }

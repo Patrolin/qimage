@@ -2,7 +2,9 @@ package mem_utils
 import "../math"
 import "base:intrinsics"
 
-// TODO: this is only useful if you allocate a tree and then free parts of it, does this ever happen in good code?
+/* TODO: this is only useful if you allocate a tree and then free parts of it, does this ever happen in good code? */
+
+// types
 PoolAllocator :: struct {
 	lock:            Lock,
 	next_free_slot:  ^FreePoolSlot,
@@ -15,6 +17,7 @@ FreePoolSlot :: struct {
 }
 #assert(size_of(FreePoolSlot) <= 8)
 
+// procedures
 pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
 	assert(slot_size >= size_of(^FreePoolSlot))
 	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}

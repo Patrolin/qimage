@@ -4,21 +4,15 @@ import "base:intrinsics"
 import "core:fmt"
 import "core:mem"
 
-// we will assume single threaded
+// types
 ArenaAllocator :: struct {
 	buffer: []byte `fmt:"%p"`,
 	next:   int,
+	/* we will assume single threaded */
 	lock:   Lock, // nocheckin
 }
-arena_alloc :: proc(arena_allocator: ^ArenaAllocator, size: int) -> (ptr: [^]byte) {
-	ptr = math.ptr_add(raw_data(arena_allocator.buffer), arena_allocator.next)
 
-	alignment_offset := math.align_forward(ptr, 64) // align to 64B, so we can do a faster copy when resizing
-	ptr = math.ptr_add(ptr, alignment_offset)
-
-	arena_allocator.next += size + alignment_offset
-	return
-}
+// procedures
 arena_allocator :: proc(buffer: []byte) -> ArenaAllocator {
 	return ArenaAllocator{buffer, 0, false}
 }
@@ -58,5 +52,14 @@ arena_allocator_proc :: proc(
 	case .Free_All:
 		arena_allocator.next = 0
 	}
+	return
+}
+arena_alloc :: proc(arena_allocator: ^ArenaAllocator, size: int) -> (ptr: [^]byte) {
+	ptr = math.ptr_add(raw_data(arena_allocator.buffer), arena_allocator.next)
+
+	alignment_offset := math.align_forward(ptr, 64) // align to 64B, so we can do a faster copy when resizing
+	ptr = math.ptr_add(ptr, alignment_offset)
+
+	arena_allocator.next += size + alignment_offset
 	return
 }

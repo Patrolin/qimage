@@ -4,6 +4,10 @@ import "core:strings"
 import "core:testing"
 import "core:time"
 
+// globals
+test_context: TestContext
+
+// types
 Case :: struct($K: typeid, $V: typeid) {
 	key:      K,
 	expected: V,
@@ -12,8 +16,7 @@ TestContext :: struct {
 	t: ^testing.T,
 }
 
-test_context: TestContext
-
+// procedures
 start_test :: proc(t: ^testing.T) {
 	time.sleep(100 * time.Millisecond) // NOTE: fix printing
 	test_context.t = t
@@ -21,7 +24,6 @@ start_test :: proc(t: ^testing.T) {
 set_fail_timeout :: proc(duration: time.Duration) {
 	testing.set_fail_timeout(test_context.t, duration)
 }
-
 expect :: #force_inline proc(condition: bool, message := "", loc := #caller_location) {
 	when ODIN_TEST {
 		testing.expect(test_context.t, condition, message, loc = loc)
@@ -52,7 +54,6 @@ expect_was_allocated :: proc(ptr: ^int, name: string, value: int, loc := #caller
 expect_still_allocated :: proc(ptr: ^int, name: string, value: int, loc := #caller_location) {
 	expectf(ptr != nil && ptr^ == value, "Failed still_allocated, %v: %v at %v", name, ptr^, ptr, loc = loc)
 }
-
 end_test :: proc() {
 	fmt.print("\n\n", flush = true) // NOTE: fix printing
 }

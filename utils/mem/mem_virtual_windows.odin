@@ -5,6 +5,7 @@ import "core:fmt"
 import "core:mem"
 import win "core:sys/windows"
 
+// procedures
 init_page_fault_handler :: proc "contextless" () {
 	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
 }
@@ -26,7 +27,6 @@ _page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINT
 	}
 	return win.EXCEPTION_EXECUTE_HANDLER
 }
-
 // TODO: don't use page_alloc() outside of utils/alloc
 page_alloc :: proc(size: math.Size, commit_immediately := true) -> []byte {
 	ptr := VirtualAlloc2(nil, nil, win.SIZE_T(size), win.MEM_RESERVE | (commit_immediately ? win.MEM_COMMIT : 0), win.PAGE_READWRITE, nil, 0)

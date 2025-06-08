@@ -23,9 +23,9 @@ getAllEvents :: proc() {
 @(private)
 updateOsEventsInfo :: proc() {
 	current_window := os_events_info.current_window
-	current_window.monitor_rect = os.win_getMonitorRect(current_window.handle)
-	current_window.window_rect = os.win_getWindowRect(current_window.handle)
-	current_window.client_rect = os.win_getClientRect(current_window.handle, current_window.window_rect)
+	current_window.monitor_rect = os.win_get_monitor_rect(current_window.handle)
+	current_window.window_rect = os.win_get_window_rect(current_window.handle)
+	current_window.client_rect = os.win_get_client_rect(current_window.handle, current_window.window_rect)
 	if os_events_info.resized_window {
 		append(&os_events, WindowResizeEvent{})
 	}
@@ -123,7 +123,7 @@ messageHandler :: proc "stdcall" (
 		}
 		text_buffer: [10]win.WCHAR // NOTE: windows can theoretically return ligatures with up to 255 WCHARs
 		text_len := win.ToUnicode(key_code, scan_code, &_keyboard_state[0], &text_buffer[0], len(text_buffer), 0x4)
-		text := os.win_wstringToString(text_buffer[:max(text_len, 0)])
+		text := os.win_wstring_to_string(text_buffer[:max(text_len, 0)])
 		append(
 			&os_events,
 			KeyboardEvent {

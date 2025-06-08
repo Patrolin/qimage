@@ -7,20 +7,20 @@ import "core:fmt"
 import "core:mem"
 import "core:strings"
 
-// utils
+// constants
+DEBUG :: false
 HALF_FIT_FREE_LIST_COUNT :: 30
 HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT :: CACHE_LINE_SIZE_EXPONENT
 HALF_FIT_MIN_BLOCK_DATA_SIZE :: CACHE_LINE_SIZE
 HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA_SIZE
-
-/*
-	We will use `header_size = CACHE_LINE_SIZE` and `data_size = CACHE_LINE_SIZE << list_index`.
-		- This way we prevent false sharing.
-		- Also, AVX-512 needs data to be aligned to 64B.
+/* We will use `header_size = CACHE_LINE_SIZE` and `data_size = CACHE_LINE_SIZE << list_index`.
+	- This way we prevent false sharing.
+	- Also, AVX-512 needs data to be aligned to 64B.
 */
 #assert((HALF_FIT_MIN_BLOCK_SIZE % CACHE_LINE_SIZE) == 0)
 #assert((HALF_FIT_MIN_BLOCK_DATA_SIZE % CACHE_LINE_SIZE) == 0)
 
+// types
 HalfFitAllocator :: struct {
 	lock:               Lock,
 	available_bitfield: u32,
@@ -46,6 +46,7 @@ HalfFitBlockHeader :: struct #align(CACHE_LINE_SIZE) {
 }
 #assert(size_of(HalfFitBlockHeader) == CACHE_LINE_SIZE)
 
+// procedures
 _half_fit_block_index :: proc(size: uint) -> int {
 	return int(math.log2_floor(size)) - HALF_FIT_MIN_BLOCK_DATA_SIZE_EXPONENT
 }
@@ -58,7 +59,6 @@ _half_fit_data_index :: proc(half_fit: ^HalfFitAllocator, data_size: uint) -> (s
 	none_available = available_mask == 0
 	return
 }
-
 _half_fit_split_size_and_flags :: proc(size_and_flags: uint) -> (is_used: bool, is_last: bool, size: int) {
 	is_used = (size_and_flags >> 63) != 0
 	is_last = ((size_and_flags >> 62) & 1) != 0
@@ -68,8 +68,7 @@ _half_fit_split_size_and_flags :: proc(size_and_flags: uint) -> (is_used: bool, 
 _half_fit_merge_size_and_flags :: proc(is_used: bool, is_last: bool, size: int) -> uint {
 	return (uint(is_used) << 63) | (uint(is_last) << 62) | transmute(uint)((size << 2) >> 2)
 }
-
-// NOTE: HalfFitAllocator can't be copied, since there's a doubly linked list pointing to it, so we initialize it in-place
+// NOTE: HalfFitAllocator can't be easily copied, since there's a doubly linked list pointing to it, so we initialize it in-place
 half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 	half_fit.available_bitfield = 0
 	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
@@ -84,6 +83,63 @@ half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
 	_half_fit_create_new_block(half_fit, nil, true, buffer)
 	half_fit._buffer = buffer
 }
+half_fit_allocator_proc :: proc(
+	allocator_data: rawptr,
+	mode: mem.Allocator_Mode,
+	size, _alignment: int,
+	old_ptr: rawptr,
+	old_size: int,
+	loc := #caller_location,
+) -> (
+	data: []byte,
+	err: mem.Allocator_Error,
+) {
+	half_fit := (^HalfFitAllocator)(allocator_data)
+	get_lock(&half_fit.lock)
+	defer release_lock(&half_fit.lock)
+	when DEBUG {
+		fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v", mode, size, _alignment, old_ptr, old_size, loc)
+	}
+
+	#partial switch mode {
+	case .Alloc, .Alloc_Non_Zeroed:
+		data, err = half_fit_alloc(half_fit, size)
+		ptr := raw_data(data)
+		if mode == .Alloc {
+			zero_simd_64B(ptr, len(data))
+		}
+		assert((uintptr(ptr) & 63) == 0, loc = loc)
+	case .Free:
+		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
+		half_fit_free(half_fit, rawptr(old_ptr), loc)
+	case .Resize, .Resize_Non_Zeroed:
+		// alloc
+		data, err = half_fit_alloc(half_fit, size)
+		// free // NOTE: free after alloc, so we can do a non-overlapped copy
+		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
+		half_fit_free(half_fit, old_ptr, loc)
+		// zero
+		ptr := raw_data(data)
+		if mode == .Resize {
+			if size > old_size {
+				align_backward := math.align_backward(ptr, 64)
+				offset := old_size - align_backward
+				zero_start := math.ptr_add(ptr, offset)
+				zero_simd_64B(zero_start, size - offset)
+			}
+		}
+		// copy
+		size_to_copy := min(size, old_size)
+		copy_simd_64B(ptr, old_ptr, size_to_copy)
+	case:
+		data, err = nil, .Mode_Not_Implemented
+	}
+	when DEBUG {
+		half_fit_check_blocks("", half_fit)
+	}
+	return
+}
+
 _half_fit_create_new_block :: proc(half_fit: ^HalfFitAllocator, prev_block: ^HalfFitBlockHeader, is_last: bool, block: []u8) {
 	block_header := (^HalfFitBlockHeader)(&block[0])
 	block_header.prev_block = prev_block
@@ -111,7 +167,6 @@ _half_fit_unlink_free_block :: proc(block_header: ^HalfFitBlockHeader) {
 	prev_free.next_free = next_free
 	next_free.prev_free = prev_free
 }
-
 half_fit_alloc :: proc(
 	half_fit: ^HalfFitAllocator,
 	data_size: int,
@@ -190,9 +245,6 @@ half_fit_free :: proc(half_fit: ^HalfFitAllocator, old_ptr: rawptr, loc := #call
 	// mark block as free
 	_half_fit_mark_block_as_free(half_fit, block_header)
 }
-
-// debug
-DEBUG :: false
 half_fit_check_blocks :: proc(prefix: string, half_fit: ^HalfFitAllocator, loc := #caller_location) {
 	when DEBUG {fmt.println(prefix)}
 	sum_of_block_sizes := int(0)
@@ -253,62 +305,4 @@ _half_fit_print_free_lists :: proc(half_fit: ^HalfFitAllocator) {
 			fmt.printfln("  %v: %v", i, free_list)
 		}
 	}
-}
-
-// odin wrapper
-half_fit_allocator_proc :: proc(
-	allocator_data: rawptr,
-	mode: mem.Allocator_Mode,
-	size, _alignment: int,
-	old_ptr: rawptr,
-	old_size: int,
-	loc := #caller_location,
-) -> (
-	data: []byte,
-	err: mem.Allocator_Error,
-) {
-	half_fit := (^HalfFitAllocator)(allocator_data)
-	get_lock(&half_fit.lock)
-	defer release_lock(&half_fit.lock)
-	when DEBUG {
-		fmt.printfln("mode: %v, size: %v, alignment: %v, old_ptr: %v, old_size: %v, loc: %v", mode, size, _alignment, old_ptr, old_size, loc)
-	}
-
-	#partial switch mode {
-	case .Alloc, .Alloc_Non_Zeroed:
-		data, err = half_fit_alloc(half_fit, size)
-		ptr := raw_data(data)
-		if mode == .Alloc {
-			zero_simd_64B(ptr, len(data))
-		}
-		assert((uintptr(ptr) & 63) == 0, loc = loc)
-	case .Free:
-		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
-		half_fit_free(half_fit, rawptr(old_ptr), loc)
-	case .Resize, .Resize_Non_Zeroed:
-		// alloc
-		data, err = half_fit_alloc(half_fit, size)
-		// free // NOTE: free after alloc, so we can do a non-overlapped copy
-		assert((uintptr(old_ptr) & 63) == 0, loc = loc)
-		half_fit_free(half_fit, old_ptr, loc)
-		// zero
-		ptr := raw_data(data)
-		if mode == .Resize {
-			if size > old_size {
-				align_backward := math.align_backward(ptr, 64)
-				offset := old_size - align_backward
-				zero_start := math.ptr_add(ptr, offset)
-				zero_simd_64B(zero_start, size - offset)
-			}
-		}
-		// copy
-		size_to_copy := min(size, old_size)
-		copy_simd_64B(ptr, old_ptr, size_to_copy)
-	case:
-		data, err = nil, .Mode_Not_Implemented
-	}
-	when DEBUG {
-		half_fit_check_blocks("", half_fit)
-	}
-	return
 }

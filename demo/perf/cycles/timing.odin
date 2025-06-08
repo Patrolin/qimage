@@ -49,8 +49,8 @@ measureCold :: proc($T: typeid, _cases: []TimingCase(T)) {
 		diff_cycles: int
 		diff_time: u64 // NOTE: windows only gives us precision of 100 ns per sample
 		{
-			time.SCOPED_TIME(&diff_time)
-			time.SCOPED_CYCLES(&diff_cycles)
+			time.scoped_time(&diff_time)
+			time.scoped_cycles(&diff_cycles)
 			acc[0] += _case.f(int(_case.run_count))
 		}
 		intrinsics.atomic_load(&acc[0])
@@ -70,8 +70,8 @@ measureHot :: proc($T: typeid, _cases: []TimingCase(T)) {
 		diff_time: f64
 		REPEAT_COUNT :: 1e8
 		for j in 0 ..= 1 { 	// NOTE: we run twice so the code is in cache
-			time.SCOPED_TIME(&diff_time)
-			time.SCOPED_CYCLES(&diff_cycles)
+			time.scoped_time(&diff_time)
+			time.scoped_cycles(&diff_cycles)
 			for i in 0 ..< REPEAT_COUNT {
 				acc[0] += _case.f(T(i))
 			}

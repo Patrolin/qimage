@@ -17,7 +17,10 @@ The plan:
 	- 1 render_on_gpu() thread // interpolate between the last 2 simulated frames, vsynced to the monitor refresh rate
 */
 
-// global variables
+// constants
+VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
+
+// globals
 global_allocator: mem.HalfFitAllocator
 thread_infos: [dynamic]ThreadInfo
 semaphore: OsSemaphore
@@ -25,9 +28,6 @@ total_thread_count := 1
 
 running_thread_count := 1
 pending_async_files := 0 // TODO: delete this
-
-// constants
-VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 
 // procedures
 /* NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are.. */
@@ -53,10 +53,9 @@ init :: proc "contextless" (loc := #caller_location) -> runtime.Context {
 	assert(ctx.temp_allocator.data != nil)
 	return ctx
 }
-free_all_for_tests :: proc() {
+free_all_for_tests :: proc "odin" () {
 	delete(thread_infos)
 }
-
 thread_context :: proc "contextless" (thread_index: int) -> runtime.Context {
 	thread_info := &thread_infos[thread_index]
 
