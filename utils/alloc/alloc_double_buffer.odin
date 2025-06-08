@@ -1,8 +1,12 @@
 package alloc_utils
 import "../mem"
 
-// !TODO: put the data next to the header, so that we can avoid a pointer indirection
-// !TODO: SwapBuffer with three past values?
+/*
+	!TODO: put the data next to the header, so that we can avoid a pointer indirection
+	!TODO: SwapBuffer with three past values?
+*/
+
+// types
 DoubleBuffer :: [2]struct #align(mem.CACHE_LINE_SIZE) {
 	lock:        mem.Lock,
 	data:        []byte,
@@ -10,6 +14,7 @@ DoubleBuffer :: [2]struct #align(mem.CACHE_LINE_SIZE) {
 }
 #assert(size_of(DoubleBuffer) == 2 * mem.CACHE_LINE_SIZE)
 
+// procedures
 double_buffer_append :: proc(double_buffer: ^DoubleBuffer, buffer_index: int, src: rawptr) -> (next_buffer_index: int) {
 	// get one of the buffers
 	next_buffer_index = buffer_index

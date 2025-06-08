@@ -54,12 +54,12 @@ win_get_monitor_rect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 	}
 	assert(bool(win.GetMonitorInfoW(monitor, &info)))
 	monitor_rect := info.rcMonitor
-	return math.relativeRect({monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom})
+	return math.relative_rect({monitor_rect.left, monitor_rect.top, monitor_rect.right, monitor_rect.bottom})
 }
 win_get_window_rect :: proc(window_handle: win.HWND) -> math.RelativeRect {
 	window_rect: win.RECT
 	win.GetWindowRect(window_handle, &window_rect)
-	return math.relativeRect({window_rect.left, window_rect.top, window_rect.right, window_rect.bottom})
+	return math.relative_rect({window_rect.left, window_rect.top, window_rect.right, window_rect.bottom})
 }
 win_get_client_rect :: proc(window_handle: win.HWND, window_rect: math.RelativeRect) -> math.RelativeRect {
 	win_client_rect: win.RECT

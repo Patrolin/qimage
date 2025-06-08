@@ -1,7 +1,9 @@
 package math_utils
 import "base:intrinsics"
 
-// mostly copy-paste from "core:math"
+/* mostly copy-paste from "core:math" */
+
+// procedures
 split_float_f16 :: proc "contextless" (x: f16) -> (int: f16, frac: f16) {
 	MASK: u16 : 0x1f
 	SHIFT: u16 : 16 - 6

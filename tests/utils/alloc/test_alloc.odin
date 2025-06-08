@@ -47,23 +47,23 @@ test_map :: proc(t: ^testing.T) {
 	context = threads.init()
 	m: alloc.Map(string, int) = {}
 
-	alloc.addKey(&m, "a")^ = 1
-	alloc.addKey(&m, "b")^ = 2
-	valueA, okA := alloc.getKey(&m, "a")
+	alloc.add_key(&m, "a")^ = 1
+	alloc.add_key(&m, "b")^ = 2
+	valueA, okA := alloc.get_key(&m, "a")
 	test.expectf(okA && (valueA^ == 1), "m[\"a\"] = %v", valueA^)
-	valueB, okB := alloc.getKey(&m, "b")
+	valueB, okB := alloc.get_key(&m, "b")
 	test.expectf(okB && (valueB^ == 2), "m[\"b\"] = %v", valueB^)
-	valueC, okC := alloc.getKey(&m, "c")
+	valueC, okC := alloc.get_key(&m, "c")
 	test.expectf(!okC && (valueC^ == {}), "m[\"b\"] = %v", valueC^)
 
 	alloc.removeKey(&m, "a")
 	alloc.removeKey(&m, "b")
 	alloc.removeKey(&m, "c")
-	valueA, okA = alloc.getKey(&m, "a")
+	valueA, okA = alloc.get_key(&m, "a")
 	test.expectf(!okA && (valueA^ == {}), "m[\"a\"] = %v", valueA^)
-	valueB, okB = alloc.getKey(&m, "b")
+	valueB, okB = alloc.get_key(&m, "b")
 	test.expectf(!okA && (valueB^ == {}), "m[\"b\"] = %v", valueB^)
-	valueC, okC = alloc.getKey(&m, "c")
+	valueC, okC = alloc.get_key(&m, "c")
 	test.expectf(!okA && (valueC^ == {}), "m[\"c\"] = %v", valueC^)
 
 	alloc.delete_map_like(&m)
@@ -79,23 +79,23 @@ test_set :: proc(t: ^testing.T) {
 	context = threads.init()
 	m: alloc.Set(string) = {}
 
-	alloc.addKey(&m, "a")
-	alloc.addKey(&m, "b")
-	okA := alloc.getKey(&m, "a")
+	alloc.add_key(&m, "a")
+	alloc.add_key(&m, "b")
+	okA := alloc.get_key(&m, "a")
 	test.expectf(okA, "m[\"a\"] = %v", okA)
-	okB := alloc.getKey(&m, "b")
+	okB := alloc.get_key(&m, "b")
 	test.expectf(okB, "m[\"b\"] = %v", okB)
-	okC := alloc.getKey(&m, "c")
+	okC := alloc.get_key(&m, "c")
 	test.expectf(!okC, "m[\"b\"] = %v", okC)
 
 	alloc.removeKey(&m, "a")
 	alloc.removeKey(&m, "b")
 	alloc.removeKey(&m, "c")
-	okA = alloc.getKey(&m, "a")
+	okA = alloc.get_key(&m, "a")
 	test.expectf(!okA, "m[\"a\"] = %v", okA)
-	okB = alloc.getKey(&m, "b")
+	okB = alloc.get_key(&m, "b")
 	test.expectf(!okB, "m[\"b\"] = %v", okB)
-	okC = alloc.getKey(&m, "c")
+	okC = alloc.get_key(&m, "c")
 	test.expectf(!okC, "m[\"c\"] = %v", okC)
 	alloc.delete_map_like(&m)
 

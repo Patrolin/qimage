@@ -77,10 +77,10 @@ placeRect :: proc(state: ^GuiState, size: math.i32x2) -> (rect: math.AbsoluteRec
 }
 isHovered :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
 	lastMousePos := input.lastMousePos()
-	return (state.dragging == nil) && math.inBounds(lastMousePos, rect)
+	return (state.dragging == nil) && math.in_bounds(lastMousePos, rect)
 }
 wasClicked :: proc(state: ^GuiState, rect: math.AbsoluteRect) -> bool {
-	return input.wentDownCount(input.mouse.LMB) > 0 && math.inBounds(input.mouse.clickPos, rect)
+	return input.wentDownCount(input.mouse.LMB) > 0 && math.in_bounds(input.mouse.clickPos, rect)
 }
 
 // ?TODO: begin(row/column), end()

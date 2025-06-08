@@ -3,14 +3,16 @@ import intrinsics "base:intrinsics"
 import "core:fmt"
 import bits "core:math/bits"
 
-// bytes
-Size :: distinct int
+// constants
 BYTES :: Size(1)
-KIBI_BYTES :: 1024 * BYTES
-MEBI_BYTES :: 1024 * KIBI_BYTES
-GIBI_BYTES :: 1024 * MEBI_BYTES
+KIBI_BYTES :: Size(1024 * BYTES)
+MEBI_BYTES :: Size(1024 * KIBI_BYTES)
+GIBI_BYTES :: Size(1024 * MEBI_BYTES)
 
-// pointer math
+// types
+Size :: distinct int
+
+// procedures
 ptr_add :: #force_inline proc "contextless" (ptr: rawptr, offset: int) -> [^]byte {
 	return ([^]byte)(uintptr(ptr) + transmute(uintptr)(offset))
 }
@@ -24,8 +26,6 @@ align_backward :: #force_inline proc(ptr: rawptr, alignment_power_of_two: int) -
 	result := uintptr(ptr) & (transmute(uintptr)alignment_power_of_two - 1)
 	return transmute(int)result
 }
-
-// bits
 count_leading_zeros :: bits.count_leading_zeros
 count_trailing_zeros :: bits.count_trailing_zeros
 count_ones :: bits.count_ones
@@ -33,14 +33,12 @@ count_zeros :: bits.count_zeros
 is_power_of_two :: #force_inline proc "contextless" (x: $T) -> bool where intrinsics.type_is_integer(T) {
 	return count_ones(x) == 1
 }
-
 low_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return power_of_two - 1
 }
 high_mask :: #force_inline proc "contextless" (power_of_two: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return ~(power_of_two - 1)
 }
-
 get_bit :: #force_inline proc "contextless" (x, bit_index: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return (x >> bit_index) & 1
 }
@@ -57,8 +55,7 @@ set_bit :: #force_inline proc "contextless" (x, bit_index, bit_value: $T) -> T w
 	//toggle_bit := ((x >> bit_index) ~ bit_value) & 1
 	//return x ~ (toggle_bit << bit_index)
 }
-
-/* equivalent to find_first_set() */
+/* AKA find_first_set() */
 log2_floor :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_unsigned(T) {
 	return x > 0 ? size_of(T) * 8 - 1 - count_leading_zeros(x) : 0
 }

@@ -1,7 +1,9 @@
 package math_utils
-// NOTE: we assume builtins min(), max() and abs() are fast
 import "base:intrinsics"
 
+/* NOTE: we assume builtins min(), max() and abs() are fast */
+
+// procedures
 round_to_int :: #force_inline proc "contextless" (x: $T) -> int where intrinsics.type_is_float(T) {
 	return int(x + .5)
 }
@@ -17,7 +19,6 @@ ceil :: #force_inline proc "contextless" (x: $T) -> T where intrinsics.type_is_f
 	int, frac := split_float(x)
 	return int + (frac != 0 ? 1 : 0)
 }
-
 percentile :: proc(sorted_slice: $A/[]$T, fraction: T) -> T {
 	index_float := fraction * T(len(x) - 1)
 	index := int(index)
