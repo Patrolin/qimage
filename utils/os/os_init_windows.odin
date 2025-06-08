@@ -11,14 +11,12 @@ foreign kernel32 {
 	AttachConsole :: proc(dwProcessId: win.DWORD) -> win.BOOL ---
 }
 
-empty_context :: proc "contextless" () -> runtime.Context {
-	ctx := runtime.default_context()
-	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
+empty_context :: #force_inline proc "contextless" () -> runtime.Context {
+	return runtime.Context{assertion_failure_proc = runtime.default_assertion_failure_proc}
 }
-init :: proc "contextless" () -> runtime.Context {
+init :: #force_inline proc "contextless" () -> runtime.Context {
 	ctx := empty_context()
 	context = ctx
-
 	// console
 	ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
 	STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)

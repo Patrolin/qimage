@@ -34,28 +34,17 @@ VIRTUAL_MEMORY_TO_RESERVE :: 1 << 16
 init :: proc "contextless" (loc := #caller_location) -> runtime.Context {
 	context = os.init()
 	assert(thread_infos == nil)
-	fmt.printf("thread_infos.0: %v\n", thread_infos)
 
 	mem.init_page_fault_handler()
-	global_allocator_buffer := mem.page_alloc(VIRTUAL_MEMORY_TO_RESERVE, false)
-	mem.half_fit_allocator_init(&global_allocator, global_allocator_buffer)
+	mem.half_fit_allocator_init(&global_allocator, mem.page_alloc(VIRTUAL_MEMORY_TO_RESERVE, false))
 	context.allocator = runtime.Allocator{mem.half_fit_allocator_proc, &global_allocator}
 
 	reserve(&thread_infos, os.info.logical_core_count)
 	for thread_index in 0 ..< os.info.logical_core_count {
 		append(&thread_infos, ThreadInfo{})
 		thread_info := &thread_infos[thread_index]
-
-		temporary_allocator_buffer := mem.page_alloc(VIRTUAL_MEMORY_TO_RESERVE, false)
-		assert(temporary_allocator_buffer != nil)
-		thread_info.temporary_allocator_data = mem.arena_allocator(temporary_allocator_buffer)
-		thread_info.ctx = os.empty_context()
+		thread_info.temporary_allocator_data = mem.arena_allocator(mem.page_alloc(VIRTUAL_MEMORY_TO_RESERVE, false))
 		thread_info.index = u32(thread_index)
-
-		ctx := &thread_info.ctx
-		ctx.allocator = runtime.Allocator{mem.half_fit_allocator_proc, &global_allocator}
-		ctx.temp_allocator = runtime.Allocator{mem.arena_allocator_proc, &thread_info.temporary_allocator_data}
-		ctx.user_index = thread_index
 	}
 	assert(len(thread_infos) == os.info.logical_core_count)
 
@@ -69,5 +58,11 @@ free_all_for_tests :: proc() {
 }
 
 thread_context :: proc "contextless" (thread_index: int) -> runtime.Context {
-	return thread_infos[thread_index].ctx
+	thread_info := &thread_infos[thread_index]
+
+	ctx := os.empty_context()
+	ctx.allocator = runtime.Allocator{mem.half_fit_allocator_proc, &global_allocator}
+	ctx.temp_allocator = runtime.Allocator{mem.arena_allocator_proc, &thread_info.temporary_allocator_data}
+	ctx.user_index = thread_index
+	return ctx
 }

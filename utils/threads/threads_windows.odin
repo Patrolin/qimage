@@ -7,11 +7,10 @@ import win "core:sys/windows"
 
 ThreadInfo :: struct #align(mem.CACHE_LINE_SIZE) {
 	temporary_allocator_data: mem.ArenaAllocator,
-	ctx:                      runtime.Context,
 	os_info:                  OsThreadInfo,
 	index:                    u32,
 }
-#assert(size_of(ThreadInfo) <= 3 * mem.CACHE_LINE_SIZE)
+#assert(size_of(ThreadInfo) <= mem.CACHE_LINE_SIZE)
 #assert((size_of(ThreadInfo) % mem.CACHE_LINE_SIZE) == 0)
 
 OsThreadInfo :: struct #packed {
