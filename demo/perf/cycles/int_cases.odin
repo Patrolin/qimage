@@ -2,13 +2,13 @@ package demo_perf_cycles
 import "base:intrinsics"
 
 // function calls
-loadZero_int :: proc(v: int) -> int {
+load_zero_int :: proc(v: int) -> int {
 	return 0
 }
-returnInput_int :: proc(v: int) -> int {
+return_input_int :: proc(v: int) -> int {
 	return v
 }
-intToF64ToInt :: proc(v: int) -> int {
+int_to_f64_to_int :: proc(v: int) -> int {
 	return int(f64(v) * 0.3)
 }
 // base
@@ -26,16 +26,16 @@ mod_int :: proc(v: int) -> int {
 }
 
 cold_int_cases := []TimingCase(int) {
-	timingCase(int, "loadZero_int_cold", loadZero_int), // 654 cy, 280 ns, 5 runs
+	timing_case(int, "load_zero_int_cold", load_zero_int), // 654 cy, 280 ns, 5 runs
 }
 hot_int_cases := []TimingCase(int) {
 	// base
-	timingCase(int, "loadZero_int", loadZero_int), // 5 cy, 1 ns, 5e+08 runs
-	timingCase(int, "returnInput_int", returnInput_int), // 5 cy, 1 ns, 5e+08 runs
-	timingCase(int, "intToF64ToInt", intToF64ToInt), // 5 cy, 1 ns, 5e+08 runs
-	timingCase(int, "add_int", add_int), // 5 cy, 1 ns, 5e+08 runs
-	timingCase(int, "mul_int", mul_int), // 6 cy, 1 ns, 5e+08 runs
-	timingCase(int, "div_int", div_int), // 5 cy, 1 ns, 5e+08 runs
-	timingCase(int, "mod_int", mod_int), // 7 cy, 2 ns, 4e+08 runs
+	timing_case(int, "load_zero_int", load_zero_int), // 4.2 cy, 1.1 ns, 1e+08 runs
+	timing_case(int, "return_input_int", return_input_int), // 4.1 cy, 1.1 ns, 1e+08 runs
+	timing_case(int, "int_to_f64_to_int", int_to_f64_to_int), // 6.6 cy, 1.7 ns, 1e+08 runs
+	timing_case(int, "add_int", add_int), // 4.9 cy, 1.3 ns, 1e+08 runs
+	timing_case(int, "mul_int", mul_int), // 4.1 cy, 1.1 ns, 1e+08 runs
+	timing_case(int, "div_int", div_int), // 5.6 cy, 1.5 ns, 1e+08 runs
+	timing_case(int, "mod_int", mod_int), // 5.0 cy, 1.3 ns, 1e+08 runs
 	// TODO: better mod?
 }

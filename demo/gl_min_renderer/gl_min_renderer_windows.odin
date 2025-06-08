@@ -10,12 +10,14 @@ import "../../utils/threads"
 import "../../utils/time"
 import "core:fmt"
 
-isRunning := false
+// globals
+is_running := false
 
+// procedures
 main :: proc() {
 	context = threads.init()
 	threads.init_thread_pool()
-	event.initEvents({onPaint})
+	event.initEvents({on_paint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)
 	timing: struct {
@@ -24,7 +26,7 @@ main :: proc() {
 	}
 	timing.t = time.time()
 	timing.prev_t = timing.t
-	for isRunning = true; isRunning; {
+	for is_running = true; is_running; {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
 		if (timing.frame > 30) {timing.max_dt = max(timing.max_dt, abs(dt))}
@@ -34,11 +36,11 @@ main :: proc() {
 			case event.WindowResizeEvent:
 				gl.resizeImageBuffer(window.client_rect.width, window.client_rect.height)
 			case event.WindowCloseEvent:
-				isRunning = false
+				is_running = false
 			}
 		}
 		msg_t := time.time()
-		updateAndRender()
+		update_and_render()
 		render_t := time.time()
 		fmt.printf(
 			"dt: %.3v ms, max_dt: %.3v ms, frame_msg_time: %.3v ms, frame_render_time: %.3v ms\n",
@@ -49,17 +51,17 @@ main :: proc() {
 		)
 		timing.prev_t = timing.t
 		timing.t = event.doVsyncBadly()
-		onPaint(window^)
+		on_paint(window^)
 		free_all(context.temp_allocator)
 	}
 }
-updateAndRender :: proc() {
+update_and_render :: proc() {
 	// NOTE: this takes 0.005 ms
 	gl.glClearColor(.5, .5, 1, 1)
 	gl.glClear(gl.COLOR_BUFFER_BIT)
 	// NOTE: render image here (hmh 237-238)
 }
-onPaint :: proc(window: event.Window) {
+on_paint :: proc(window: event.Window) {
 	gl.renderImageBufferToWindow(window)
 }
 

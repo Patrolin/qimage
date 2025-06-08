@@ -15,14 +15,16 @@ import "base:runtime"
 import "core:fmt"
 import win "core:sys/windows"
 
-isRunning := false
+// globals
+is_running := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7+ ms), so we instead we store it in an OS specific format
 image: file.Image
 
+// procedures
 main :: proc() {
 	context = threads.init()
 	threads.init_thread_pool()
-	event.initEvents({onPaint})
+	event.initEvents({on_paint})
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})
 	image = assets.loadImage("test_image.bmp")
@@ -34,7 +36,7 @@ main :: proc() {
 	}
 	timing.t = time.time()
 	timing.prev_t = timing.t
-	for isRunning = true; isRunning; {
+	for is_running = true; is_running; {
 		dt := timing.t - timing.prev_t
 		timing.frame += 1
 		if (timing.frame > 30) {timing.max_dt = max(timing.max_dt, abs(dt))}
@@ -63,11 +65,11 @@ main :: proc() {
 			case event.WindowResizeEvent:
 				paint.resizeFrameBuffer(&frame_buffer, i16(window.client_rect.width), i16(window.client_rect.height))
 			case event.WindowCloseEvent:
-				isRunning = false
+				is_running = false
 			}
 		}
 		msg_t := time.time()
-		updateAndRender()
+		update_and_render()
 		render_t := time.time()
 		if false {
 			fmt.printf(
@@ -80,12 +82,12 @@ main :: proc() {
 		}
 		timing.prev_t = timing.t
 		timing.t = event.doVsyncBadly()
-		onPaint(window^)
+		on_paint(window^)
 		free_all(context.temp_allocator)
 		input.applyInputs()
 	}
 }
-onPaint :: proc(window: event.Window) {
+on_paint :: proc(window: event.Window) {
 	paint.copyFrameBufferToWindow(frame_buffer, window)
 }
 

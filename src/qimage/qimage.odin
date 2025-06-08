@@ -5,7 +5,7 @@ import "../../lib/paint"
 import "../../utils/math"
 import "core:fmt"
 
-updateAndRender :: proc() {
+update_and_render :: proc() {
 	// TODO: use opengl instead
 	// clear to blue // NOTE: this takes .7+ ms
 	for y in 0 ..< int(frame_buffer.height) {

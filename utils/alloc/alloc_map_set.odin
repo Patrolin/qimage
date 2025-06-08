@@ -89,7 +89,7 @@ get_key :: proc {
 	get_key_map,
 	get_key_set,
 }
-removeKey :: proc {
+remove_key :: proc {
 	remove_key_map,
 	remove_key_set,
 }

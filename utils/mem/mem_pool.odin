@@ -12,16 +12,17 @@ PoolAllocator :: struct {
 	slot_size:       int,
 }
 #assert(size_of(PoolAllocator) <= 64)
+pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
+	assert(slot_size >= size_of(^FreePoolSlot))
+	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
+}
+
 FreePoolSlot :: struct {
 	next_free_slot: ^FreePoolSlot,
 }
 #assert(size_of(FreePoolSlot) <= 8)
 
 // procedures
-pool_allocator :: proc(buffer: []byte, slot_size: int) -> PoolAllocator {
-	assert(slot_size >= size_of(^FreePoolSlot))
-	return PoolAllocator{false, nil, (^FreePoolSlot)(raw_data(buffer)), slot_size}
-}
 pool_alloc :: proc(pool: ^PoolAllocator) -> (new: [^]byte) {
 	get_lock(&pool.lock)
 	defer release_lock(&pool.lock)

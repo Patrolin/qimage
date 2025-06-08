@@ -13,7 +13,7 @@ SECOND :: Duration(1e9)
 
 // types
 Duration :: core_time.Duration
-CycleCount :: distinct int
+CycleCount :: distinct i64
 
 // procedures
 as :: #force_inline proc "contextless" (duration: Duration, unit: Duration) -> f64 {

@@ -11,11 +11,11 @@ ArenaAllocator :: struct {
 	/* we will assume single threaded */
 	lock:   Lock, // nocheckin
 }
-
-// procedures
 arena_allocator :: proc(buffer: []byte) -> ArenaAllocator {
 	return ArenaAllocator{buffer, 0, false}
 }
+
+// procedures
 arena_allocator_proc :: proc(
 	allocator: rawptr,
 	mode: mem.Allocator_Mode,

@@ -28,6 +28,21 @@ HalfFitAllocator :: struct {
 	_buffer:            []u8,
 }
 #assert(size_of(HalfFitAllocator) <= 16 * 32)
+/* NOTE: HalfFitAllocator can't be easily copied, since there's a doubly linked list pointing to it, so we initialize it in-place */
+half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
+	half_fit.available_bitfield = 0
+	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
+		free_list := &half_fit.free_lists[i]
+		free_list^ = {
+			next_free = free_list,
+			prev_free = free_list,
+		}
+	}
+	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
+	assert(uintptr(raw_data(buffer)) & 63 == 0)
+	_half_fit_create_new_block(half_fit, nil, true, buffer)
+	half_fit._buffer = buffer
+}
 
 HalfFitFreeList :: struct {
 	next_free: ^HalfFitFreeList,
@@ -67,21 +82,6 @@ _half_fit_split_size_and_flags :: proc(size_and_flags: uint) -> (is_used: bool, 
 }
 _half_fit_merge_size_and_flags :: proc(is_used: bool, is_last: bool, size: int) -> uint {
 	return (uint(is_used) << 63) | (uint(is_last) << 62) | transmute(uint)((size << 2) >> 2)
-}
-// NOTE: HalfFitAllocator can't be easily copied, since there's a doubly linked list pointing to it, so we initialize it in-place
-half_fit_allocator_init :: proc(half_fit: ^HalfFitAllocator, buffer: []u8) {
-	half_fit.available_bitfield = 0
-	for i in 0 ..< HALF_FIT_FREE_LIST_COUNT {
-		free_list := &half_fit.free_lists[i]
-		free_list^ = {
-			next_free = free_list,
-			prev_free = free_list,
-		}
-	}
-	assert(len(buffer) >= HALF_FIT_MIN_BLOCK_SIZE)
-	assert(uintptr(raw_data(buffer)) & 63 == 0)
-	_half_fit_create_new_block(half_fit, nil, true, buffer)
-	half_fit._buffer = buffer
 }
 half_fit_allocator_proc :: proc(
 	allocator_data: rawptr,

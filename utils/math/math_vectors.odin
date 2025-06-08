@@ -5,8 +5,6 @@ import core_math "core:math"
 // constants
 PI :: core_math.PI
 TAU :: core_math.TAU
-sin :: core_math.sin
-cos :: core_math.sin
 
 // types
 /* NOTE: Odin vector types (.xyzw, .rgba)
@@ -26,6 +24,8 @@ RelativeRect :: struct {
 }
 
 // procedures
+sin :: core_math.sin
+cos :: core_math.cos
 mod :: core_math.mod
 sqrt :: core_math.sqrt
 exp :: core_math.exp
