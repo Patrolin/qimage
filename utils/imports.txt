@@ -1,5 +1,3 @@
-- test
-- math
-- os
-- mem
-- alloc, time
+- math, test
+- mem, os
+- alloc, threads, time

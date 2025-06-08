@@ -1,7 +1,7 @@
 package file_lib
 
 foreign import onecorelib "system:onecore.lib"
-import "../threads"
+import "../../utils/threads"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"

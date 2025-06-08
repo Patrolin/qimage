@@ -2,6 +2,7 @@ package event_lib
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
+import "../../utils/threads"
 import "base:intrinsics"
 import "core:fmt"
 import win "core:sys/windows"
@@ -43,7 +44,7 @@ messageHandler :: proc "stdcall" (
 ) -> (
 	result: win.LRESULT,
 ) {
-	context = alloc.thread_context(0) // NOTE: we assume this was called from main thread
+	context = threads.thread_context(0) // NOTE: we assume this was called from main thread
 	result = 0
 	switch message {
 	// minimum needed messages

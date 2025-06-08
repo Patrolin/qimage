@@ -1,7 +1,6 @@
-package threads_lib
-import "../../utils/alloc"
-import "../../utils/math"
-import "../../utils/os"
+package threads_utils
+import "../math"
+import "../os"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"
@@ -14,51 +13,51 @@ import "core:time"
 */
 
 // threads
-threadProc :: proc "stdcall" (thread_info: rawptr) -> u32 {
+work_queue_thread_proc :: proc "stdcall" (thread_info: rawptr) -> u32 {
 	thread_info := cast(^ThreadInfo)thread_info
-	context = alloc.thread_context(int(thread_info.index))
+	context = thread_context(int(thread_info.index))
 	for {
 		intrinsics.atomic_add(&running_thread_count, 1)
-		for doNextWorkItem(&work_queue) {}
+		join_queue(&work_queue)
 		intrinsics.atomic_add(&running_thread_count, -1)
-		_waitForSemaphore()
+		_wait_for_semaphore()
 	}
 }
-init_thread_pool :: proc() -> []ThreadInfo {
-	threads_to_launch_count := os.info.logical_core_count - running_thread_count
-	assert(threads_to_launch_count > 0)
-	_semaphore = _createSemaphore(i32(threads_to_launch_count))
-	thread_infos := make([]ThreadInfo, threads_to_launch_count)
-	intrinsics.atomic_add(&running_thread_count, threads_to_launch_count)
-	for i in running_thread_count ..= threads_to_launch_count {
-		thread_infos[i - 1] = ThreadInfo {
-			os_info = launch_os_thread(64 * math.KIBI_BYTES, threadProc, &thread_infos[i - 1]),
+init_thread_pool :: proc() {
+	thread_index_start := total_thread_count
+	thread_index_end := os.info.logical_core_count
+	new_thread_count := thread_index_end - thread_index_start
+	assert(new_thread_count > 0)
+
+	semaphore = _create_semaphore(i32(new_thread_count))
+	for i in thread_index_start ..< thread_index_end {
+		thread_infos[i] = ThreadInfo {
+			os_info = launch_os_thread(64 * math.KIBI_BYTES, work_queue_thread_proc, &thread_infos[i - 1]),
 			index   = u32(i),
 		}
 	}
-	return thread_infos
 }
 
 // work queue
 work_queue: WorkQueue
 WorkQueue :: struct {
-	buffer:          [32]WorkItem,
+	buffer:          [32]Work,
 	pending_count:   int,
 	completed_count: int,
 }
-WorkItem :: struct {
+Work :: struct {
 	procedure: proc(_: rawptr),
 	data:      rawptr,
 	state:     WorkItemState,
 }
-#assert(size_of(WorkItem) == 24)
+#assert(size_of(Work) == 24)
 WorkItemState :: enum {
 	Empty,
 	Writing,
 	Written,
 	Reading,
 }
-launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
+append_work :: proc(queue: ^WorkQueue, work: Work) {
 	intrinsics.atomic_add(&queue.pending_count, 1)
 	for {
 		slot_index := context.user_index // start at a random number
@@ -70,14 +69,14 @@ launchThread :: proc(queue: ^WorkQueue, work: WorkItem) {
 			if prev_state == WorkItemState.Empty {
 				item^ = work
 				intrinsics.atomic_store(&item.state, WorkItemState.Written)
-				_resumeThread()
+				_resume_thread()
 				return
 			}
 		}
-		doNextWorkItem(queue)
+		do_next_work(queue)
 	}
 }
-doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
+do_next_work :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	start_index := context.user_index // random number
 	slot_step := start_index | 1 // NOTE: len(items) must be a power of two
 	for i := 0; i < len(queue.buffer); i += 1 {
@@ -93,8 +92,8 @@ doNextWorkItem :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	}
 	return queue.completed_count != queue.pending_count
 }
-joinQueue :: proc(queue: ^WorkQueue) {
-	for doNextWorkItem(queue) {
+join_queue :: #force_inline proc(queue: ^WorkQueue) {
+	for do_next_work(queue) {
 		//fmt.printfln("queue: %v", queue)
 	}
 }

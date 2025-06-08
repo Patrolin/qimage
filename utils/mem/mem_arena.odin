@@ -8,6 +8,7 @@ import "core:mem"
 ArenaAllocator :: struct {
 	buffer: []byte,
 	next:   int,
+	lock:   Lock, // nocheckin
 }
 arena_alloc :: proc(arena_allocator: ^ArenaAllocator, size: int) -> (ptr: [^]byte) {
 	ptr = math.ptr_add(raw_data(arena_allocator.buffer), arena_allocator.next)
@@ -19,7 +20,7 @@ arena_alloc :: proc(arena_allocator: ^ArenaAllocator, size: int) -> (ptr: [^]byt
 	return
 }
 arena_allocator :: proc(buffer: []byte) -> ArenaAllocator {
-	return ArenaAllocator{buffer, 0}
+	return ArenaAllocator{buffer, 0, false}
 }
 arena_allocator_proc :: proc(
 	allocator: rawptr,
@@ -32,7 +33,12 @@ arena_allocator_proc :: proc(
 	data: []byte,
 	err: mem.Allocator_Error,
 ) {
+	DEBUG :: false
+	when DEBUG {fmt.printfln("mode: %v, size: %v, loc: %v", mode, size, loc)}
 	arena_allocator := (^ArenaAllocator)(allocator)
+	assert(intrinsics.volatile_load(&arena_allocator.lock) == false, loc = loc)
+	get_lock(&arena_allocator.lock)
+	defer release_lock(&arena_allocator.lock)
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		ptr := arena_alloc(arena_allocator, size)

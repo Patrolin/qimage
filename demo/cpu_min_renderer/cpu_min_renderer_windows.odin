@@ -4,10 +4,10 @@ package main
 
 import "../../lib/event"
 import "../../lib/paint"
-import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
+import "../../utils/threads"
 import "../../utils/time"
 import "core:fmt"
 
@@ -15,7 +15,7 @@ isRunning := false
 frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is very slow, so we instead we store it in an OS specific format
 
 main :: proc() {
-	context = alloc.init()
+	context = threads.init()
 	threads.init_thread_pool()
 	event.initEvents({onPaint})
 	window := event.openWindow("cpu_min_renderer", {1200, 800})

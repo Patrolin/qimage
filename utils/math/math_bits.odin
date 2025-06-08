@@ -1,9 +1,7 @@
 package math_utils
-import "../test"
 import intrinsics "base:intrinsics"
 import "core:fmt"
 import bits "core:math/bits"
-import "core:testing"
 
 // bytes
 Size :: distinct int

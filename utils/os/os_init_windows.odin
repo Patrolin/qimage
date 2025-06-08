@@ -1,5 +1,4 @@
 package os_utils
-import "../math"
 import "base:runtime"
 import "core:fmt"
 import core_os "core:os"
@@ -16,8 +15,10 @@ empty_context :: proc "contextless" () -> runtime.Context {
 	ctx := runtime.default_context()
 	return {assertion_failure_proc = ctx.assertion_failure_proc, logger = ctx.logger}
 }
-init :: proc "contextless" () {
-	context = empty_context()
+init :: proc "contextless" () -> runtime.Context {
+	ctx := empty_context()
+	context = ctx
+
 	// console
 	ATTACH_PARENT_PROCESS :: transmute(win.DWORD)i32(-1)
 	STD_INPUT_HANDLE :: transmute(win.DWORD)i32(-10)
@@ -46,4 +47,6 @@ init :: proc "contextless" () {
 	window_border: win.RECT
 	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
 	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
+
+	return ctx
 }

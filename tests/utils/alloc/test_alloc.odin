@@ -1,8 +1,10 @@
 package test_alloc
-import "../../utils/alloc"
-import "../../utils/math"
-import "../../utils/os"
-import "../../utils/test"
+import "../../../utils/alloc"
+import "../../../utils/math"
+import "../../../utils/mem"
+import "../../../utils/os"
+import "../../../utils/test"
+import "../../../utils/threads"
 import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
@@ -15,49 +17,28 @@ import "core:time"
 @(test)
 test_default_context :: proc(t: ^testing.T) {
 	test.start_test(t)
-	debug_temp_allocator := context.temp_allocator
-
-	context = alloc.init()
-	temp_allocator_to_check := context.temp_allocator
-	context.temp_allocator = debug_temp_allocator
+	context = threads.init()
 
 	// allocator
 	x := new(int)
-	check_was_allocated(x, "x", 13)
+	fmt.print("ayaya.new\n")
+	test.expect_was_allocated(x, "x", 13)
+	fmt.print("ayaya.new.expect\n")
 	free(x)
+	fmt.print("ayaya.free\n")
 
 	// temp_allocator
-	if temp_allocator_to_check.procedure != nil {
-		y := new(int, allocator = temp_allocator_to_check)
-		check_was_allocated(y, "y", 7)
-		free(y, allocator = temp_allocator_to_check)
-	}
+	arena := (^mem.ArenaAllocator)(context.temp_allocator.data)
+	fmt.printfln("context.temp_allocator.data: %v", len(arena.buffer))
+	y := new(int, allocator = context.temp_allocator)
+	test.expect_was_allocated(y, "y", 7)
+	free(y, allocator = context.temp_allocator)
 
 	// reserve on page fault
 	ptr := ([^]byte)(win.VirtualAlloc(nil, 4096, win.MEM_RESERVE, win.PAGE_READWRITE))
-	check_was_allocated((^int)(ptr), "ptr", 13)
+	test.expect_was_allocated((^int)(ptr), "ptr", 13)
 
-	alloc.free_all_for_tests()
-	test.end_test()
-}
-
-@(test)
-test_pool_alloc :: proc(t: ^testing.T) {
-	test.start_test(t)
-
-	buffer := alloc.page_alloc(alloc.PAGE_SIZE)
-	pool_64b := alloc.pool_allocator(buffer, 8)
-
-	x := (^int)(alloc.pool_alloc(&pool_64b))
-	check_was_allocated(x, "x", 13)
-
-	y := (^int)(alloc.pool_alloc(&pool_64b))
-	check_was_allocated(y, "y", 7)
-	check_still_allocated(x, "x", 13)
-
-	alloc.pool_free(&pool_64b, x)
-	alloc.pool_free(&pool_64b, y)
-
+	threads.free_all_for_tests()
 	test.end_test()
 }
 
@@ -65,7 +46,7 @@ test_pool_alloc :: proc(t: ^testing.T) {
 test_map :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	context = alloc.init()
+	context = threads.init()
 	m: alloc.Map(string, int) = {}
 
 	alloc.addKey(&m, "a")^ = 1
@@ -89,7 +70,7 @@ test_map :: proc(t: ^testing.T) {
 
 	alloc.delete_map_like(&m)
 
-	alloc.free_all_for_tests()
+	threads.free_all_for_tests()
 	test.end_test()
 }
 
@@ -97,7 +78,7 @@ test_map :: proc(t: ^testing.T) {
 test_set :: proc(t: ^testing.T) {
 	test.start_test(t)
 
-	context = alloc.init()
+	context = threads.init()
 	m: alloc.Set(string) = {}
 
 	alloc.addKey(&m, "a")
@@ -120,6 +101,6 @@ test_set :: proc(t: ^testing.T) {
 	test.expectf(!okC, "m[\"c\"] = %v", okC)
 	alloc.delete_map_like(&m)
 
-	alloc.free_all_for_tests()
+	threads.free_all_for_tests()
 	test.end_test()
 }

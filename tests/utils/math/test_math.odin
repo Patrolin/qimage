@@ -1,6 +1,6 @@
 package test_math
-import "../../utils/math"
-import "../../utils/test"
+import "../../../utils/math"
+import "../../../utils/test"
 import "base:intrinsics"
 import "core:fmt"
 import "core:testing"

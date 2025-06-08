@@ -18,8 +18,8 @@ HALF_FIT_MIN_BLOCK_SIZE :: size_of(HalfFitBlockHeader) + HALF_FIT_MIN_BLOCK_DATA
 		- This way we prevent false sharing.
 		- Also, AVX-512 needs data to be aligned to 64B.
 */
-#assert(HALF_FIT_MIN_BLOCK_SIZE == 2 * CACHE_LINE_SIZE)
-#assert(HALF_FIT_MIN_BLOCK_DATA_SIZE == CACHE_LINE_SIZE)
+#assert((HALF_FIT_MIN_BLOCK_SIZE % CACHE_LINE_SIZE) == 0)
+#assert((HALF_FIT_MIN_BLOCK_DATA_SIZE % CACHE_LINE_SIZE) == 0)
 
 HalfFitAllocator :: struct {
 	lock:               Lock,

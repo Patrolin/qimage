@@ -1,6 +1,6 @@
 package mem_utils
 import "../math"
-import "../os"
+import "base:runtime"
 import "core:fmt"
 import "core:mem"
 import win "core:sys/windows"
@@ -9,13 +9,20 @@ init_page_fault_handler :: proc "contextless" () {
 	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
 }
 _page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
-	//context = thread_context(0)
+	DEBUG :: true
+	when DEBUG {context = runtime.default_context()}
 	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
-		//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
 		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]
 		ptr := pException.ExceptionRecord.ExceptionInformation[1]
-		ptr = win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
-		return ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
+
+		commited_ptr := win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
+		when DEBUG {
+			//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
+			fmt.printfln("EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v", ptr, commited_ptr)
+		}
+
+		ERROR_INVALID_ADDRESS :: 487
+		return ptr != nil && commited_ptr != nil ? win.EXCEPTION_CONTINUE_EXECUTION : win.EXCEPTION_EXECUTE_HANDLER
 	}
 	return win.EXCEPTION_EXECUTE_HANDLER
 }

@@ -6,10 +6,10 @@ import "../../lib/file"
 import "../../lib/gl"
 import "../../lib/input"
 import "../../lib/paint"
-import "../../lib/threads"
 import "../../utils/alloc"
 import "../../utils/math"
 import "../../utils/os"
+import "../../utils/threads"
 import "../../utils/time"
 import "../assets"
 import "base:runtime"
@@ -21,7 +21,7 @@ frame_buffer := paint.FrameBuffer{} // NOTE: copying the frameBuffer is slow (.7
 image: file.Image
 
 main :: proc() {
-	context = alloc.init()
+	context = threads.init()
 	threads.init_thread_pool()
 	event.initEvents({onPaint})
 	input.initInputs()
