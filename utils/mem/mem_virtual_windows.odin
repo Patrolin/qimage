@@ -6,19 +6,19 @@ import "core:mem"
 import win "core:sys/windows"
 
 // procedures
-init_page_fault_handler :: proc "contextless" () {
+init_page_fault_handler :: #force_inline proc "contextless" () {
 	win.SetUnhandledExceptionFilter(_page_fault_exception_handler)
 }
-_page_fault_exception_handler :: proc "system" (pException: ^win.EXCEPTION_POINTERS) -> win.LONG {
+_page_fault_exception_handler :: proc "system" (exception: ^win.EXCEPTION_POINTERS) -> win.LONG {
 	DEBUG :: false
 	when DEBUG {context = runtime.default_context()}
-	if pException.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
-		// is_writing := pException.ExceptionRecord.ExceptionInformation[0]
-		ptr := pException.ExceptionRecord.ExceptionInformation[1]
+	if exception.ExceptionRecord.ExceptionCode == win.EXCEPTION_ACCESS_VIOLATION {
+		// is_writing := exception.ExceptionRecord.ExceptionInformation[0]
+		ptr := exception.ExceptionRecord.ExceptionInformation[1]
 
 		commited_ptr := win.VirtualAlloc(ptr, 4096, win.MEM_COMMIT, win.PAGE_READWRITE)
 		when DEBUG {
-			//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", pException.ExceptionRecord)
+			//fmt.printfln("EXCEPTION_ACCESS_VIOLATION: %v", exception.ExceptionRecord)
 			fmt.printfln("EXCEPTION_ACCESS_VIOLATION, ptr: %v, commited_ptr: %v", ptr, commited_ptr)
 		}
 
