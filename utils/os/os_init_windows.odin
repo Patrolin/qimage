@@ -45,7 +45,7 @@ init :: #force_inline proc "contextless" () -> runtime.Context {
 	info.logical_core_count = int(system_info.dwNumberOfProcessors) // NOTE: this cannot go above 64
 	// window_border
 	window_border: win.RECT
-	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, win.FALSE, 0)
+	win.AdjustWindowRectEx(&window_border, win.WS_OVERLAPPEDWINDOW, false, 0)
 	info.window_border = {-window_border.left, -window_border.top, window_border.right, window_border.bottom}
 
 	return ctx

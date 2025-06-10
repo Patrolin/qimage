@@ -8,8 +8,8 @@ import "core:mem"
 ArenaAllocator :: struct {
 	buffer: []byte `fmt:"%p"`,
 	next:   int,
-	/* we will assume single threaded */
-	lock:   Lock, // nocheckin
+	/* we will assume single threaded, this is just here to catch bugs */
+	lock:   Lock,
 }
 arena_allocator :: proc(buffer: []byte) -> ArenaAllocator {
 	return ArenaAllocator{buffer, 0, false}
@@ -29,10 +29,13 @@ arena_allocator_proc :: proc(
 ) {
 	DEBUG :: false
 	when DEBUG {fmt.printfln("mode: %v, size: %v, loc: %v", mode, size, loc)}
+
+	// !TODO: turn this into assert_single_threaded(lock: ^Lock)?
 	arena_allocator := (^ArenaAllocator)(allocator)
-	assert(intrinsics.volatile_load(&arena_allocator.lock) == false, loc = loc)
+	assert(arena_allocator.lock == false, loc = loc)
 	get_lock(&arena_allocator.lock)
 	defer release_lock(&arena_allocator.lock)
+
 	#partial switch mode {
 	case .Alloc, .Alloc_Non_Zeroed:
 		ptr := arena_alloc(arena_allocator, size)

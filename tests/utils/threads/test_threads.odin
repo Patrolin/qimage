@@ -9,10 +9,11 @@ import "core:testing"
 import "core:time"
 
 @(test)
-tests_workQueue :: proc(t: ^testing.T) {
+tests_work_queue :: proc(t: ^testing.T) {
 	test.start_test(t)
 	test.set_fail_timeout(time.Second)
 	context = threads.init()
+	threads.init_thread_pool()
 
 	checkWorkQueue :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: checkWorkQueue", context.user_index)

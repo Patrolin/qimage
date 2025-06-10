@@ -3,21 +3,15 @@ import "../math"
 import "../mem"
 import "base:intrinsics"
 import "base:runtime"
+import "core:fmt"
 import win "core:sys/windows"
 
 // types
-OsSemaphore :: distinct win.HANDLE
 OsThreadInfo :: struct #packed {
 	handle: win.HANDLE,
 	id:     u32,
 }
-ThreadInfo :: struct #align(mem.CACHE_LINE_SIZE) {
-	temporary_allocator_data: mem.ArenaAllocator,
-	os_info:                  OsThreadInfo,
-	index:                    u32,
-}
-#assert(size_of(ThreadInfo) <= mem.CACHE_LINE_SIZE)
-#assert((size_of(ThreadInfo) % mem.CACHE_LINE_SIZE) == 0)
+OsSemaphore :: distinct win.HANDLE
 
 // procedures
 launch_os_thread :: proc(

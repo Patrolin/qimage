@@ -1,6 +1,7 @@
 package threads_utils
 import "../mem"
 import "../os"
+import "base:intrinsics"
 import "base:runtime"
 import "core:fmt"
 
@@ -28,6 +29,15 @@ total_thread_count := 1
 
 running_thread_count := 1
 pending_async_files := 0 // TODO: delete this
+
+// types
+ThreadInfo :: struct #align(mem.CACHE_LINE_SIZE) {
+	temporary_allocator_data: mem.ArenaAllocator,
+	os_info:                  OsThreadInfo,
+	index:                    u32,
+}
+#assert(size_of(ThreadInfo) <= mem.CACHE_LINE_SIZE)
+#assert((size_of(ThreadInfo) % mem.CACHE_LINE_SIZE) == 0)
 
 // procedures
 /* NOTE: Odin doesn't like mixing if statements and `context = ...`, however I wasn't able to make a minimal repro case, so here we are.. */

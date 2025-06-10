@@ -4,7 +4,6 @@ import "core:fmt"
 import "core:io"
 import "core:os"
 
-// TODO: somehow these still aren't allocation free?
 // TODO: replace buffered writer switch indirection with regular function calls
 print :: proc(args: ..any, separator := " ", flush := true, newline := true) {
 	buf: [1024]byte
