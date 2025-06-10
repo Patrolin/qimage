@@ -10,7 +10,8 @@ import "base:intrinsics"
 WaitFreeQueueItemType :: [2]u64
 
 // types
-WaitFreeQueueData :: [32]WaitFreeQueueItemType // NOTE: size_of(CircularBufferData) needs to be a power of two..
+/* TODO: make `data` be a custom size */
+WaitFreeQueueData :: [32]WaitFreeQueueItemType // NOTE: size_of(WaitFreeQueueData) needs to be a power of two..
 WaitFreeQueue :: struct {
 	reader: WaitFreeQueueReader,
 	writer: WaitFreeQueueWriter,
