@@ -16,7 +16,6 @@ is_running := false
 // procedures
 main :: proc() {
 	context = threads.init()
-	threads.init_thread_pool()
 	event.initEvents({on_paint})
 	window := event.openWindow("gl_min_renderer", {1200, 800})
 	gl.initOpenGL(window.dc)

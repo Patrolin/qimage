@@ -13,7 +13,7 @@ tests_work_queue :: proc(t: ^testing.T) {
 	test.start_test(t)
 	test.set_fail_timeout(time.Second)
 	context = threads.init()
-	threads.init_thread_pool()
+	threads.init_thread_pool(threads.work_queue_thread_proc)
 
 	checkWorkQueue :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: checkWorkQueue", context.user_index)
@@ -25,7 +25,6 @@ tests_work_queue :: proc(t: ^testing.T) {
 		data := (^int)(data)
 		intrinsics.atomic_add(data, -2)
 	}
-	//thread_infos := initThreads()
 	N := 200
 	checksum := N * 4
 	for i in 0 ..< N {

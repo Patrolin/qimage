@@ -36,7 +36,7 @@ RIM_BACKGROUND :: 1
 onPaint: proc(window: Window) = proc(window: Window) {assert(false)}
 
 // NOTE: this steals the main thread (and blocks while sizing)
-messageHandler :: proc "stdcall" (
+messageHandler :: proc "std" (
 	window_handle: win.HWND,
 	message: win.UINT,
 	wParam: win.WPARAM,

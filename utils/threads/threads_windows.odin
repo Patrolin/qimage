@@ -12,17 +12,11 @@ OsThreadInfo :: struct #packed {
 	id:     u32,
 }
 OsSemaphore :: distinct win.HANDLE
+ThreadProc :: proc "std" (data: rawptr) -> u32
 
 // procedures
-launch_os_thread :: proc(
-	stack_size: math.Size,
-	thread_proc: proc "stdcall" (data: rawptr) -> u32,
-	param: rawptr,
-	increment_thread_count := true,
-) -> (
-	os_thread_info: OsThreadInfo,
-) {
-	if increment_thread_count {intrinsics.atomic_add(&total_thread_count, 1)}
+launch_os_thread :: proc(stack_size: math.Size, thread_proc: ThreadProc, param: rawptr) -> (os_thread_info: OsThreadInfo) {
+	intrinsics.atomic_add(&total_thread_count, 1)
 	os_thread_info.handle = win.CreateThread(nil, uint(stack_size), thread_proc, param, 0, &os_thread_info.id)
 	return
 }

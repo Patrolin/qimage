@@ -23,7 +23,6 @@ image: file.Image
 // procedures
 main :: proc() {
 	context = threads.init()
-	threads.init_thread_pool()
 	event.initEvents({on_paint})
 	input.initInputs()
 	window := event.openWindow("qimage", {1200, 800})
