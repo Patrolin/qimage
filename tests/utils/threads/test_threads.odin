@@ -14,7 +14,7 @@ tests_work_queue :: proc(t: ^testing.T) {
 	test.start_test(t)
 	test.set_fail_timeout(time.Second)
 	threads.init() // NOTE: something about setting our own context breaks the testing.expectf() when we have multiple threads..
-	/* don't start threads yet */
+	/* NOTE: don't start the threads yet */
 
 	// the work
 	work_1 :: proc(data: rawptr) {
