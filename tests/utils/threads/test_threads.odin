@@ -1,3 +1,4 @@
+// odin test tests/utils/threads
 package test_threads_utils
 import "../../../utils/alloc"
 import "../../../utils/os"
@@ -13,8 +14,9 @@ tests_work_queue :: proc(t: ^testing.T) {
 	test.start_test(t)
 	test.set_fail_timeout(time.Second)
 	context = threads.init()
-	threads.init_thread_pool(threads.work_queue_thread_proc)
+	/* don't start threads yet */
 
+	// the work
 	checkWorkQueue :: proc(data: rawptr) {
 		//fmt.printfln("thread %v: checkWorkQueue", context.user_index)
 		data := (^int)(data)
@@ -27,7 +29,18 @@ tests_work_queue :: proc(t: ^testing.T) {
 	}
 	N := 200
 	checksum := N * 4
-	for i in 0 ..< N {
+
+	// artificially fill up queue
+	M :: len(threads.WaitFreeQueueData) / 3
+	for i in 0 ..< M {
+		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue, data = &checksum})
+		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue, data = &checksum})
+		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue2, data = &checksum})
+	}
+
+	// then run normally
+	threads.init_thread_pool(threads.work_queue_thread_proc)
+	for i in M ..< N {
 		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue, data = &checksum})
 		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue, data = &checksum})
 		threads.append_work(&threads.work_queue, threads.Work{procedure = checkWorkQueue2, data = &checksum})

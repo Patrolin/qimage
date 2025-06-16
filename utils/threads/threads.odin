@@ -32,7 +32,7 @@ pending_async_files := 0 // TODO: delete this
 
 // types
 ThreadInfo :: struct #align(mem.CACHE_LINE_SIZE) {
-	temporary_allocator_data: mem.ArenaAllocator,
+	temporary_allocator_data: mem.ArenaAllocator `fmt:"p"`,
 	os_info:                  OsThreadInfo,
 	index:                    u32,
 }
@@ -66,7 +66,7 @@ init :: proc "contextless" (loc := #caller_location) -> runtime.Context {
 free_all_for_tests :: proc "odin" () {
 	delete(thread_infos)
 }
-thread_context :: proc "contextless" (thread_index: int) -> runtime.Context {
+thread_context :: proc "contextless" (thread_index: int, loc := #caller_location) -> runtime.Context {
 	thread_info := &thread_infos[thread_index]
 
 	ctx := os.empty_context()

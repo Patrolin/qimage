@@ -2,6 +2,7 @@ package threads_utils
 import "../math"
 import "../mem"
 import "base:intrinsics"
+import "core:fmt"
 
 /* TODO: use this for both events and work queue
 	- events also need to set `timestamp = time() + MIN_EVENT_DELAY`, so that on the game update thread: `time() >= event.timestamp`
@@ -32,7 +33,13 @@ queue_append_raw :: proc(queue: ^WaitFreeQueue, value_ptr: rawptr) {
 	// get the next slot
 	next_offset := intrinsics.atomic_add(&queue.writer.writing_offset, size_of(WaitFreeQueueItemType))
 	next_ptr := math.ptr_add(&queue.data, next_offset & size_of(WaitFreeQueueData))
-	assert(next_offset - queue.reader.read_offset < size_of(WaitFreeQueueData), "Circular buffer out of space!")
+	fmt.assertf(
+		next_offset - queue.reader.read_offset < size_of(WaitFreeQueueData),
+		"next_offset: %v, read_offset: %v, size_of(WaitFreeQueueData): %v",
+		next_offset,
+		queue.reader.read_offset,
+		size_of(WaitFreeQueueData),
+	)
 	// write into it
 	(^WaitFreeQueueItemType)(next_ptr)^ = (^WaitFreeQueueItemType)(value_ptr)^
 	// mark it as written
