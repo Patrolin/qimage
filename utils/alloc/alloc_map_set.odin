@@ -86,8 +86,8 @@ add_key :: proc {
 	add_key_set,
 }
 get_key :: proc {
-	get_key_map,
-	get_key_set,
+	get_key_or_error_map,
+	get_key_or_error_set,
 }
 remove_key :: proc {
 	remove_key_map,
@@ -108,7 +108,8 @@ add_key_map :: proc(m: ^$M/Map($Key, $Value), key: Key) -> ^Value {
 	new_slot.used = .Used
 	return &new_slot.value
 }
-get_key_map :: proc(m: ^$M/Map($Key, $Value), key: Key) -> (value: ^Value, ok: bool) {
+@(require_results)
+get_key_or_error_map :: proc(m: ^$M/Map($Key, $Value), key: Key) -> (value: ^Value, ok: bool) {
 	slot := get_free_or_used_slot(m.slots, int(m.capacity), key, hash(key))
 	return &slot.value, slot.used == .Used
 }
@@ -140,7 +141,8 @@ add_key_set :: proc(m: ^$M/Set($Key), key: Key) {
 	new_slot.hash = hash0
 	new_slot.used = .Used
 }
-get_key_set :: proc(m: ^$M/Set($Key), key: Key) -> bool {
+@(require_results)
+get_key_or_error_set :: proc(m: ^$M/Set($Key), key: Key) -> (ok: bool) {
 	slot := get_free_or_used_slot(m.slots, int(m.capacity), key, hash(key))
 	return slot.used == .Used
 }

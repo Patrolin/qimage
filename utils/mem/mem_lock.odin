@@ -8,6 +8,7 @@ Lock :: distinct bool
 mfence :: #force_inline proc "contextless" () {
 	intrinsics.atomic_thread_fence(.Seq_Cst)
 }
+@(require_results)
 get_lock_or_error :: #force_inline proc "contextless" (lock: ^Lock) -> (ok: bool) {
 	old_value := intrinsics.atomic_exchange(lock, true)
 	return old_value == false

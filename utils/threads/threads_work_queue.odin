@@ -43,15 +43,17 @@ work_queue_thread_proc :: proc "std" (thread_info: rawptr) -> u32 {
 }
 append_work :: proc(queue: ^WorkQueue, work: Work) {
 	work := work
-	queue_append((^WaitFreeQueue)(queue), &work)
+	ok := queue_append_or_error((^WaitFreeQueue)(queue), &work)
+	if !ok {work.procedure(work.data)}
 	_resume_thread()
 }
 do_next_work :: proc(queue: ^WorkQueue) -> (_continue: bool) {
 	work: Work
-	ok := queue_read((^WaitFreeQueue)(queue), &work)
+	ok := queue_read_or_error((^WaitFreeQueue)(queue), &work)
 	if ok {work.procedure(work.data)}
 	return ok
 }
+// make sure that all queued work has started running
 join_queue :: #force_inline proc(queue: ^WorkQueue) {
 	for do_next_work(queue) {
 		//fmt.printfln("queue: %v", queue)

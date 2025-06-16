@@ -20,6 +20,9 @@ launch_os_thread :: proc(stack_size: math.Size, thread_proc: ThreadProc, param: 
 	os_thread_info.handle = win.CreateThread(nil, uint(stack_size), thread_proc, param, 0, &os_thread_info.id)
 	return
 }
+stop_os_thread :: proc(thread_info: ThreadInfo) {
+	assert(win.TerminateThread(thread_info.os_info.handle, 0) != false)
+}
 _create_semaphore :: proc(max_count: i32) -> OsSemaphore {
 	return OsSemaphore(win.CreateSemaphoreW(nil, 0, max_count, nil))
 }

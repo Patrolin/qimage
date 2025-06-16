@@ -24,6 +24,12 @@ start_test :: proc(t: ^testing.T) {
 set_fail_timeout :: proc(duration: time.Duration) {
 	testing.set_fail_timeout(test_context.t, duration)
 }
+fail_now :: #force_inline proc(format: string, args: ..any, loc := #caller_location) {
+	// TODO: delete this?
+	sb := strings.builder_make()
+	msg := fmt.sbprintf(&sb, format, ..args)
+	testing.fail_now(test_context.t, msg, loc = loc)
+}
 expect :: #force_inline proc(condition: bool, message := "", loc := #caller_location) {
 	when ODIN_TEST {
 		testing.expect(test_context.t, condition, message, loc = loc)
