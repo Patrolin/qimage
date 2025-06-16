@@ -38,8 +38,7 @@ queue_append_or_error_raw :: proc(queue: ^WaitFreeQueue, value_ptr: rawptr) -> (
 		if offset_to_write - read_offset >= size_of(WaitFreeQueueData) {return}
 
 		next_offset_to_write := offset_to_write + size_of(WaitFreeQueueItemType)
-		// TODO: use atomic_compare_exchange_weak()
-		_, ok = intrinsics.atomic_compare_exchange_strong(&queue.writer.writing_offset, offset_to_write, next_offset_to_write)
+		_, ok = intrinsics.atomic_compare_exchange_weak(&queue.writer.writing_offset, offset_to_write, next_offset_to_write)
 		if ok {break}
 	}
 	// write into it
@@ -54,7 +53,7 @@ queue_append_or_error_raw :: proc(queue: ^WaitFreeQueue, value_ptr: rawptr) -> (
 		written_offset := intrinsics.atomic_load_explicit(&queue.writer.written_offset, .Seq_Cst)
 		writing_offset := intrinsics.atomic_load_explicit(&queue.writer.writing_offset, .Seq_Cst)
 		if written_offset != writing_offset || written_offset - readable_offset <= 0 {return}
-		readable_offset, commit_ok = intrinsics.atomic_compare_exchange_strong(&queue.writer.readable_offset, readable_offset, written_offset)
+		readable_offset, commit_ok = intrinsics.atomic_compare_exchange_weak(&queue.writer.readable_offset, readable_offset, written_offset)
 		if commit_ok {return}
 	}
 }
@@ -74,7 +73,7 @@ queue_read_or_error_raw :: proc(queue: ^WaitFreeQueue, value: ^WaitFreeQueueItem
 		readable_offset := intrinsics.atomic_load_explicit(&queue.writer.readable_offset, .Seq_Cst)
 		if offset_to_read >= readable_offset {return}
 		next_offset_to_read := offset_to_read + size_of(WaitFreeQueueItemType)
-		_, ok = intrinsics.atomic_compare_exchange_strong(&queue.reader.read_offset, offset_to_read, next_offset_to_read)
+		_, ok = intrinsics.atomic_compare_exchange_weak(&queue.reader.read_offset, offset_to_read, next_offset_to_read)
 		if ok {return}
 	}
 }
