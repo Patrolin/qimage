@@ -30,7 +30,7 @@ WaitFreeQueueWriter :: struct #align(mem.CACHE_LINE_SIZE) {
 // procedures
 @(require_results, private)
 queue_append_or_error_raw :: proc(queue: ^WaitFreeQueue, value_ptr: rawptr) -> (ok: bool) {
-	// get the next slot
+	// get the next slot or error
 	offset_to_write: int
 	for {
 		read_offset := intrinsics.atomic_load_explicit(&queue.reader.read_offset, .Seq_Cst)
@@ -52,7 +52,7 @@ queue_append_or_error_raw :: proc(queue: ^WaitFreeQueue, value_ptr: rawptr) -> (
 	for {
 		written_offset := intrinsics.atomic_load_explicit(&queue.writer.written_offset, .Seq_Cst)
 		writing_offset := intrinsics.atomic_load_explicit(&queue.writer.writing_offset, .Seq_Cst)
-		if written_offset != writing_offset || written_offset - readable_offset <= 0 {return}
+		if written_offset != writing_offset {return}
 		readable_offset, commit_ok = intrinsics.atomic_compare_exchange_weak(&queue.writer.readable_offset, readable_offset, written_offset)
 		if commit_ok {return}
 	}
