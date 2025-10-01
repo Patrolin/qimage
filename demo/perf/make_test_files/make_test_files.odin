@@ -7,6 +7,7 @@ import "core:strings"
 
 main :: proc() {
 	// a 1 GB file
+	os.make_directory(utils.TEST_FILE_PATH)
 	file, errno := os.open(utils.sbprint_file_path("%v/1gb_file.txt", utils.TEST_FILE_PATH), os.O_CREATE)
 	assert(errno == nil)
 	string_to_write := strings.repeat("aaaabbb\n", 512)
