@@ -71,9 +71,17 @@ FileInfo :: struct {
 	id:   u32,
 	size: i64,
 }
-open_file_for_reading :: proc(file_path: [^]u16) -> (handle: win.HANDLE) {
-	handle = win.CreateFileW(file_path, win.GENERIC_READ, win.FILE_SHARE_READ, nil, win.OPEN_EXISTING, win.FILE_ATTRIBUTE_NORMAL, nil)
-	fmt.assertf(win.GetLastError() == 0, "Failed to open file: %v", file_path)
+open_file_for_reading :: proc(file_path: win.wstring) -> (handle: win.HANDLE) {
+	handle = win.CreateFileW(
+		cstring16(file_path),
+		win.GENERIC_READ,
+		win.FILE_SHARE_READ,
+		nil,
+		win.OPEN_EXISTING,
+		win.FILE_ATTRIBUTE_NORMAL,
+		nil,
+	)
+	fmt.assertf(handle != win.INVALID_HANDLE, "Failed to open file: %v", file_path)
 	return
 }
 read_files_asynchronously :: proc(
@@ -104,7 +112,7 @@ read_files_asynchronously :: proc(
 				user_data,
 				ioringapi.IORING_SQE_FLAGS.NONE,
 			)
-			fmt.assertf(error == 0, "error: %v")
+			fmt.assertf(error == 0, "error: %v", error)
 		}
 		utils.log_time(thread_data.log, "thread 1: BuildIoRingReadFile(IORING_REF_REGISTERED(i), IORING_REF_REGISTERED(i))")
 		ioringapi.SubmitIoRing(thread_data.ioring, 0, 0, nil)
