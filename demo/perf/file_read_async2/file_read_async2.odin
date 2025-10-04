@@ -101,8 +101,8 @@ read_files_async :: proc(log: ^utils.TimingLog, ioring: Ioring, file_infos: []Fi
 			result := win.ReadFile(file_info.handle, raw_data(file_info.buffer), u32(len(file_info.buffer)), nil, &file_info.overlapped)
 			err := win.GetLastError()
 			fmt.assertf(result == true || err == win.ERROR_IO_PENDING, "err: %v", err)
+			utils.log_timef(thread_data.log, "thread 1: ReadFile(%v, &file_info.overlapped)", file_info.index)
 		}
-		utils.log_time(thread_data.log, "thread 1: ReadFile(..., &file_info.overlapped)")
 	}
 	second_thread := thread.create_and_start_with_data(&thread_data, thread_proc)
 	completions := 0
@@ -116,7 +116,7 @@ read_files_async :: proc(log: ^utils.TimingLog, ioring: Ioring, file_infos: []Fi
 		file_info := (^FileInfo)(overlapped)
 		buffer := file_info.buffer
 		fmt.assertf(string(buffer[:8]) == "aaaabbb\n", "%v", buffer[:8])
-		utils.log_timef(log, "thread 0: read file %v", file_info.index)
+		utils.log_timef(log, "thread 0: finished reading file %v", file_info.index)
 		fmt.assertf(file_info.index == file_infos[0].index + completions, "Out of order reads!")
 		completions += 1
 	}
